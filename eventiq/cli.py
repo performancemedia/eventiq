@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import typer
-from typing_extensions import Literal
 
 from eventiq.logger import setup_logging
 

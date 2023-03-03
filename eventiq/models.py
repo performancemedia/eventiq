@@ -1,10 +1,9 @@
 from datetime import datetime
-from typing import Any, Dict, Generic, Optional
+from typing import Any, Dict, Generic, Literal, Optional
 
 from pydantic import Extra, Field
 from pydantic.fields import ModelField, PrivateAttr
 from pydantic.generics import GenericModel
-from typing_extensions import Literal
 
 from .types import D, RawMessage
 from .utils import str_uuid

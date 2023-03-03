@@ -4,9 +4,9 @@ import json
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
+from typing import Literal
 
 from pydantic.schema import schema as all_schemas
-from typing_extensions import Literal
 
 from eventiq.asyncapi.models import (
     AsyncAPI,

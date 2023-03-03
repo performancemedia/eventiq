@@ -6,12 +6,12 @@ from typing import (
     Awaitable,
     Callable,
     Optional,
+    Protocol,
     Type,
+    TypedDict,
     TypeVar,
     Union,
 )
-
-from typing_extensions import Protocol, TypedDict
 
 if TYPE_CHECKING:
     from eventiq import CloudEvent, GenericConsumer
