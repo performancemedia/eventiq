@@ -1,6 +1,7 @@
 from contextvars import ContextVar
-from typing import TypedDict
 from uuid import UUID
+
+from typing_extensions import TypedDict
 
 
 class Ctx(TypedDict, total=False):
