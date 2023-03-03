@@ -1,0 +1,58 @@
+version: '3'
+
+vars:
+  DIR: ./eventiq
+
+tasks:
+  test:
+    desc: Run pytest
+    cmds:
+      - poetry run pytest -v
+  cov:
+    desc: Generate coverage report
+    cmds:
+      - poetry run pytest --junitxml=report.xml && coverage html
+
+  lint:
+    desc: Run black & flake8
+    cmds:
+      - poetry run black {{.DIR}}
+      - poetry run flake8 {{.DIR}}
+
+  version:
+    desc: Print current version
+    cmds:
+      - poetry run semantic-release print-version --current
+
+  patch:
+    desc: Bump patch version
+    cmds:
+      - poetry run semantic-release version --patch
+
+  minor:
+    desc: Bump minor version
+    cmds:
+      - poetry run semantic-release version --minor
+
+  docs:
+    desc: Build docs
+    cmds:
+      - mkdocs build
+
+  package:
+    desc: Build package. Similar to python setup.py build
+    cmds:
+      - poetry build
+  run:
+    desc: Run broker (task run -- nats)
+    cmds:
+      - docker-compose up -d --force-recreate --remove-orphans {{.CLI_ARGS}}
+  clean:
+    desc: Remove build/cache files
+    cmds:
+      - rm -rf build/ dist/ .eggs/ *.egg-info/ .mypy_cache/ .pytest_cache/ ./htmlcov report.xml .coverage
+
+  release:
+    desc: Upload package artifacts
+    cmds:
+      - poetry run twine upload --repository-url {{.REPOSITORY_URL}} dist/*
