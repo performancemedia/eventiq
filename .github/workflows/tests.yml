@@ -1,0 +1,40 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    name: lint
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - run: sudo apt-get update && sudo apt-get install -y curl
+      - run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python3 -
+      - run: poetry install -E all
+      - run: poetry run flake8 ./eventiq
+      - run: poetry run black --check ./eventiq
+      - run: poetry run mypy ./eventiq
+
+  build-unix:
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os: ["ubuntu-20.04"]
+        python: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
+    runs-on: ${{ matrix.os }}
+    name: test on ${{ matrix.python }} - ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y gcc curl
+      - run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python3 -
+      - run: poetry install -E all
+      - run: poetry run pytest --cov=./eventiq --cov-report=xml -v ./tests
+#      - name: upload codecov
+#        if: matrix.python == 3.9
+#        run: bash <(curl -s https://codecov.io/bash)
