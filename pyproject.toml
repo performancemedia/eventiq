@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eventiq"
-version = "0.0.1"
+version = "0.1.0"
 description = "Cloud native framework for building event driven applications in Python."
 authors = ["Radzim Kowalow <radzim.kowalow@performance-media.pl>"]
 readme = "README.md"
@@ -120,7 +120,7 @@ version_variable = [
 ]
 version_toml = 'pyproject.toml:tool.poetry.version'
 version_pattern = [
-    'docs/index.md:Version (\d+\.\d+\.\d+)',
+    'docs/index.md:Version: (\d+\.\d+\.\d+)',
     'README.md:Version: (\d+\.\d+\.\d+)'
 ]
 upload_to_repository = false

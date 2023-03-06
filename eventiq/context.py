@@ -1,4 +1,4 @@
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, Dict
 
-context: ContextVar[dict[str, Any]] = ContextVar("context", default={})
+context: ContextVar[Dict[str, Any]] = ContextVar("context", default={})
