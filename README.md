@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./docs/assets/logo.svg" style="width: 250px">
+<img src="https://performancemedia.github.io/eventiq/assets/logo.svg" style="width: 250px">
 
 </p>
 <p align="center">
