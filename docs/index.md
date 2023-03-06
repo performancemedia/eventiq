@@ -1,6 +1,6 @@
 
 <p align="center">
-<img src="/assets/logo.svg" style="width: 250px">
+<img src="./assets/logo.svg" style="width: 250px">
 </p>
 
 ## Welcome to eventiq documentation

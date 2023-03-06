@@ -1,8 +1,8 @@
 site_name: "Eventiq"
 site_description: Cloud native framework for building event driven applications in Python.
 theme:
-  favicon: "/assets/favicon.svg"
-  logo: "/assets/favicon.svg"
+  favicon: "./assets/favicon.svg"
+  logo: "./assets/favicon.svg"
   name: "material"
   palette:
   - scheme: default
