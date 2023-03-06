@@ -34,7 +34,7 @@ Service can be run as standalone processes, or included into starlette (e.g. Fas
 ## Installation
 
 ```shell
-pip install asvc
+pip install eventiq
 ```
 
 ## Multiple broker support (in progress)
@@ -70,8 +70,8 @@ do not support `asyncio`. This is why this project was born.
 
 ```python
 import asyncio
-from asvc import Service, CloudEvent, Middleware
-from asvc.backends.nats.broker import JetStreamBroker
+from eventiq import Service, CloudEvent, Middleware
+from eventiq.backends.nats.broker import JetStreamBroker
 
 
 class SendMessageMiddleware(Middleware):
