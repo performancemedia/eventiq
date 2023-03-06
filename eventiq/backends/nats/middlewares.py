@@ -17,14 +17,21 @@ if TYPE_CHECKING:
 
 
 class NatsJetStreamResultMiddleware(Middleware):
-    def __init__(self, bucket: str, encoder: Encoder | None = None, **options: Any):
+    def __init__(
+        self,
+        bucket: str,
+        encoder: Encoder | None = None,
+        store_exceptions: bool = False,
+        **kv_options: Any,
+    ):
         self.bucket = bucket
+        self.store_exceptions = store_exceptions
         if encoder is None:
             from eventiq.encoders import get_default_encoder
 
             encoder = get_default_encoder()
         self.encoder = encoder
-        self.options = options
+        self.options = kv_options
         self._kv = None
 
     @property
@@ -69,6 +76,13 @@ class NatsJetStreamResultMiddleware(Middleware):
         exc: Exception | None = None,
     ):
         """Store message result in JetStream K/V Store"""
-        if exc is None and consumer.options.get("store_results"):
-            data = self.encoder.encode(result)
-            await self.kv.put(f"{consumer.name}:{message.id}", data)
+        if consumer.options.get("store_results"):
+            if exc is None:
+
+                data = self.encoder.encode(result)
+                await self.kv.put(f"{consumer.name}:{message.id}", data)
+            elif exc and self.store_exceptions:
+                data = self.encoder.encode(
+                    {"type": type(exc).__name__, "detail": str(exc)}
+                )
+                await self.kv.put(f"{consumer.name}:{message.id}", data)

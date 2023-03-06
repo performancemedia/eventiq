@@ -4,7 +4,6 @@ import json
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
-from typing import Literal
 
 from pydantic.schema import schema as all_schemas
 
@@ -76,9 +75,7 @@ def get_async_api_spec(service: Service) -> AsyncAPI:
     return doc_model
 
 
-def save_async_api_to_file(
-    spec: AsyncAPI, path: Path, fmt: Literal["json", "yaml"]
-) -> None:
+def save_async_api_to_file(spec: AsyncAPI, path: Path, fmt: str) -> None:
     dump = json.dump
     if fmt == "yaml":
         import yaml

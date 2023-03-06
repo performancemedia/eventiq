@@ -100,7 +100,7 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         body = self.encoder.encode(message.data)
         headers = kwargs.pop("headers", {})
         headers.setdefault("X-Trace-ID", str(message.trace_id))
-        headers.setdefault("version", "1.0")
+        headers.setdefault("specversion", message.specversion)
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
         msg = aio_pika.Message(
             headers=headers,
@@ -138,7 +138,7 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
             data=self.encoder.decode(message.body),
             source=message.app_id,
             content_type=message.content_type,
-            version=message.headers.get("version", "1.0"),
+            version=message.headers.get("specversion"),
             time=message.timestamp,
             topic=message.routing_key,
         )

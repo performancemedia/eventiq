@@ -5,12 +5,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Generic, get_type_hints
 
-from eventiq.logger import get_logger
-from eventiq.types import FT, MessageHandlerT, T
-from eventiq.utils.functools import run_async
+from .defaults import DEFAULT_CONSUMER_TIME_LIMIT
+from .logger import get_logger
+from .types import FT, MessageHandlerT, T
+from .utils.functools import run_async
 
 
-@dataclass
+@dataclass(frozen=True)
 class ForwardResponse:
     topic: str
     as_type: str = "CloudEvent"
@@ -26,7 +27,7 @@ class Consumer(ABC, Generic[T]):
         *,
         topic: str,
         name: str,
-        timeout: int = 120,
+        timeout: int = DEFAULT_CONSUMER_TIME_LIMIT,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         **options: Any,
@@ -37,7 +38,7 @@ class Consumer(ABC, Generic[T]):
         self.dynamic = dynamic
         self.forward_response = forward_response
         self.options: dict[str, Any] = options
-        self.logger = get_logger(__name__, self._name)
+        self.logger = get_logger(__name__, name)
 
     def validate_message(self, message: Any) -> T:
         return self.event_type.parse_obj(message)
@@ -61,8 +62,8 @@ class FnConsumer(Consumer[T]):
         self,
         *,
         topic: str,
-        name: str,
         fn: FT,
+        name: str | None = None,
         **options: Any,
     ) -> None:
         super().__init__(name=name or fn.__name__, topic=topic, **options)
@@ -74,9 +75,9 @@ class FnConsumer(Consumer[T]):
         self.fn = fn
 
     async def process(self, message: T) -> Any | None:
-        self.logger.info(f"Processing message {message.id}")
+        self.logger.info("Processing message <%s>", message.type)
         result = await self.fn(message)
-        self.logger.info(f"Finished processing {message.id}")
+        self.logger.info("Finished processing <%s>", message.type)
         return result
 
     @property
@@ -87,9 +88,9 @@ class FnConsumer(Consumer[T]):
 class GenericConsumer(Consumer[T], ABC):
     name: str
 
-    def __init__(self, *, name: str, topic: str, **options: Any):
+    def __init__(self, *, topic: str, name: str | None = None, **options: Any):
 
-        super().__init__(name=name or type(self).name, topic=topic, **options)
+        super().__init__(name=name or type(self).__name__, topic=topic, **options)
 
     def __init_subclass__(cls, **kwargs):
         if "abstract" not in kwargs:
@@ -122,23 +123,22 @@ class ConsumerGroup:
         timeout: int = 120,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
-        cls=FnConsumer,
         **options,
     ):
         def wrapper(func_or_cls: MessageHandlerT) -> MessageHandlerT:
-            nonlocal cls
-
-            if callable(func_or_cls):
-                options["fn"] = func_or_cls
-
-            elif issubclass(func_or_cls, GenericConsumer):
+            cls: type[Consumer] = FnConsumer
+            if isinstance(func_or_cls, type) and issubclass(
+                func_or_cls, GenericConsumer
+            ):
                 cls = func_or_cls
+            elif callable(func_or_cls):
+                options["fn"] = func_or_cls
             else:
                 raise TypeError("Expected function or GenericConsumer")
 
             consumer = cls(
                 topic=topic,
-                name=name,
+                name=name,  # type: ignore
                 timeout=timeout,
                 dynamic=dynamic,
                 forward_response=forward_response,

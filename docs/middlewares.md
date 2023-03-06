@@ -1,5 +1,3 @@
-# Middlewares
-
 
 ## Available middlewares
 

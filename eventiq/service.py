@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any, Callable
 
-from .consumer import ConsumerGroup, FnConsumer, ForwardResponse
+from .consumer import ConsumerGroup, ForwardResponse
+from .defaults import DEFAULT_CONSUMER_TIME_LIMIT
 from .logger import LoggerMixin
 from .models import CloudEvent
 from .utils import generate_instance_id
@@ -18,12 +19,12 @@ class Service(LoggerMixin):
 
     def __init__(
         self,
-        broker: Broker,
         name: str,
+        broker: Broker,
         title: str | None = None,
-        version: str = "1.0",
+        version: str = "0.1.0",
         description: str = "",
-        tags_metadata: list[TagMeta] = None,
+        tags_metadata: list[TagMeta] | None = None,
         instance_id_generator: Callable[[], str] = generate_instance_id,
     ):
         self.broker = broker
@@ -34,16 +35,16 @@ class Service(LoggerMixin):
         self.tags_metadata = tags_metadata or []
         self.id = instance_id_generator()
         self.consumer_group = ConsumerGroup()
+        self._tasks: list[asyncio.Task] = []
 
     def subscribe(
         self,
         topic: str,
         *,
         name: str | None = None,
-        timeout: int = 120,
+        timeout: int = DEFAULT_CONSUMER_TIME_LIMIT,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
-        cls=FnConsumer,
         **options,
     ):
         return self.consumer_group.subscribe(
@@ -52,7 +53,6 @@ class Service(LoggerMixin):
             timeout=timeout,
             dynamic=dynamic,
             forward_response=forward_response,
-            cls=cls,
             **options,
         )
 
@@ -81,12 +81,16 @@ class Service(LoggerMixin):
     async def start(self):
         await self.broker.dispatch_before("service_start", self)
         await self.broker.connect()
-        for consumer in self.consumers.values():
+        self._tasks = [
             asyncio.create_task(self.broker.start_consumer(self, consumer))
+            for consumer in self.consumers.values()
+        ]
         await self.broker.dispatch_after("service_start", self)
 
     async def stop(self, *args, **kwargs):
         await self.broker.dispatch_before("service_stop", self)
+        [t.cancel() for t in self._tasks]
+        await asyncio.gather(*self._tasks, return_exceptions=True)
         await self.broker.disconnect()
         await self.broker.dispatch_after("service_stop", self)
 
@@ -95,7 +99,3 @@ class Service(LoggerMixin):
 
         runner = ServiceRunner([self])
         runner.run(*args, **kwargs)
-
-    @classmethod
-    def from_settings(cls, settings, **kwargs):
-        return cls(**settings.dict(), **kwargs)

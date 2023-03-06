@@ -7,20 +7,20 @@ or
 poetry install eventiq
 ```
 
-### Installing optional dependencies:
+### Installing optional dependencies
 
 ```shell
 pip install eventiq[extension]
 ```
 
-### Available extensions:
+### Available extensions
 
 Misc:
 
 - `cli`
 - `prometheus`
 
-Brokers:
+Brokers
 
 - `nats`
 - `rabbitmq`
@@ -34,8 +34,14 @@ Encoders:
 - `ormsgpack`
 
 
-### Installing multiple extensions:
+### Installing multiple extensions
 
 ```shell
 pip install eventiq[cli, orjson, nats]
+```
+
+### Installing commons (cli, orjson, prometheus) and broker
+
+```shell
+pip install eventiq[commons, nats]
 ```

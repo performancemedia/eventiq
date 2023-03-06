@@ -51,7 +51,6 @@ class PrometheusMiddleware(Middleware):
         self.server_host = server_host
         self.server_port = server_port
         self.message_start_times: dict[str, int] = {}
-        self.service_name: str | None = None
         self.in_progress = Gauge(
             "messages_in_progress",
             "Total number of messages being processed.",
@@ -95,25 +94,23 @@ class PrometheusMiddleware(Middleware):
             buckets=self.buckets,
         )
 
-    async def before_service_start(self, broker: Broker, service: Service):
-        self.service_name = service.name
-
     async def before_process_message(
-        self, broker: Broker, consumer: Consumer, message: CloudEvent
+        self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ):
-        labels = (consumer.topic, self.service_name, consumer.name)
+        labels = (consumer.topic, service.name, consumer.name)
         self.in_progress.labels(*labels).inc()
         self.message_start_times[message.id] = current_millis()
 
     async def after_process_message(
         self,
         broker: Broker,
+        service: Service,
         consumer: Consumer,
         message: CloudEvent,
         result: Any | None = None,
         exc: Exception | None = None,
-    ):
-        labels = (consumer.topic, self.service_name, consumer.name)
+    ) -> None:
+        labels = (consumer.topic, service.name, consumer.name)
         self.in_progress.labels(*labels).dec()
         self.total_messages.labels(*labels).inc()
         if exc:
@@ -124,16 +121,18 @@ class PrometheusMiddleware(Middleware):
         self.message_durations.labels(*labels).observe(message_duration)
 
     async def after_skip_message(
-        self, broker: Broker, consumer: Consumer, message: CloudEvent
+        self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
-        labels = (consumer.topic, self.service_name, consumer.name)
+        labels = (consumer.topic, service.name, consumer.name)
         self.total_skipped_messages.labels(*labels).inc()
 
     async def after_publish(self, broker: Broker, message: CloudEvent, **kwargs):
         self.total_messages_published.labels(message.topic, message.source).inc()
 
-    async def after_nack(self, broker: Broker, consumer: Consumer, message: RawMessage):
-        labels = (consumer.topic, self.service_name, consumer.name)
+    async def after_nack(
+        self, broker: Broker, service: Service, consumer: Consumer, message: RawMessage
+    ):
+        labels = (consumer.topic, service, consumer.name)
         self.total_rejected_messages.labels(*labels).inc()
 
     async def after_broker_connect(self, broker: Broker):

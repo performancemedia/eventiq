@@ -7,9 +7,7 @@ from eventiq.middleware import Middleware
 from eventiq.utils.functools import run_async
 
 if TYPE_CHECKING:
-    from eventiq.broker import Broker
-    from eventiq.consumer import Consumer
-    from eventiq.models import CloudEvent
+    from eventiq import Broker, CloudEvent, Consumer, Service
 
 
 class ErrorHandlerMiddleware(Middleware):
@@ -22,6 +20,7 @@ class ErrorHandlerMiddleware(Middleware):
     async def after_process_message(
         self,
         broker: Broker,
+        service: Service,
         consumer: Consumer,
         message: CloudEvent,
         result: Any | None = None,

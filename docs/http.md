@@ -6,7 +6,7 @@ to provide basic utilities for adding http/rest utilities to their framework usi
 eventiq allows you to integrate `service` to an existing web app like
 [FastAPI](https://fastapi.tiangolo.com/).
 
-## Example:
+## FastAPI Example
 
 ```python
 from typing import Any
@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse, Response
 from eventiq import Service, CloudEvent
 from eventiq.middlewares import HealthCheckMiddleware
 from eventiq.backends.nats import JetStreamBroker, NatsJetStreamResultMiddleware
-from eventiq.web import include_service
+from eventiq.http import include_service
 
 
 broker = JetStreamBroker(url="nats://localhost:4222")

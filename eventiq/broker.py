@@ -9,7 +9,7 @@ import async_timeout
 from pydantic import ValidationError
 
 from .context import context
-from .exceptions import DecodeError, Reject, Retry, Skip
+from .exceptions import DecodeError, Fail, Skip
 from .logger import LoggerMixin
 from .middleware import Middleware
 from .models import CloudEvent
@@ -94,7 +94,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             try:
                 parsed = self.parse_incoming_message(raw_message)
                 message = consumer.validate_message(parsed)
-                message._raw = raw_message
+                setattr(message, "_raw", raw_message)
                 token = context.set(message.context)
 
             except (DecodeError, ValidationError) as e:
@@ -111,13 +111,11 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             except Skip:
                 self.logger.info(f"Skipped message {message.id}")
                 await self.dispatch_after("skip_message", service, consumer, message)
-                await self.ack(consumer, raw_message)
+                await self.ack(service, consumer, raw_message)
                 return
             try:
                 async with async_timeout.timeout(consumer.timeout):
-                    self.logger.info(
-                        f"Running consumer {consumer.name} with message {message.id}"
-                    )
+                    self.logger.info(f"Running consumer {consumer.name}")
                     result = await consumer.process(message)
                 if consumer.forward_response and result is not None:
                     await self.publish_event(
@@ -131,42 +129,45 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                     )
             # TODO: asyncio.CanceledError handling (?)
             except Exception as e:
+                self.logger.error(f"Exception in {consumer.name} {e}")
                 exc = e
             finally:
-                if isinstance(exc, Reject):
-                    self.logger.warning(
-                        f"Message {message.id} rejected due to {exc.reason}"
-                    )
+                if isinstance(exc, Fail):
+                    self.logger.error(f"Failing message due to {exc}")
+                    await self.ack(service, consumer, raw_message)
+                    return
                 await self.dispatch_after(
                     "process_message", service, consumer, message, result, exc
                 )
-                if exc and isinstance(exc, Retry):
-                    await self.nack(consumer, message, exc.delay)
-                else:
-                    await self.ack(consumer, message)
+                await self.ack(service, consumer, raw_message)
                 context.reset(token)
 
         return handler
 
-    async def ack(self, consumer: Consumer, message: RawMessage) -> None:
-        await self.dispatch_before("ack", consumer, message)
+    async def ack(
+        self, service: Service, consumer: Consumer, message: RawMessage
+    ) -> None:
+        await self.dispatch_before("ack", service, consumer, message)
         await self._ack(message)
-        await self.dispatch_after("ack", consumer, message)
+        await self.dispatch_after("ack", service, consumer, message)
 
     async def nack(
         self,
+        service: Service,
         consumer: Consumer,
         message: RawMessage,
         delay: int | None = None,
     ) -> None:
         await self.dispatch_after(
             "nack",
+            service,
             consumer,
             message,
         )
         await self._nack(message, delay)
         await self.dispatch_after(
             "nack",
+            service,
             consumer,
             message,
         )
@@ -203,9 +204,11 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
         data: Any | None = None,
         type_: type[CloudEvent] | str = "CloudEvent",
         source: str = "",
+        trace_id: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Publish message to broker
+        :param trace_id:
         :param topic: Topic to publish data
         :param data: Message content
         :param type_: Event type, name or class
@@ -224,6 +227,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             topic=topic,
             data=data,
             source=source,
+            trace_id=trace_id,
         )
         await self.publish_event(message, **kwargs)
 
@@ -233,9 +237,10 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
         await self.dispatch_after("consumer_start", service, consumer)
 
     def add_middleware(self, middleware: Middleware) -> None:
-        if not isinstance(middleware, Middleware):
-            raise TypeError(f"Middleware expected, got {type(middleware)}")
         self.middlewares.append(middleware)
+
+    def add_middlewares(self, middlewares: list[Middleware]) -> None:
+        self.middlewares.extend(middlewares)
 
     async def _dispatch(self, full_event: str, *args, **kwargs) -> None:
         for m in self.middlewares:
@@ -259,8 +264,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
         middlewares: list[Middleware] | None = None,
         **kwargs,
     ) -> Broker:
-        settings = Settings()
-        broker_cls: type[Broker] = settings.get_broker_class()
+        broker_cls: type[Broker] = Settings().get_broker_class()
         broker_settings = broker_cls.Settings(
             description=description, middlewares=middlewares, **kwargs
         )

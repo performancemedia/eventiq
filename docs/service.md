@@ -1,5 +1,3 @@
-## Service
-
 `Service` object is the main object in your app. It is a logical group of consumers which it binds to the broker.
 
 ::: eventiq.service.Service

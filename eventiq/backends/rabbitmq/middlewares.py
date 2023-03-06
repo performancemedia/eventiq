@@ -6,7 +6,7 @@ from eventiq.backends.rabbitmq.broker import RabbitmqBroker
 from eventiq.middleware import Middleware
 
 
-class DeadLetterQueue(Middleware):
+class DeadLetterQueueMiddleware(Middleware):
     def __init__(self, dlx_name: str = "dlx") -> None:
         self.dlx_name = dlx_name
         self._dlx_exchange = None

@@ -1,6 +1,8 @@
-site_name: "EventiQ"
+site_name: "Eventiq"
 site_description: Cloud native framework for building event driven applications in Python.
 theme:
+  favicon: "/assets/favicon.svg"
+  logo: "/assets/favicon.svg"
   name: "material"
   palette:
   - scheme: default
@@ -19,20 +21,24 @@ theme:
   - search.suggest
   - search.highlight
   - content.tabs.link
-repo_name: eventiq
+repo_name: performancemedia/eventiq
 repo_url: https://github.com/performancemedia/eventiq
-edit_uri: ''
 nav:
-  - "EventiQ": index.md
+  - "Eventiq": index.md
   - "Installation": installation.md
   - "Features": features.md
   - "Usage": usage.md
   - "Service": service.md
-  - "Backends": backends.md
   - "Consumers": consumers.md
   - "Middlewares": middlewares.md
   - "HTTP": http.md
   - "AsyncAPI": async_api.md
+  - "Reference":
+      - "Backends": reference/backends.md
+      - "Consumers": reference/consumers.md
+      - "Encoders": reference/encoders.md
+      - "Exceptions": reference/exceptions.md
+      - "Middlewares": reference/middlewares.md
 
 markdown_extensions:
   - pymdownx.highlight:

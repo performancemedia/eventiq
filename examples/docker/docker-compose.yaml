@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  nats:
+    image: nats:latest
+    command: "-js"
+    ports:
+      - "4222:4222"
+  service:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      ENCODER_CLASS: eventiq.encoders.orjson:OrjsonEncoder
+      BROKER_CLASS: eventiq.backends.nats:JetstreamBroker
+      BROKER_URL: nats://nats:4222

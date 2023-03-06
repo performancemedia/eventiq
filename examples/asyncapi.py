@@ -18,7 +18,7 @@ class MyData(BaseModel):
     info: str
 
 
-@publishes("test.topic.{sub}")
+@publishes("test.topic")
 class MyEvent(CloudEvent[MyData]):
     """Some custom event"""
 

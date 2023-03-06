@@ -1,11 +1,4 @@
 from contextvars import ContextVar
-from typing import TypedDict
-from uuid import UUID
+from typing import Any, Dict
 
-
-class Ctx(TypedDict, total=False):
-    id: UUID
-    trace_id: UUID
-
-
-context: ContextVar[Ctx] = ContextVar("context", default=Ctx())
+context: ContextVar[Dict[str, Any]] = ContextVar("context", default={})
