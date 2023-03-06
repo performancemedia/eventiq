@@ -1,19 +1,22 @@
+
+<p align="center">
+<img src="/assets/logo.svg" style="width: 250px">
+</p>
+
 ## Welcome to eventiq documentation
 
-![Checks](https://img.shields.io/github/checks-status/performancemedia/eventiq/main)
 ![Tests](https://github.com/performancemedia/eventiq/workflows/CI/badge.svg)
 ![Build](https://github.com/performancemedia/eventiq/workflows/Publish/badge.svg)
-![Code Coverage](https://codecov.io/gh/performancemedia/eventiq/branch/main/graph/badge.svg)
+![Python](https://img.shields.io/pypi/pyversions/eventiq?color=%2334D05)
+![Format](https://img.shields.io/pypi/format/eventiq)
+![PyPi](https://img.shields.io/pypi/v/eventiq?color=%2334D05)
 ![License](https://img.shields.io/github/license/performancemedia/eventiq)
 ![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
-![Python](https://img.shields.io/pypi/pyversions/eventiq)
-![Format](https://img.shields.io/pypi/format/eventiq)
-![PyPi](https://img.shields.io/pypi/v/eventiq)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 *Cloud native, event driven microservice framework for python*
 
-*Note: This package is under active development and is not ready for production use*
+*Note: This package is under active development and is not recommended for production usage*
 
 ---
 Version: 0.0.1
@@ -25,7 +28,7 @@ Repository: [https://github.com/performancemedia/eventiq](https://github.com/per
 ---
 ## About
 
-The package utilizes `pydantic` and `async_timeout` as the only required dependencies.
+The package utilizes `pydantic`, `async_timeout` and `python-json-logger` as the only required dependencies.
 For messages [Cloud Events](https://cloudevents.io/) format is used.
 Service can be run as standalone processes, or included into starlette (e.g. FastAPI) applications.
 
@@ -35,7 +38,7 @@ Service can be run as standalone processes, or included into starlette (e.g. Fas
 pip install eventiq
 ```
 
-## Multiple broker support (in progress)
+## Multiple brokers support
 
 - Stub (in memory using `asyncio.Queue` for PoC, local development and testing)
 - NATS (with JetStream)
@@ -43,10 +46,10 @@ pip install eventiq
 - Kafka
 - Rabbitmq
 - Google Cloud PubSub
-- And more comming
+- *And more coming...*
 
 ## Optional Dependencies
-  - `cli` - `click` and `aiorun`
+  - `cli` - `typer` and `aiorun`
   - broker of choice: `nats`, `kafka`, `rabbitmq`, `redis`, `pubsub`
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`

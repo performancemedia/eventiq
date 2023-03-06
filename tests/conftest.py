@@ -51,14 +51,16 @@ def test_consumer(service, handler):
 
 @pytest.fixture()
 def generic_test_consumer(service) -> Consumer:
-    class TestConsumer(GenericConsumer):
-        name = "test_generic_consumer"
+    generic_consumer_name = "test_generic_consumer"
+
+    @service.subscribe("test_topic")
+    class TestConsumer(GenericConsumer[CloudEvent]):
+        name = generic_consumer_name
 
         async def process(self, message: CloudEvent):
-            assert isinstance(message, CloudEvent)
             return 42
 
-    return service.subscribe("test_topic")(TestConsumer)
+    return service.consumer_group.consumers[generic_consumer_name]
 
 
 @pytest.fixture()

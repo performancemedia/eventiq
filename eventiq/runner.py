@@ -21,7 +21,7 @@ class ServiceRunner:
         )
 
     async def _run(self):
-        await asyncio.gather(s.start for s in self.services)
+        await asyncio.gather(*[s.start() for s in self.services])
 
     async def _stop(self, *args, **kwargs):
-        await asyncio.gather(s.stop for s in self.services)
+        await asyncio.gather(*[s.stop() for s in self.services])

@@ -1,0 +1,3 @@
+import os
+
+DEFAULT_CONSUMER_TIME_LIMIT = int(os.getenv("DEFAULT_CONSUMER_TIME_LIMIT", 240))

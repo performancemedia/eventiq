@@ -31,8 +31,16 @@ async def example_run(message: CloudEvent):
 Run with
 
 ```shell
-eventiq app:service
+eventiq app:service --log-level=info
 ```
+
+
+## Watch changes
+
+```shell
+eventiq watch app:service --log-level=info --directory=.
+```
+
 
 ## Web integration (FastAPI)
 

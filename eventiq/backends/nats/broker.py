@@ -59,8 +59,6 @@ class NatsBroker(Broker[NatsMsg]):
         )
 
     async def _disconnect(self) -> None:
-        await self.nc.flush()
-        await self.nc.drain()
         await self.nc.close()
 
     async def flush(self):

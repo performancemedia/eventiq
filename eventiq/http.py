@@ -42,7 +42,7 @@ def include_service(
 
 
 def add_serve_async_api_endpoint(
-    app: FastAPI, service: Service, endpoint: str = "/asyncapi.json"
+    app: FastAPI, service: Service, endpoint: str = "/docs/asyncapi.json"
 ):
     from .asyncapi.generator import get_async_api_spec
     from .asyncapi.models import AsyncAPI

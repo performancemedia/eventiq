@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 RawMessage = TypeVar("RawMessage")
 
 T = TypeVar("T", bound="CloudEvent")
-D = TypeVar("D", bound=Any)
+D = TypeVar("D")
 
 
 class TagMeta(TypedDict):
@@ -29,13 +29,25 @@ class TagMeta(TypedDict):
 
 
 class Encoder(Protocol):
+    """
+    Encoder object protocol.
+    """
+
     CONTENT_TYPE: str
 
     def encode(self, data: Any) -> bytes:
-        ...
+        """
+        Serialize object to bytes
+        :param data: input value, usually CloudEvent.dict()
+        :return: raw content as bytes
+        """
 
     def decode(self, data: bytes) -> Any:
-        ...
+        """
+        Deserialize bytes to python object
+        :param data: input bytes
+        :return: de-serialized object
+        """
 
 
 FT = Callable[["CloudEvent"], Awaitable[Optional[Any]]]

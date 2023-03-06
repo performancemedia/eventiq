@@ -7,9 +7,7 @@ from eventiq.middleware import Middleware
 from eventiq.utils.datetime import utc_now
 
 if TYPE_CHECKING:
-    from eventiq.broker import Broker
-    from eventiq.consumer import Consumer
-    from eventiq.models import CloudEvent
+    from eventiq import Broker, CloudEvent, Consumer, Service
 
 
 class RetryMiddleware(Middleware):
@@ -32,14 +30,15 @@ class RetryMiddleware(Middleware):
     async def after_process_message(
         self,
         broker: Broker,
+        service: Service,
         consumer: Consumer,
         message: CloudEvent,
         result: Any | None = None,
         exc: Exception | None = None,
     ):
+
         if exc is None:
             return
-
         throws = consumer.options.get("throws")
         if throws and isinstance(exc, throws):
             return
@@ -54,7 +53,8 @@ class RetryMiddleware(Middleware):
             and message_age >= max_age
         ):
             self.logger.error(f"Retry limit exceeded for message {message.id}.")
-            await broker.ack(consumer, message.raw)
+            self.logger.exception("Original exception:", exc_info=exc)
+            await broker.ack(service, consumer, message.raw)
             return
 
         if isinstance(exc, Retry) and exc.delay is not None:
@@ -62,5 +62,5 @@ class RetryMiddleware(Middleware):
         else:
             delay = consumer.options.get("backoff", self.backoff) * message_age
 
-        self.logger.info("Retrying message %r in %d seconds.", message.id, delay)
-        await broker.nack(consumer, message)
+        self.logger.info("Retrying message %d seconds.", delay)
+        await broker.nack(service, consumer, message.raw, delay)

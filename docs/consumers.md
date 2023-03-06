@@ -39,22 +39,3 @@ functionality.
 ## Automatic response forwarding
 If `ForwardResponse` option is set for consumer, then returned value is
 automatically published to the broker.
-
-## Reference
-::: eventiq.consumer.Consumer
-    handler: python
-    options:
-      members:
-        - __init__
-        - process
-      show_root_heading: true
-      show_source: false
-
-::: eventiq.consumer.GenericConsumer
-    handler: python
-    options:
-      members:
-        - __init__
-        - process
-      show_root_heading: true
-      show_source: false

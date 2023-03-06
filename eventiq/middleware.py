@@ -48,6 +48,7 @@ class Middleware(LoggerMixin):
     async def before_ack(
         self,
         broker: Broker,
+        service: Service,
         consumer: Consumer,
         message: RawMessage,
     ) -> None:
@@ -56,18 +57,19 @@ class Middleware(LoggerMixin):
     async def after_ack(
         self,
         broker: Broker,
+        service: Service,
         consumer: Consumer,
         message: RawMessage,
     ) -> None:
         """Called after message is acknowledged"""
 
     async def before_nack(
-        self, broker: Broker, consumer: Consumer, message: RawMessage
+        self, broker: Broker, service: Service, consumer: Consumer, message: RawMessage
     ) -> None:
         """Called before message is rejected"""
 
     async def after_nack(
-        self, broker: Broker, consumer: Consumer, message: RawMessage
+        self, broker: Broker, service: Service, consumer: Consumer, message: RawMessage
     ) -> None:
         """Called after message is rejected"""
 
@@ -82,18 +84,19 @@ class Middleware(LoggerMixin):
         """Called after message is published"""
 
     async def after_skip_message(
-        self, broker: Broker, consumer: Consumer, message: CloudEvent
+        self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
         """Called after message is skipped by the middleware"""
 
     async def before_process_message(
-        self, broker: Broker, consumer: Consumer, message: CloudEvent
+        self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
         """Called before message is processed"""
 
     async def after_process_message(
         self,
         broker: Broker,
+        service: Service,
         consumer: Consumer,
         message: CloudEvent,
         result: Any | None = None,

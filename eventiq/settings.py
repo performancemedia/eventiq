@@ -16,10 +16,10 @@ class Settings(BaseSettings):
 
 class BrokerSettings(BaseSettings):
     description: Optional[str] = None
-    middlewares: Optional[List["Middleware"]] = None
+    middlewares: Optional[List[Middleware]] = None
     encoder: Optional[Any] = Field(None, env="BROKER_ENCODER_CLASS")
 
-    @validator("encoder", pre=True)
+    @validator("encoder", pre=True, always=True)
     def resolve_encoder(cls, v):
         if isinstance(v, str):
             v = import_from_string(v)

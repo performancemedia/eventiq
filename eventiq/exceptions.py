@@ -1,32 +1,28 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from eventiq.models import CloudEvent
-
 
 class ConfigurationError(Exception):
-    pass
+    """Raised by framework when invalid configuration is supplied"""
 
 
 class BrokerError(Exception):
-    pass
+    """Base Exception for broker related errors"""
 
 
 class PublishError(BrokerError):
-    pass
+    """Raised when publishing a message fails"""
 
 
-class MessageError(BrokerError):
-    def __init__(self, message: CloudEvent):
-        self.message = message
+class EncoderError(Exception):
+    """Base Encoder error"""
 
 
-class DecodeError(Exception):
-    def __init__(self, data: bytes, error):
-        self.data = data
-        self.error = error
+class EncodeError(EncoderError):
+    """Error encoding message"""
+
+
+class DecodeError(EncoderError):
+    """Error decoding message"""
 
 
 class Skip(Exception):
@@ -37,17 +33,10 @@ class Fail(Exception):
     """Fail message without retrying"""
 
 
-class Reject(Exception):
-    """Reject (nack) message"""
-
-    def __init__(self, reason: str):
-        self.reason = reason
-
-
 class Retry(Exception):
     """
     Utility exception for retrying message.
-    Handling must be implemented in middleware
+    RetryMiddleware must be added
     """
 
     def __init__(self, delay: int | None = None):

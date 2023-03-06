@@ -8,21 +8,19 @@ from eventiq.context import context
 from eventiq.utils.datetime import utc_now
 
 
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
+class ContextAwareJsonFormatter(jsonlogger.JsonFormatter):
     def add_fields(self, log_record, record, message_dict):
         super().add_fields(log_record, record, message_dict)
         log_record.update(**context.get())
-        if not log_record.get("timestamp"):
+        if "timestamp" not in log_record:
             log_record["timestamp"] = utc_now()
-        if log_record.get("level"):
-            log_record["level"] = log_record["level"].upper()
-        else:
-            log_record["level"] = record.levelname
+
+        log_record["level"] = record.levelname.upper()
 
 
-def setup_logging(level):
+def setup_logging(level, fmt: str = "%(name) %(level) %(message)") -> None:
     handler = logging.StreamHandler()
-    handler.setFormatter(CustomJsonFormatter())
+    handler.setFormatter(ContextAwareJsonFormatter(fmt))
     logging.basicConfig(handlers=[handler], level=level)
 
 
