@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./docs/assets/logo.svg" style="width: 250px">
+<img src="https://performancemedia.github.io/eventiq/assets/logo.svg" style="width: 250px">
 
 </p>
 <p align="center">
@@ -18,7 +18,7 @@
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.1.0
+Version: 0.1.1
 
 Documentation: https://performancemedia.github.io/eventiq/
 
@@ -34,7 +34,7 @@ Service can be run as standalone processes, or included into starlette (e.g. Fas
 ## Installation
 
 ```shell
-pip install asvc
+pip install eventiq
 ```
 
 ## Multiple broker support (in progress)
@@ -70,8 +70,8 @@ do not support `asyncio`. This is why this project was born.
 
 ```python
 import asyncio
-from asvc import Service, CloudEvent, Middleware
-from asvc.backends.nats.broker import JetStreamBroker
+from eventiq import Service, CloudEvent, Middleware
+from eventiq.backends.nats.broker import JetStreamBroker
 
 
 class SendMessageMiddleware(Middleware):
