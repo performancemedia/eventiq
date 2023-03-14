@@ -1,14 +1,10 @@
-`Service` object is the main object in your app. It is a logical group of consumers which it binds to the broker.
-
 ::: eventiq.service.Service
     handler: python
     options:
       members:
-        - __init__
         - subscribe
       show_root_heading: true
       show_source: false
-
 
 ## Service Runner
 

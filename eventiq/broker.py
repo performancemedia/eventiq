@@ -15,6 +15,7 @@ from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings, Settings
 from .types import Encoder, RawMessage
+from .utils import str_uuid
 
 if TYPE_CHECKING:
     from eventiq import Consumer, Service
@@ -221,7 +222,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             cls = functools.partial(CloudEvent, type=type_)
         else:
             cls = type_  # type: ignore
-
+        trace_id = trace_id or str_uuid()
         message: CloudEvent = cls(
             content_type=self.encoder.CONTENT_TYPE,
             topic=topic,
@@ -236,11 +237,14 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
         await self._start_consumer(service, consumer)
         await self.dispatch_after("consumer_start", service, consumer)
 
-    def add_middleware(self, middleware: Middleware) -> None:
+    def add_middleware(self, middleware: Middleware | type[Middleware]) -> None:
+        if isinstance(middleware, type):
+            middleware = middleware()
         self.middlewares.append(middleware)
 
-    def add_middlewares(self, middlewares: list[Middleware]) -> None:
-        self.middlewares.extend(middlewares)
+    def add_middlewares(self, middlewares: list[Middleware | type[Middleware]]) -> None:
+        for m in middlewares:
+            self.add_middleware(m)
 
     async def _dispatch(self, full_event: str, *args, **kwargs) -> None:
         for m in self.middlewares:

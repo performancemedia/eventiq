@@ -31,20 +31,15 @@ async def example_run(message: CloudEvent):
 Run with
 
 ```shell
-eventiq app:service --log-level=info
+eventiq run app:service --log-level=info
 ```
 
 
-## Watch changes
+## Watching for changes
 
 ```shell
 eventiq watch app:service --log-level=info --directory=.
 ```
-
-
-## Web integration (FastAPI)
-
-
 
 ## Testing
 
@@ -94,3 +89,23 @@ or dependency injection providers. You have to create `broker`, `service`, and `
 instances by hand and provide all the parameters. However, it's up to user which approach
 to use: config file (yaml/ini), pydantic settings management, constants in code, dependency
 injector library etc.
+
+
+## CLI
+
+Getting help:
+```shell
+eventiq --help
+```
+
+Installing shell autocompletion:
+```shell
+eventiq --install-completion [bash|zsh|fish|powershell|pwsh]
+```
+
+### Basic commands
+
+- `run` - run service or group of services
+- `watch` - run with hot-reload on code changes
+- `verify` - verify service importing
+- `generate-docs` - generate AsyncAPI docs

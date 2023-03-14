@@ -17,8 +17,12 @@
 
 *Note: This package is under active development and is not recommended for production use*
 
+|Version|0.1.1|
+|Documentation|
+|--|---|---|
+
 ---
-Version: 0.1.1
+Version: 0.1.2
 
 Documentation: https://performancemedia.github.io/eventiq/
 
@@ -48,18 +52,17 @@ pip install eventiq
 - And more comming
 
 ## Optional Dependencies
-  - `cli` - `click` and `aiorun`
+  - `cli` - `typer` and `aiorun`
   - broker of choice: `nats`, `kafka`, `rabbitmq`, `redis`, `pubsub`
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
 
 ## Motivation
 
-Python has many "worker-queue" libraries and frameworks, such as:
-    - Celery
-    - Dramatiq
-    - Huey
-    - arq
+- [Celery](https://docs.celeryq.dev/en/stable/getting-started/introduction.html)
+- [Dramatiq](https://dramatiq.io/)
+- [Huey](https://huey.readthedocs.io/en/latest/)
+- [arq](https://arq-docs.helpmanual.io/)
 
 However, those libraries don't provide a pub/sub pattern, useful for creating
 event driven and loosely coupled systems. Furthermore, the majority of those libraries

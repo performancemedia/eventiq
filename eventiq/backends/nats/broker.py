@@ -54,7 +54,7 @@ class NatsBroker(Broker[NatsMsg]):
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         await self.nc.subscribe(
             subject=consumer.topic,
-            queue=consumer.name,
+            queue=f"{service.name}:{consumer.name}",
             cb=self.get_handler(service, consumer),
         )
 

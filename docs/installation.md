@@ -4,13 +4,13 @@ pip install eventiq
 or
 
 ```shell
-poetry install eventiq
+poetry add eventiq
 ```
 
 ### Installing optional dependencies
 
 ```shell
-pip install eventiq[extension]
+pip install 'eventiq[extension]'
 ```
 
 ### Available extensions
@@ -37,11 +37,11 @@ Encoders:
 ### Installing multiple extensions
 
 ```shell
-pip install eventiq[cli, orjson, nats]
+pip install 'eventiq[cli, orjson, nats]'
 ```
 
 ### Installing commons (cli, orjson, prometheus) and broker
 
 ```shell
-pip install eventiq[commons, nats]
+pip install 'eventiq[commons, nats]'
 ```
