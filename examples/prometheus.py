@@ -31,8 +31,3 @@ broker.add_middlewares(
 @service.subscribe("test.topic", prefetch_count=10)
 async def prometheus_consumer(message: CloudEvent):
     logger.info(f"Received Message {message.id} with data: {message.data}")
-    for _ in range(6):
-        logger.info("Sleeping")
-        await asyncio.sleep(10)
-        logger.info("After tick sleep")
-    logger.info("Awake")

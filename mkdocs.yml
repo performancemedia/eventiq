@@ -33,6 +33,12 @@ nav:
   - "Middlewares": middlewares.md
   - "HTTP": http.md
   - "AsyncAPI": async_api.md
+  - "Examples":
+      - "Basic": examples/base.md
+      - "AsyncAPI": examples/asyncapi.md
+      - "Generic Consumer": examples/generic_consumer.md
+      - "Prometheus": examples/prometheus.md
+      - "Fast API": examples/web.md
   - "Reference":
       - "Backends": reference/backends.md
       - "Consumers": reference/consumers.md

@@ -47,7 +47,7 @@ def watch(
     )
 
 
-@cli.command()
+@cli.command(help="Verify service configuration and imports without runnning the app")
 def verify(service: str = typer.Argument(...)) -> None:
     typer.echo(f"Verifying service [{service}]...")
     s = import_from_string(service)
@@ -57,11 +57,16 @@ def verify(service: str = typer.Argument(...)) -> None:
     typer.secho("OK", fg="green")
 
 
-@cli.command()
+@cli.command(help="Generate AsyncAPI documentation from service")
 def generate_docs(
-    service: str = typer.Argument(...),
-    out: Path = typer.Option("./asyncapi.json"),
-    format: str = typer.Option("json"),
+    service: str = typer.Argument(
+        ...,
+        help="Global service object to import in format {package}.{module}:{service_object}",
+    ),
+    out: Path = typer.Option("./asyncapi.json", help="Output file path"),
+    format: str = typer.Option(
+        "json", help="Output format. Valid options are 'yaml' and 'json'(default)"
+    ),
 ):
     from .asyncapi.generator import get_async_api_spec, save_async_api_to_file
 
