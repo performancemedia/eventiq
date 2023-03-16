@@ -35,6 +35,7 @@ class Service(LoggerMixin):
         self.tags_metadata = tags_metadata or []
         self.id = instance_id_generator()
         self.consumer_group = ConsumerGroup()
+        # TODO: task gathering?
         self._tasks: list[asyncio.Task] = []
 
     def subscribe(
@@ -81,16 +82,12 @@ class Service(LoggerMixin):
     async def start(self):
         await self.broker.dispatch_before("service_start", self)
         await self.broker.connect()
-        self._tasks = [
+        for consumer in self.consumers.values():
             asyncio.create_task(self.broker.start_consumer(self, consumer))
-            for consumer in self.consumers.values()
-        ]
         await self.broker.dispatch_after("service_start", self)
 
     async def stop(self, *args, **kwargs):
         await self.broker.dispatch_before("service_stop", self)
-        [t.cancel() for t in self._tasks]
-        await asyncio.gather(*self._tasks, return_exceptions=True)
         await self.broker.disconnect()
         await self.broker.dispatch_after("service_stop", self)
 

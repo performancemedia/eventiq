@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import typer
@@ -12,6 +13,9 @@ from .utils.imports import import_from_string
 cli = typer.Typer()
 
 logger = get_logger(__name__, "cli")
+
+if "." not in sys.path:
+    sys.path.insert(0, ".")
 
 
 @cli.command(help="Run service")
