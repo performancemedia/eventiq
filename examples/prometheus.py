@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from uuid import uuid4
 
 from eventiq import CloudEvent, Middleware, Service
 from eventiq.backends.nats.broker import JetStreamBroker
@@ -15,12 +14,11 @@ logger = logging.getLogger("consumer-logger")
 
 class SendMessageMiddleware(Middleware):
     async def after_service_start(self, broker, service: Service):
-        trace_id = str(uuid4())
         self.logger.info(f"After service start, running with {broker}")
         await asyncio.sleep(5)
         for i in range(3):
-            await service.publish("test.topic", data={"counter": i}, trace_id=trace_id)
-        self.logger.info("Published event(s)", extra={"traceid": trace_id})
+            await service.publish("test.topic", data={"counter": i})
+        self.logger.info("Published event(s)")
 
 
 broker.add_middlewares(

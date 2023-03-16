@@ -222,6 +222,10 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             cls = functools.partial(CloudEvent, type=type_)
         else:
             cls = type_  # type: ignore
+        if trace_id is None:
+            ctx = context.get()
+            trace_id = ctx["trace_id"]
+
         trace_id = trace_id or str_uuid()
         message: CloudEvent = cls(
             content_type=self.encoder.CONTENT_TYPE,

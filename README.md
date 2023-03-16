@@ -22,7 +22,7 @@
 |--|---|---|
 
 ---
-Version: 0.1.2
+Version: 0.1.3
 
 Documentation: https://performancemedia.github.io/eventiq/
 
