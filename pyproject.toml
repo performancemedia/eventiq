@@ -41,8 +41,14 @@ python-json-logger = ">=2.0"
 aiorun = {version = "^2022.11.1", optional = true}
 typer = {version = ">=0.7.0", optional = true}
 
-# misc
+# monitoring
 prometheus-client = {version = ">=0.16.0,<1.0", optional = true}
+opentelemetry-api = {version = "^1.17.0", optional = true}
+opentelemetry-sdk = {version = "^1.17.0", optional = true}
+opentelemetry-semantic-conventions = {version = "^0.38b0", optional = true}
+opentelemetry-instrumentation-logging = {version = "^0.38b0", optional = true}
+opentelemetry-exporter-otlp = {version = "^1.17.0", optional = true}
+
 
 # encoders
 orjson = {version = ">=3.8.7,<4.0", optional = true}
@@ -55,9 +61,10 @@ aiokafka = {version = ">=0.8,<1.0", optional = true}
 aioredis = {version = ">=2.0,<3.0", optional = true}
 gcloud-aio-pubsub = {version = ">=5.2.0,<6.0", optional = true}
 
-
 [tool.poetry.extras]
-all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "aioredis", "aiokafka", "aio-pika", "gcloud-aio-pubsub"]
+all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "aioredis",
+    "aiokafka", "aio-pika", "gcloud-aio-pubsub", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions",
+    "opentelemetry-instrumentation-logging", "opentelemetry-exporter-otlp"]
 commons = ["aiorun", "typer", "prometheus-client", "orjson"]
 cli = ["aiorun", "typer"]
 
@@ -66,6 +73,7 @@ orjson = ["orjson"]
 ormsgpack = ["ormsgpack"]
 # observability
 prometheus = ["prometheus-client"]
+opentelemetry = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "opentelemetry-instrumentation-logging", "opentelemetry-exporter-otlp"]
 
 # backends
 nats = ["nats-py"]
@@ -93,6 +101,7 @@ watchfiles = "^0.18.1"
 python-semantic-release = "^7.33.2"
 mkdocs = "^1.4.2"
 flake8 = "^6.0.0"
+pyyaml = "^6.0"
 
 
 [build-system]
@@ -108,6 +117,7 @@ asyncio_mode = "auto"
 
 [tool.mypy]
 python_version = 3.9
+namespace_packages = true
 ignore_missing_imports = true
 no_site_packages = true
 

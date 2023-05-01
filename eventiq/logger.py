@@ -4,14 +4,12 @@ from typing import Type, Union
 
 from pythonjsonlogger import jsonlogger
 
-from eventiq.context import context
 from eventiq.utils.datetime import utc_now
 
 
-class ContextAwareJsonFormatter(jsonlogger.JsonFormatter):
+class EventiqJsonFormatter(jsonlogger.JsonFormatter):
     def add_fields(self, log_record, record, message_dict):
         super().add_fields(log_record, record, message_dict)
-        log_record.update(**context.get())
         if "timestamp" not in log_record:
             log_record["timestamp"] = utc_now()
 
@@ -20,7 +18,7 @@ class ContextAwareJsonFormatter(jsonlogger.JsonFormatter):
 
 def setup_logging(level, fmt: str = "%(name) %(level) %(message)") -> None:
     handler = logging.StreamHandler()
-    handler.setFormatter(ContextAwareJsonFormatter(fmt))
+    handler.setFormatter(EventiqJsonFormatter(fmt))
     logging.basicConfig(handlers=[handler], level=level)
 
 

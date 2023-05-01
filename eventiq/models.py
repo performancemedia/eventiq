@@ -15,12 +15,13 @@ class CloudEvent(GenericModel, Generic[D]):
     specversion: Optional[str] = "1.0"
     content_type: str = Field("application/json", alias="datacontenttype")
     id: ID = Field(default_factory=str_uuid)
-    trace_id: ID = Field(default_factory=str_uuid, alias="traceid")
+    # trace_id: ID = Field(default_factory=str_uuid, alias="traceid")
     time: datetime = Field(default_factory=utc_now)
     topic: str = Field(..., alias="subject")
     type: Optional[str] = None
     source: Optional[str] = None
     data: Optional[D] = None
+    trace_ctx: dict[str, str] = {}
 
     _raw: Optional[Any] = PrivateAttr()
 
@@ -29,8 +30,9 @@ class CloudEvent(GenericModel, Generic[D]):
             return False
         return self.id == other.id
 
-    def __hash__(self):
-        return hash((self.trace_id, self.id))
+    @property
+    def trace_id(self) -> Optional[str]:
+        return self.trace_ctx.get("traceId")
 
     @validator("type", allow_reuse=True, always=True, pre=True)
     def get_type_from_cls_name(cls, v) -> str:
@@ -42,14 +44,14 @@ class CloudEvent(GenericModel, Generic[D]):
             raise AttributeError("raw property accessible only for incoming messages")
         return self._raw
 
+    def _set(self, name: str, value: Any):
+        object.__setattr__(self, name, value)
+
     def set_source(self, value: str) -> None:
         self._set("source", value)
 
-    def set_trace_id(self, value: str) -> None:
-        self._set("trace_id", value)
-
-    def _set(self, name: str, value: Any) -> None:
-        object.__setattr__(self, name, value)
+    def set_raw(self, value: Message):
+        self._set("_raw", value)
 
     def dict(self, **kwargs: Any) -> Dict[str, Any]:
         kwargs.setdefault("by_alias", True)
@@ -76,9 +78,3 @@ class CloudEvent(GenericModel, Generic[D]):
         extra = Extra.allow
         # events are immutable, however it's sometimes useful to set source or traceid for unpublished events
         allow_mutation = False
-
-
-class WorkflowEvent(CloudEvent):
-    workflow: ID
-    run_id: ID
-    follows_from: Optional[ID]

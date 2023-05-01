@@ -16,7 +16,6 @@ from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
 from .types import Encoder, RawMessage
-from .utils import str_uuid
 
 if TYPE_CHECKING:
     from eventiq import Consumer, Service
@@ -101,7 +100,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             try:
                 parsed = self.parse_incoming_message(raw_message)
                 message = consumer.validate_message(parsed)
-                setattr(message, "_raw", msg)
+                message.set_raw(msg)
                 token = context.set(message.context)
 
             except (DecodeError, ValidationError) as e:
@@ -129,7 +128,6 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                             type=consumer.forward_response.as_type,
                             topic=consumer.forward_response.topic,
                             data=result,
-                            trace_id=message.trace_id,
                             source=service.name,
                         )
                     )
@@ -206,11 +204,9 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
         data: Any | None = None,
         type_: type[CloudEvent] | str = "CloudEvent",
         source: str = "",
-        trace_id: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Publish message to broker
-        :param trace_id:
         :param topic: Topic to publish data
         :param data: Message content
         :param type_: Event type, name or class
@@ -223,17 +219,12 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             cls = functools.partial(CloudEvent, type=type_)
         else:
             cls = type_  # type: ignore
-        if trace_id is None:
-            ctx = context.get()
-            trace_id = ctx["trace_id"]
 
-        trace_id = trace_id or str_uuid()
         message: CloudEvent = cls(
             content_type=self.encoder.CONTENT_TYPE,
             topic=topic,
             data=data,
             source=source,
-            trace_id=trace_id,
         )
         await self.publish_event(message, **kwargs)
 

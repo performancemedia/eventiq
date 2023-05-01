@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping
 
 from eventiq.exceptions import Retry
 from eventiq.logger import LoggerMixin
@@ -21,7 +21,7 @@ class RetryStrategy(LoggerMixin):
         self.throws = throws
 
     def set_delay(self, message: CloudEvent, exc: Exception):
-        delay = getattr(exc, "delay", None) or self.backoff * message.age
+        delay = getattr(exc, "delay", None) or self.backoff * message.age.seconds
         message.raw.delay = delay
         self.logger.info("Will retry message %d seconds.", delay)
 
@@ -38,9 +38,13 @@ class RetryStrategy(LoggerMixin):
 
 
 class MaxAge(RetryStrategy):
-    def __init__(self, max_age: timedelta = timedelta(seconds=60), **extra):
+    def __init__(
+        self, max_age: timedelta | dict[str, Any] = timedelta(seconds=60), **extra
+    ):
         super().__init__(**extra)
-        self.max_age = max_age
+        if isinstance(max_age, Mapping):
+            max_age = timedelta(**max_age)
+        self.max_age: timedelta = max_age
 
     async def maybe_retry(self, message: CloudEvent, exc: Exception):
         if message.age <= self.max_age:
@@ -84,7 +88,11 @@ class RetryWhen(RetryStrategy):
 
 class RetryMiddleware(Middleware):
     """
-    Retry Message Middleware
+    Retry Message Middleware.
+    Supported retry strategies:
+    - `MaxAge` (default) - retry with exponential backoff up to max_age
+    - `MaxRetries` - retry up to N times (currently supported only by nats)
+    - `RetryWhen` - provide custom callable to determine weather message should be retried
     """
 
     def __init__(self, default_retry_strategy: RetryStrategy | None = None):
@@ -110,7 +118,7 @@ class RetryMiddleware(Middleware):
             return
 
         retry_strategy: RetryStrategy = consumer.options.get(
-            "retry", self.default_retry_strategy
+            "retry_strategy", self.default_retry_strategy
         )
         if retry_strategy is None:
             return

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any, Callable
 
-from .consumer import ConsumerGroup, ForwardResponse
+from .consumer import Consumer, ConsumerGroup, ForwardResponse
 from .defaults import DEFAULT_CONSUMER_TIME_LIMIT
 from .logger import LoggerMixin
 from .models import CloudEvent
@@ -57,6 +57,9 @@ class Service(LoggerMixin):
             forward_response=forward_response,
             **options,
         )
+
+    def add_consumer(self, consumer: Consumer):
+        self.consumer_group.add_consumer(consumer)
 
     def add_consumer_group(self, consumer_group: ConsumerGroup) -> None:
         self.consumer_group.add_consumer_group(consumer_group)
