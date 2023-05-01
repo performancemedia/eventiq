@@ -3,9 +3,15 @@ from __future__ import annotations
 import typing
 from typing import TYPE_CHECKING, Any
 
+from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.propagate import extract, inject
+from opentelemetry.propagators.textmap import Getter, Setter
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import Span, TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.semconv.trace import MessagingOperationValues, SpanAttributes
 from opentelemetry.trace import SpanKind, StatusCode
 
 from ..middleware import Middleware
@@ -14,13 +20,6 @@ from ..types import ID
 
 if TYPE_CHECKING:
     from eventiq import Broker, Consumer, Service
-
-from opentelemetry import trace
-from opentelemetry.propagate import extract, inject
-from opentelemetry.propagators.textmap import Getter, Setter
-from opentelemetry.sdk.trace import Span, TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.semconv.trace import MessagingOperationValues, SpanAttributes
 
 
 class EventiqGetter(Getter[CloudEvent]):
