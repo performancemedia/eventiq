@@ -86,11 +86,13 @@ class FnConsumer(Consumer[T]):
 
 
 class GenericConsumer(Consumer[T], ABC):
-    name: str
-
     def __init__(self, *, topic: str, name: str | None = None, **options: Any):
 
-        super().__init__(name=name or type(self).__name__, topic=topic, **options)
+        super().__init__(
+            name=name or str(getattr(type(self), "name", type(self).__name__)),
+            topic=topic,
+            **options,
+        )
 
     def __init_subclass__(cls, **kwargs):
         if "abstract" not in kwargs:

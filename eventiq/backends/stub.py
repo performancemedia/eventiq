@@ -10,16 +10,17 @@ from eventiq.middleware import Middleware
 
 if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Service
+    from eventiq.message import Message
     from eventiq.types import Encoder
 
 
 @dataclass
-class Message:
+class StubMessage:
     data: bytes
     queue: asyncio.Queue
 
 
-class StubBroker(Broker[Message]):
+class StubBroker(Broker[StubMessage]):
     """This is in-memory implementation of a broker class, mainly designed for testing."""
 
     protocol = "in-memory"
@@ -35,7 +36,7 @@ class StubBroker(Broker[Message]):
         self.topics: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
         self._stopped = False
 
-    def parse_incoming_message(self, message: Message) -> Any:
+    def parse_incoming_message(self, message: StubMessage) -> Any:
         return self.encoder.decode(message.data)
 
     async def _disconnect(self) -> None:
@@ -54,16 +55,13 @@ class StubBroker(Broker[Message]):
     async def _publish(self, message: CloudEvent, **_) -> None:
         queue = self.topics[message.topic]
         data = self.encoder.encode(message.dict())
-        msg = Message(data=data, queue=queue)
+        msg = StubMessage(data=data, queue=queue)
         await queue.put(msg)
 
     async def _ack(self, message: Message) -> None:
         message.queue.task_done()
 
-    async def _nack(self, message: Message, delay: int | None = None) -> None:
-
-        if delay:
-            await asyncio.sleep(delay)
+    async def _nack(self, message: Message) -> None:
         await message.queue.put(message)
 
     def is_connected(self) -> bool:

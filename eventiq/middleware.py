@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from .logger import LoggerMixin
 
 if TYPE_CHECKING:
-    from eventiq import Broker, CloudEvent, Consumer, RawMessage, Service
+    from eventiq import Broker, CloudEvent, Consumer, Message, Service
 
 
 class Middleware(LoggerMixin):
@@ -50,7 +50,7 @@ class Middleware(LoggerMixin):
         broker: Broker,
         service: Service,
         consumer: Consumer,
-        message: RawMessage,
+        message: Message,
     ) -> None:
         """Called before message is acknowledged"""
 
@@ -59,17 +59,17 @@ class Middleware(LoggerMixin):
         broker: Broker,
         service: Service,
         consumer: Consumer,
-        message: RawMessage,
+        message: Message,
     ) -> None:
         """Called after message is acknowledged"""
 
     async def before_nack(
-        self, broker: Broker, service: Service, consumer: Consumer, message: RawMessage
+        self, broker: Broker, service: Service, consumer: Consumer, message: Message
     ) -> None:
         """Called before message is rejected"""
 
     async def after_nack(
-        self, broker: Broker, service: Service, consumer: Consumer, message: RawMessage
+        self, broker: Broker, service: Service, consumer: Consumer, message: Message
     ) -> None:
         """Called after message is rejected"""
 

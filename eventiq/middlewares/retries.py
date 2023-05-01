@@ -1,13 +1,85 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from eventiq.exceptions import Retry
+from eventiq.logger import LoggerMixin
 from eventiq.middleware import Middleware
-from eventiq.utils.datetime import utc_now
 
 if TYPE_CHECKING:
     from eventiq import Broker, CloudEvent, Consumer, Service
+
+
+class RetryStrategy(LoggerMixin):
+    def __init__(
+        self,
+        backoff: int = 2,
+        throws: type[Exception] | tuple[type[Exception]] | None = None,
+    ):
+        self.backoff = backoff
+        self.throws = throws
+
+    def set_delay(self, message: CloudEvent, exc: Exception):
+        delay = getattr(exc, "delay", None) or self.backoff * message.age
+        message.raw.delay = delay
+        self.logger.info("Will retry message %d seconds.", delay)
+
+    def fail(self, message: CloudEvent, exc: Exception):
+        message.fail()
+        self.logger.error(f"Retry limit exceeded for message {message.id}.")
+        self.logger.exception("Original exception:", exc_info=exc)
+
+    async def maybe_retry(self, message: CloudEvent, exc: Exception):
+        if self.throws and isinstance(exc, self.throws):
+            message.fail()
+        else:
+            self.set_delay(message, exc)
+
+
+class MaxAge(RetryStrategy):
+    def __init__(self, max_age: timedelta = timedelta(seconds=60), **extra):
+        super().__init__(**extra)
+        self.max_age = max_age
+
+    async def maybe_retry(self, message: CloudEvent, exc: Exception):
+        if message.age <= self.max_age:
+            await super().maybe_retry(message, exc)
+        else:
+            self.fail(message, exc)
+
+
+class MaxRetries(RetryStrategy):
+    def __init__(self, max_retries: int = 3, **extra):
+        super().__init__(**extra)
+        self.max_retries = max_retries
+
+    async def maybe_retry(self, message: CloudEvent, exc: Exception):
+        retries = getattr(
+            message.raw, "_num_delivered", message.age.seconds
+        )  # age used when num delivered is not supported
+        if retries <= self.max_retries:
+            await super().maybe_retry(message, exc)
+        else:
+            self.fail(message, exc)
+
+
+class RetryWhen(RetryStrategy):
+    def __init__(
+        self, retry_when: Callable[[CloudEvent, Exception], Awaitable[bool]], **extra
+    ):
+        super().__init__(**extra)
+        self.retry_when = retry_when
+
+    async def maybe_retry(
+        self,
+        message: CloudEvent,
+        exc: Exception,
+    ):
+        if await self.retry_when(message, exc):
+            await super().maybe_retry(message, exc)
+        else:
+            self.fail(message, exc)
 
 
 class RetryMiddleware(Middleware):
@@ -15,17 +87,10 @@ class RetryMiddleware(Middleware):
     Retry Message Middleware
     """
 
-    def __init__(
-        self,
-        backoff: int = 2,
-        max_age: int = 3600,
-        retry_when: Callable[[int, Exception], Awaitable[bool]] | None = None,
-        throws: type[Exception] | tuple[type[Exception]] | None = None,
-    ):
-        self.backoff = backoff
-        self.max_age = max_age
-        self.retry_when = retry_when
-        self.throws = throws
+    def __init__(self, default_retry_strategy: RetryStrategy | None = None):
+        self.default_retry_strategy = default_retry_strategy or MaxAge(
+            max_age=timedelta(hours=1)
+        )
 
     async def after_process_message(
         self,
@@ -39,28 +104,15 @@ class RetryMiddleware(Middleware):
 
         if exc is None:
             return
-        throws = consumer.options.get("throws")
-        if throws and isinstance(exc, throws):
+
+        if isinstance(exc, Retry):
+            message.raw.delay = exc.delay
             return
 
-        retry_when = consumer.options.get("retry_when", self.retry_when)
-        message_age = (utc_now() - message.time).seconds
-        max_age = consumer.options.get("max_age", self.max_age)
-        if (
-            callable(retry_when)
-            and not await retry_when(message_age, exc)
-            or retry_when is None
-            and message_age >= max_age
-        ):
-            self.logger.error(f"Retry limit exceeded for message {message.id}.")
-            self.logger.exception("Original exception:", exc_info=exc)
-            await broker.ack(service, consumer, message.raw)
+        retry_strategy: RetryStrategy = consumer.options.get(
+            "retry", self.default_retry_strategy
+        )
+        if retry_strategy is None:
             return
 
-        if isinstance(exc, Retry) and exc.delay is not None:
-            delay = exc.delay
-        else:
-            delay = consumer.options.get("backoff", self.backoff) * message_age
-
-        self.logger.info("Retrying message %d seconds.", delay)
-        await broker.nack(service, consumer, message.raw, delay)
+        await retry_strategy.maybe_retry(message, exc)

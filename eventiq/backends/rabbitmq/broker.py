@@ -119,9 +119,7 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
     async def _ack(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
         await message.ack()
 
-    async def _nack(
-        self, message: aio_pika.abc.AbstractIncomingMessage, delay: int | None = None
-    ) -> None:
+    async def _nack(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
         await message.reject(requeue=True)
 
     @property

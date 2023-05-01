@@ -7,6 +7,7 @@ from .consumer import ConsumerGroup, ForwardResponse
 from .defaults import DEFAULT_CONSUMER_TIME_LIMIT
 from .logger import LoggerMixin
 from .models import CloudEvent
+from .settings import ServiceSettings
 from .utils import generate_instance_id
 
 if TYPE_CHECKING:
@@ -96,3 +97,14 @@ class Service(LoggerMixin):
 
         runner = ServiceRunner([self])
         runner.run(*args, **kwargs)
+
+    @classmethod
+    def from_settings(cls, settings: ServiceSettings, **kwargs: Any) -> Service:
+        kw = settings.dict(exclude={"broker_settings"})
+        kw.update(**kwargs)
+        broker = Broker.from_settings(settings.broker_settings)
+        return cls(broker=broker, **kw)
+
+    @classmethod
+    def from_env(cls, **kwargs: Any) -> Service:
+        return cls.from_settings(ServiceSettings(), **kwargs)

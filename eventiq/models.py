@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Generic, Optional
 
 from pydantic import Extra, Field, validator
 from pydantic.fields import PrivateAttr
 from pydantic.generics import GenericModel
 
-from .types import D, RawMessage
+from .message import Message
+from .types import ID, D
 from .utils import str_uuid
 from .utils.datetime import utc_now
 
@@ -13,8 +14,8 @@ from .utils.datetime import utc_now
 class CloudEvent(GenericModel, Generic[D]):
     specversion: Optional[str] = "1.0"
     content_type: str = Field("application/json", alias="datacontenttype")
-    id: str = Field(default_factory=str_uuid)
-    trace_id: str = Field(default_factory=str_uuid, alias="traceid")
+    id: ID = Field(default_factory=str_uuid)
+    trace_id: ID = Field(default_factory=str_uuid, alias="traceid")
     time: datetime = Field(default_factory=utc_now)
     topic: str = Field(..., alias="subject")
     type: Optional[str] = None
@@ -36,7 +37,7 @@ class CloudEvent(GenericModel, Generic[D]):
         return v or cls.__name__
 
     @property
-    def raw(self) -> RawMessage:
+    def raw(self) -> Message:
         if self._raw is None:
             raise AttributeError("raw property accessible only for incoming messages")
         return self._raw
@@ -44,10 +45,10 @@ class CloudEvent(GenericModel, Generic[D]):
     def set_source(self, value: str) -> None:
         self._set("source", value)
 
-    def set_trace_id(self, value: str):
+    def set_trace_id(self, value: str) -> None:
         self._set("trace_id", value)
 
-    def _set(self, name: str, value: Any):
+    def _set(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
 
     def dict(self, **kwargs: Any) -> Dict[str, Any]:
@@ -55,16 +56,19 @@ class CloudEvent(GenericModel, Generic[D]):
         return super().dict(**kwargs)
 
     @classmethod
-    def from_object(cls, obj: D, **kwargs):
+    def new(cls, obj: D, **kwargs):
         return cls(data=obj, **kwargs)
 
     @property
     def context(self) -> Dict[str, Any]:
-        return self.dict(include={"trace_id", "id"})
+        return {"trace_id": self.trace_id, "id": self.id}
 
     @property
-    def age(self) -> int:
-        return (utc_now() - self.time).seconds
+    def age(self) -> timedelta:
+        return utc_now() - self.time
+
+    def fail(self):
+        self.raw.fail()
 
     class Config:
         use_enum_values = True
@@ -72,3 +76,9 @@ class CloudEvent(GenericModel, Generic[D]):
         extra = Extra.allow
         # events are immutable, however it's sometimes useful to set source or traceid for unpublished events
         allow_mutation = False
+
+
+class WorkflowEvent(CloudEvent):
+    workflow: ID
+    run_id: ID
+    follows_from: Optional[ID]
