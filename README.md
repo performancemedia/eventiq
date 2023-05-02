@@ -19,7 +19,7 @@
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.1.3
+Version: 0.1.4
 
 Documentation: https://performancemedia.github.io/eventiq/
 
@@ -46,14 +46,14 @@ pip install eventiq
 - Kafka
 - Rabbitmq
 - Google Cloud PubSub
-- And more comming
+- And more coming
 
 ## Optional Dependencies
   - `cli` - `typer` and `aiorun`
   - broker of choice: `nats`, `kafka`, `rabbitmq`, `redis`, `pubsub`
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
-
+  - `opentelemetry` - tracing support
 ## Motivation
 
 - [Celery](https://docs.celeryq.dev/en/stable/getting-started/introduction.html)
@@ -104,9 +104,21 @@ Each message is load-balanced (depending on broker) between all service instance
 To scale number of processes you can use containers (docker/k8s), [supervisor](http://supervisord.org/),
 or web server like gunicorn.
 
+## Features
 
-## TODOS:
-- More tests
-  - Integration tests with docker-compose and all backends
-- Docs + tutorials
-- [OpenTelemetry](https://opentelemetry.io/) Middleware (?)
+- Modern, `asyncio` based python 3.8+ syntax
+- Minimal dependencies, only `pydantic`, `async_timeout` and `python-json-logger` are required
+- Automatic message parsing based on type annotations (like FastAPI)
+- Code hot-reload
+- Highly scalable: each service can process hundreds of tasks concurrently,
+    all messages are load balanced between all instances by default
+- Resilient - at least once delivery for all messages by default 
+- Customizable & pluggable message encoders (json, msgpack, custom)
+- Json formatted logger
+- Multiple broker support (Nats, Kafka, Rabbitmq, Redis, PubSub, and more coming)
+- Easily extensible via Middlewares and Plugins
+- Cloud Events standard as base message structure (no more python specific `*args` and `**kwargs` in messages)
+- AsyncAPI documentation generation from code
+- Twelve factor app approach - stdout logging, configuration through environment variables
+- Out-of-the-box integration with Prometheus (metrics) and OpenTelemetry (tracing)
+- Application bootstrap via `.yaml` file (see examples/configuration)
