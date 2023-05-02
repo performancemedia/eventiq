@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Extra
 
@@ -13,8 +13,11 @@ def resolve_nested(v: Any):
     elif isinstance(v, list):
         v = [resolve_nested(i) for i in v]
     if isinstance(v, dict):
-        for key, value in v.items():
-            v[key] = resolve_nested(value)
+        if "type" in v:
+            return TypedModel.parse_obj(v).build()
+        else:
+            for key, value in v.items():
+                v[key] = resolve_nested(value)
     return v
 
 
@@ -41,13 +44,12 @@ class ConsumerConfig(TypedModel):
     name: Optional[str]
     timeout: Optional[int]
     dynamic: bool = False
-    options: dict[str, Union[TypedModel, Any]] = {}
 
     def build(self):
         if callable(self.type) and not (
             isinstance(self.type, type) and issubclass(self.type, GenericConsumer)
         ):
-            self.options["fn"] = self.type
+            self.__dict__["fn"] = self.type
             self.type = FnConsumer
         return super().build()
 

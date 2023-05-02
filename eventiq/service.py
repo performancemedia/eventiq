@@ -26,7 +26,7 @@ class Service(LoggerMixin):
         version: str = "0.1.0",
         description: str = "",
         tags_metadata: list[TagMeta] | None = None,
-        instance_id_generator: Callable[[], str] = generate_instance_id,
+        instance_id_generator: Callable[[], str] | None = None,
     ):
         self.broker = broker
         self.name = name
@@ -34,7 +34,7 @@ class Service(LoggerMixin):
         self.version = version
         self.description = description
         self.tags_metadata = tags_metadata or []
-        self.id = instance_id_generator()
+        self.id = (instance_id_generator or generate_instance_id)()
         self.consumer_group = ConsumerGroup()
         # TODO: task gathering?
         self._tasks: list[asyncio.Task] = []

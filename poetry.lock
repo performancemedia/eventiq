@@ -3213,7 +3213,7 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [extras]
 all = ["aio-pika", "aiokafka", "aioredis", "aiorun", "gcloud-aio-pubsub", "nats-py", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "orjson", "ormsgpack", "prometheus-client", "typer"]
 cli = ["aiorun", "typer"]
-common = ["aiorun", "orjson", "prometheus-client", "typer"]
+common = ["aiorun", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "orjson", "prometheus-client", "typer"]
 kafka = ["aiokafka"]
 nats = ["nats-py"]
 opentelemetry = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
@@ -3227,4 +3227,4 @@ redis = ["aioredis"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1,<4.0"
-content-hash = "98148e6a83a6215d7d20b50eb9fd62bc4cb2e02305ba128b8699033568ac4206"
+content-hash = "8f410aa28074f09166b5f1375c00a986f699f6297db4a54cc58fd157d07d7f48"

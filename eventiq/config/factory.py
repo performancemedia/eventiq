@@ -13,8 +13,7 @@ def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
 
     with open(config_file) as f:
         data = f.read()
-
-    formatted = data.format(os.environ)
+    formatted = data.format(**os.environ)
     loaded = yaml.safe_load(formatted)
     parsed = AppConfig.parse_obj(loaded[section] if section else loaded)
     broker = parsed.broker.build()
@@ -27,3 +26,10 @@ def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
         services.append(service)
 
     return ServiceRunner(services)
+
+
+def create_app_from_env():
+    from .settings import ConfigSettings
+
+    settings = ConfigSettings()
+    return create_app(settings.config_file, section=settings.ENV)

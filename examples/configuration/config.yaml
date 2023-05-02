@@ -1,0 +1,29 @@
+DEV:
+  broker:
+    type: eventiq.backends.nats:JetStreamBroker
+    url: {EVENTIQ_BROKER_URL}
+    encoder:
+      type: eventiq.encoders.orjson:OrjsonEncoder
+    middlewares:
+      - type: eventiq.middlewares.retries:RetryMiddleware
+      - type: eventiq.middlewares.prometheus:PrometheusMiddleware
+  services:
+    - name: example-service
+      version: 0.1.0
+      consumers:
+        - name: "consumer-1"
+          type: app.consumers:consumer_1
+          topic: "test.topic1"
+          timeout: 120
+          retry_strategy:
+            type: eventiq.middlewares.retries:MaxAge
+            max_age:
+              hours: 2
+        - name: "consumer-2"
+          type: app.consumers:consumer_2
+          topic: "test.topic2"
+          timeout: 240
+          retry_strategy:
+            type: eventiq.middlewares.retries:MaxAge
+            max_age:
+              hours: 6

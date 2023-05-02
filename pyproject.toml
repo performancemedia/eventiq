@@ -62,7 +62,7 @@ all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py",
     "aiokafka", "aio-pika", "gcloud-aio-pubsub",
     "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"
 ]
-common = ["aiorun", "typer", "prometheus-client", "orjson"]
+common = ["aiorun", "typer", "prometheus-client", "orjson", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
 cli = ["aiorun", "typer"]
 
 # encoders
