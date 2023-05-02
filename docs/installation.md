@@ -43,5 +43,5 @@ pip install 'eventiq[cli, orjson, nats]'
 ### Installing commons (cli, orjson, prometheus) and broker
 
 ```shell
-pip install 'eventiq[commons, nats]'
+pip install 'eventiq[common, nats]'
 ```
