@@ -300,7 +300,7 @@ name = "backoff"
 version = "2.2.1"
 description = "Function decoration for backoff and retry"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7,<4.0"
 files = [
     {file = "backoff-2.2.1-py3-none-any.whl", hash = "sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8"},
@@ -390,7 +390,7 @@ css = ["tinycss2 (>=1.1.0,<1.2)"]
 name = "certifi"
 version = "2022.12.7"
 description = "Python package for providing Mozilla's CA Bundle."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -728,7 +728,7 @@ name = "deprecated"
 version = "1.2.13"
 description = "Python @deprecated decorator to deprecate old python classes, functions or methods."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
     {file = "Deprecated-1.2.13-py2.py3-none-any.whl", hash = "sha256:64756e3e14c8c5eea9795d93c524551432a0be75629f8f29e67ab8caf076c76d"},
@@ -1020,8 +1020,8 @@ gitdb = ">=4.0.1,<5"
 name = "googleapis-common-protos"
 version = "1.59.0"
 description = "Common protobufs used in Google APIs"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "googleapis-common-protos-1.59.0.tar.gz", hash = "sha256:4168fcb568a826a52f23510412da405abd93f4d23ba544bb68d943b14ba3cb44"},
@@ -1056,8 +1056,8 @@ async = ["aiofiles (>=0.7,<1.0)"]
 name = "grpcio"
 version = "1.54.0"
 description = "HTTP/2-based RPC framework"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "grpcio-1.54.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:a947d5298a0bbdd4d15671024bf33e2b7da79a70de600ed29ba7e0fef0539ebb"},
@@ -1752,7 +1752,7 @@ name = "opentelemetry-api"
 version = "1.17.0"
 description = "OpenTelemetry Python API"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_api-1.17.0-py3-none-any.whl", hash = "sha256:b41d9b2a979607b75d2683b9bbf97062a683d190bc696969fb2122fa60aeaabc"},
@@ -1768,8 +1768,8 @@ setuptools = ">=16.0"
 name = "opentelemetry-exporter-otlp"
 version = "1.17.0"
 description = "OpenTelemetry Collector Exporters"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_exporter_otlp-1.17.0-py3-none-any.whl", hash = "sha256:9708d2b74c9205a7bd9b46e24acec0e3b362465d9a77b62347ea0459d4358044"},
@@ -1784,8 +1784,8 @@ opentelemetry-exporter-otlp-proto-http = "1.17.0"
 name = "opentelemetry-exporter-otlp-proto-grpc"
 version = "1.17.0"
 description = "OpenTelemetry Collector Protobuf over gRPC Exporter"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_exporter_otlp_proto_grpc-1.17.0-py3-none-any.whl", hash = "sha256:192d781b668a74edb49152b8b5f4f7e25bcb4307a9cf4b2dfcf87e68feac98bd"},
@@ -1807,8 +1807,8 @@ test = ["pytest-grpc"]
 name = "opentelemetry-exporter-otlp-proto-http"
 version = "1.17.0"
 description = "OpenTelemetry Collector Protobuf over HTTP Exporter"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_exporter_otlp_proto_http-1.17.0-py3-none-any.whl", hash = "sha256:81959249b75bd36c3b73c885a9ce36aa21e8022618e8e95fa41ae69609f0c799"},
@@ -1830,8 +1830,8 @@ test = ["responses (==0.22.0)"]
 name = "opentelemetry-instrumentation"
 version = "0.38b0"
 description = "Instrumentation Tools & Auto Instrumentation for OpenTelemetry Python"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_instrumentation-0.38b0-py3-none-any.whl", hash = "sha256:48eed87e5db9d2cddd57a8ea359bd15318560c0ffdd80d90a5fc65816e15b7f4"},
@@ -1847,8 +1847,8 @@ wrapt = ">=1.0.0,<2.0.0"
 name = "opentelemetry-instrumentation-logging"
 version = "0.38b0"
 description = "OpenTelemetry Logging instrumentation"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "*"
 files = [
     {file = "opentelemetry_instrumentation_logging-0.38b0-py2.py3-none-any.whl", hash = "sha256:84df6bb906a5fabb89fd5bd743b8efbab73921efe6aaeb0fa469bbfe94a43fe3"},
@@ -1866,8 +1866,8 @@ test = ["opentelemetry-test-utils (==0.38b0)"]
 name = "opentelemetry-proto"
 version = "1.17.0"
 description = "OpenTelemetry Python Proto"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_proto-1.17.0-py3-none-any.whl", hash = "sha256:c7c0f748668102598e84ca4d51975f87ebf66865aa7469fc2c5e8bdaab813e93"},
@@ -1882,7 +1882,7 @@ name = "opentelemetry-sdk"
 version = "1.17.0"
 description = "OpenTelemetry Python SDK"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_sdk-1.17.0-py3-none-any.whl", hash = "sha256:07424cbcc8c012bc120ed573d5443e7322f3fb393512e72866c30111070a8c37"},
@@ -1900,7 +1900,7 @@ name = "opentelemetry-semantic-conventions"
 version = "0.38b0"
 description = "OpenTelemetry Semantic Conventions"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "opentelemetry_semantic_conventions-0.38b0-py3-none-any.whl", hash = "sha256:b0ba36e8b70bfaab16ee5a553d809309cc11ff58aec3d2550d451e79d45243a7"},
@@ -2117,8 +2117,8 @@ twisted = ["twisted"]
 name = "protobuf"
 version = "4.22.3"
 description = ""
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "protobuf-4.22.3-cp310-abi3-win32.whl", hash = "sha256:8b54f56d13ae4a3ec140076c9d937221f887c8f64954673d46f63751209e839a"},
@@ -2527,7 +2527,7 @@ md = ["cmarkgfm (>=0.8.0)"]
 name = "requests"
 version = "2.29.0"
 description = "Python HTTP for Humans."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2596,6 +2596,33 @@ typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.9
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
+name = "ruff"
+version = "0.0.264"
+description = "An extremely fast Python linter, written in Rust."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "ruff-0.0.264-py3-none-macosx_10_7_x86_64.whl", hash = "sha256:ec2fa192c035b8b68cc2b91049c561cd69543e2b8c4d157d9aa7727320bedcca"},
+    {file = "ruff-0.0.264-py3-none-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:d97ba8db0fb601ffe9ee996ebb97c698e427a2fd4514fefbe7b803111354f783"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4564e0f245eb515c6ed63988c21e9c40bcfd485cd1ec63bdd790f9a81d301f15"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:323ae6c1702b26c96d0fbf939c5959c37e79021f86b70f63634df918bc77f36e"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:18a29ed37bf8cfe6dce8a2db56c313a64c0804095108753621f3c3321e0c9c5f"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:d628de91e2be7a83128526636097d2dd890669a06143f826f6c591d79aeefbc4"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:91c6eb4f979b661a2dd850d9ac803842bb7b66d4926de84f09c787af82590f73"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:04ec5d75e4bca754cedd20d53e2ba4920d6259e7579abfb2e8e30c3c80e41b17"},
+    {file = "ruff-0.0.264-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:71fd865ebacc1083259b3fb7e3eb45235a86e62e21830b8a6b067be0ec54aa2e"},
+    {file = "ruff-0.0.264-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:cd4f60ffc3eb15802c554a9c8581bf2117c4d3d06fbc57e0ba58f04cb1aaa47f"},
+    {file = "ruff-0.0.264-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:05ee163a046fc593d150179d23f4af447fb82f3e59cd34e031ea0868c65bb8e8"},
+    {file = "ruff-0.0.264-py3-none-musllinux_1_2_i686.whl", hash = "sha256:484e395d1984ab9e1e66bd42e7a5192decfee86998d07d36ee50b2fadccc8734"},
+    {file = "ruff-0.0.264-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:67326fdc9ac0a1b13e229c6e24e8d115863c52cd710faaaaa588851535281d6c"},
+    {file = "ruff-0.0.264-py3-none-win32.whl", hash = "sha256:5a8658ebcc37d62f72840cbdf564171c1a2b6831db482b4d917962541a2f4a44"},
+    {file = "ruff-0.0.264-py3-none-win_amd64.whl", hash = "sha256:068a82a29d80848a56e3d9d4308e6e0ca8b2ecdaf5ac342a292545a59b7f2c21"},
+    {file = "ruff-0.0.264-py3-none-win_arm64.whl", hash = "sha256:3e2c38449548e122f2612843a7c04e22b4fd491656955c57b8cb05df11639ad6"},
+    {file = "ruff-0.0.264.tar.gz", hash = "sha256:8fcd4b693ca1374eb7a5796581c90689f884f98f388740d94f0702fd30f8f78f"},
+]
+
+[[package]]
 name = "secretstorage"
 version = "3.3.3"
 description = "Python bindings to FreeDesktop.org Secret Service API"
@@ -2628,7 +2655,7 @@ name = "setuptools"
 version = "66.1.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "setuptools-66.1.1-py3-none-any.whl", hash = "sha256:6f590d76b713d5de4e49fe4fbca24474469f53c83632d5d0fd056f7ff7e8112b"},
@@ -2807,18 +2834,19 @@ urllib3 = ">=1.26.0"
 
 [[package]]
 name = "typer"
-version = "0.8.0"
+version = "0.9.0"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
 category = "main"
 optional = true
 python-versions = ">=3.6"
 files = [
-    {file = "typer-0.8.0-py3-none-any.whl", hash = "sha256:07dd96b7961d11da53be3f9b9cd0eb76f413d5ef06df7942cb2f85bd03dd2633"},
-    {file = "typer-0.8.0.tar.gz", hash = "sha256:7442b3a4369c8352b8bb684d04558b278b80fa92ae5d5760eb42c2f27c71f044"},
+    {file = "typer-0.9.0-py3-none-any.whl", hash = "sha256:5d96d986a21493606a358cae4461bd8cdf83cbf33a5aa950ae629ca3b51467ee"},
+    {file = "typer-0.9.0.tar.gz", hash = "sha256:50922fd79aea2f4751a8e0408ff10d2662bd0c8bbfa84755a699f3bada2978b2"},
 ]
 
 [package.dependencies]
 click = ">=7.1.1,<9.0.0"
+typing-extensions = ">=3.7.4.3"
 
 [package.extras]
 all = ["colorama (>=0.4.3,<0.5.0)", "rich (>=10.11.0,<14.0.0)", "shellingham (>=1.3.0,<2.0.0)"]
@@ -2842,7 +2870,7 @@ files = [
 name = "urllib3"
 version = "1.26.15"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 files = [
@@ -2998,7 +3026,7 @@ name = "wrapt"
 version = "1.15.0"
 description = "Module for decorators, wrappers and monkey patching."
 category = "main"
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 files = [
     {file = "wrapt-1.15.0-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:ca1cccf838cd28d5a0883b342474c630ac48cac5df0ee6eacc9c7290f76b11c1"},
@@ -3183,12 +3211,12 @@ docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker
 testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
 [extras]
-all = ["aio-pika", "aiokafka", "aioredis", "aiorun", "gcloud-aio-pubsub", "nats-py", "opentelemetry-api", "opentelemetry-exporter-otlp", "opentelemetry-instrumentation-logging", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "orjson", "ormsgpack", "prometheus-client", "typer"]
+all = ["aio-pika", "aiokafka", "aioredis", "aiorun", "gcloud-aio-pubsub", "nats-py", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "orjson", "ormsgpack", "prometheus-client", "typer"]
 cli = ["aiorun", "typer"]
-commons = ["aiorun", "orjson", "prometheus-client", "typer"]
+common = ["aiorun", "orjson", "prometheus-client", "typer"]
 kafka = ["aiokafka"]
 nats = ["nats-py"]
-opentelemetry = ["opentelemetry-api", "opentelemetry-exporter-otlp", "opentelemetry-instrumentation-logging", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
+opentelemetry = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
 orjson = ["orjson"]
 ormsgpack = ["ormsgpack"]
 prometheus = ["prometheus-client"]
@@ -3199,4 +3227,4 @@ redis = ["aioredis"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1,<4.0"
-content-hash = "b2131bb3d081e42befed2827b60ef88f83c54b7164e54b39f22b6f98646d935d"
+content-hash = "98148e6a83a6215d7d20b50eb9fd62bc4cb2e02305ba128b8699033568ac4206"

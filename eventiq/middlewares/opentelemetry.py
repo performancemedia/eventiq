@@ -1,24 +1,25 @@
 from __future__ import annotations
 
-import typing
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ContextManager, Iterable
 
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.propagate import extract, inject
 from opentelemetry.propagators.textmap import Getter, Setter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import Span, TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.semconv.trace import MessagingOperationValues, SpanAttributes
+from opentelemetry.semconv.trace import (
+    MessagingDestinationKindValues,
+    MessagingOperationValues,
+    SpanAttributes,
+)
 from opentelemetry.trace import SpanKind, StatusCode
 
+from .._version import __version__
 from ..middleware import Middleware
 from ..models import CloudEvent
 from ..types import ID
 
 if TYPE_CHECKING:
+    from opentelemetry.sdk.trace import Span, TracerProvider
+
     from eventiq import Broker, Consumer, Service
 
 
@@ -27,7 +28,7 @@ class EventiqGetter(Getter[CloudEvent]):
         val = carrier.trace_ctx.get(key, None)
         if val is None:
             return None
-        if isinstance(val, typing.Iterable) and not isinstance(val, str):
+        if isinstance(val, Iterable) and not isinstance(val, str):
             return list(val)
         return [val]
 
@@ -47,37 +48,19 @@ eventiq_setter = EventiqSetter()
 class OpenTelemetryMiddleware(Middleware):
     def __init__(self, provider: TracerProvider | None = None):
         if provider is None:
-            provider = TracerProvider()
-            processor = BatchSpanProcessor(ConsoleSpanExporter())
-            provider.add_span_processor(processor)
+            provider = trace.get_tracer_provider()
 
-            trace.set_tracer_provider(provider)
-
-        self.tracer = provider.get_tracer("eventiq")
+        self.tracer = provider.get_tracer("eventiq", __version__)
         self.process_span_registry: dict[
-            tuple[str, str, ID], tuple[Span, typing.ContextManager[Span]]
+            tuple[str, str, ID], tuple[Span, ContextManager[Span]]
         ] = {}
-        self.publish_span_registry: dict[
-            ID, tuple[Span, typing.ContextManager[Span]]
-        ] = {}
-
-    @classmethod
-    def from_kwargs(cls, endpoint: str, name: str):
-        resource = Resource(attributes={"service.name": name})
-        tracer = TracerProvider(resource=resource)
-        trace.set_tracer_provider(tracer)
-        LoggingInstrumentor().instrument()
-        tracer.add_span_processor(
-            BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint))
-        )
-        return cls(tracer)
+        self.publish_span_registry: dict[ID, tuple[Span, ContextManager[Span]]] = {}
 
     async def before_process_message(
         self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
-        """Start span"""
-
         trace_ctx = extract(message, getter=eventiq_getter)
+
         span = self.tracer.start_span(
             name=f"{service.name}.{consumer.name} receive",
             kind=SpanKind.CONSUMER,
@@ -103,26 +86,31 @@ class OpenTelemetryMiddleware(Middleware):
         result: Any | None = None,
         exc: Exception | None = None,
     ) -> None:
-        """End span"""
         key = (service.name, consumer.name, str(message.id))
         span, activation = self.process_span_registry.pop(key, (None, None))
         if span is None or activation is None:
-            self.logger.warning(f"Span not found, {self.process_span_registry}")
+            self.logger.warning("No active span was found")
             return
 
         if span.is_recording():
             status = (StatusCode.ERROR, str(exc)) if exc else (StatusCode.OK,)
             span.set_status(*status)
-
         activation.__exit__(None, None, None)
 
     async def before_publish(
         self, broker: Broker, message: CloudEvent, **kwargs
     ) -> None:
-        """Inject context"""
         source = message.source or "(anonymous)"
-        span = self.tracer.start_span(f"{source} publish", kind=SpanKind.PRODUCER)
 
+        span = self.tracer.start_span(
+            f"{source} publish",
+            kind=SpanKind.PRODUCER,
+            attributes={
+                SpanAttributes.MESSAGING_MESSAGE_ID: str(message.id),
+                SpanAttributes.MESSAGING_DESTINATION_KIND: MessagingDestinationKindValues.TOPIC.value,
+                SpanAttributes.MESSAGING_DESTINATION: message.topic,
+            },
+        )
         activation = trace.use_span(span, end_on_exit=True)
         activation.__enter__()
         self.publish_span_registry[message.id] = (span, activation)
@@ -131,7 +119,8 @@ class OpenTelemetryMiddleware(Middleware):
     async def after_publish(
         self, broker: Broker, message: CloudEvent, **kwargs
     ) -> None:
-        _, activation = self.publish_span_registry.pop(message.id, (None, None))
-
+        span, activation = self.publish_span_registry.pop(message.id, (None, None))
+        if span and span.is_recording():
+            span.set_status(StatusCode.OK)
         if activation is not None:
             activation.__exit__(None, None, None)

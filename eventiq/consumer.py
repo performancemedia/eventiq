@@ -98,7 +98,7 @@ class GenericConsumer(Consumer[T], ABC):
         if "abstract" not in kwargs:
             cls.event_type = cls.__orig_bases__[0].__args__[0]
             if not hasattr(cls, "name"):
-                setattr(cls, "name", cls.__name__)
+                cls.name = cls.__name__
             if not asyncio.iscoroutinefunction(cls.process):
                 cls.process = run_async(cls.process)
 

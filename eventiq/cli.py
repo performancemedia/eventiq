@@ -24,8 +24,8 @@ def run(
     log_level: str = typer.Option(default="info"),
     use_uvloop: bool = typer.Option(False),
 ) -> None:
-    logger.info(f"Running [{service_or_runner}]...")
     setup_logging(log_level.upper())
+    logger.info(f"Running [{service_or_runner}]...")
     obj = import_from_string(service_or_runner)
     obj.run(use_uvloop=use_uvloop)
 

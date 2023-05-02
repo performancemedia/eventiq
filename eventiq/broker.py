@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic, Type, cast
 import async_timeout
 from pydantic import ValidationError
 
-from .context import context
 from .exceptions import DecodeError, Fail, Skip
 from .logger import LoggerMixin
 from .message import Message
@@ -101,8 +100,6 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                 parsed = self.parse_incoming_message(raw_message)
                 message = consumer.validate_message(parsed)
                 message.set_raw(msg)
-                token = context.set(message.context)
-
             except (DecodeError, ValidationError) as e:
                 self.logger.exception("Message parsing error", exc_info=e)
                 msg.fail()
@@ -143,7 +140,6 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                     await self.ack(service, consumer, msg)
                 else:
                     await self.nack(service, consumer, msg)
-                context.reset(token)
 
         return handler
 

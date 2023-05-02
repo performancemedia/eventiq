@@ -15,7 +15,6 @@ class CloudEvent(GenericModel, Generic[D]):
     specversion: Optional[str] = "1.0"
     content_type: str = Field("application/json", alias="datacontenttype")
     id: ID = Field(default_factory=str_uuid)
-    # trace_id: ID = Field(default_factory=str_uuid, alias="traceid")
     time: datetime = Field(default_factory=utc_now)
     topic: str = Field(..., alias="subject")
     type: Optional[str] = None
@@ -29,10 +28,6 @@ class CloudEvent(GenericModel, Generic[D]):
         if not isinstance(other, CloudEvent):
             return False
         return self.id == other.id
-
-    @property
-    def trace_id(self) -> Optional[str]:
-        return self.trace_ctx.get("traceId")
 
     @validator("type", allow_reuse=True, always=True, pre=True)
     def get_type_from_cls_name(cls, v) -> str:
@@ -60,10 +55,6 @@ class CloudEvent(GenericModel, Generic[D]):
     @classmethod
     def new(cls, obj: D, **kwargs):
         return cls(data=obj, **kwargs)
-
-    @property
-    def context(self) -> Dict[str, Any]:
-        return {"trace_id": self.trace_id, "id": self.id}
 
     @property
     def age(self) -> timedelta:

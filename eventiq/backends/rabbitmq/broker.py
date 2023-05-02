@@ -129,14 +129,14 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
     def parse_incoming_message(
         self, message: aio_pika.abc.AbstractIncomingMessage
     ) -> Any:
-        return dict(
-            id=message.message_id,
-            trace_id=message.headers.get("X-Trace-ID"),
-            type=message.type,
-            data=self.encoder.decode(message.body),
-            source=message.app_id,
-            content_type=message.content_type,
-            version=message.headers.get("specversion"),
-            time=message.timestamp,
-            topic=message.routing_key,
-        )
+        return {
+            "id": message.message_id,
+            "trace_id": message.headers.get("X-Trace-ID"),
+            "type": message.type,
+            "data": self.encoder.decode(message.body),
+            "source": message.app_id,
+            "content_type": message.content_type,
+            "version": message.headers.get("specversion"),
+            "time": message.timestamp,
+            "topic": message.routing_key,
+        }

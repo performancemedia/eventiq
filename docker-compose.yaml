@@ -48,16 +48,28 @@ services:
       dockerfile: ./.docker/Dockerfile
       context: .
     command: "eventiq run examples.tracing:service"
+    ports:
+      - "8888:8888"
+    environment: {}
+#      OTEL_PYTHON_LOG_CORRELATION: "true"
+#      OTEL_PYTHON_TRACER_PROVIDER: sdk_tracer_provider
+#      OTEL_SERVICE_NAME: your-service-name
+#      OTEL_RESOURCE_ATTRIBUTES: key1=value1,key2=value2
+#      OTEL_TRACES_SAMPLER: always_on
+#      OTEL_PROPAGATORS: tracecontext,baggage
+#      OTEL_TRACES_EXPORTER: otlp
+#      OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4317"
+#      OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: http
+
     depends_on:
       - nats
-      - loki
       - grafana
       - tempo
       - prometheus
-    logging:
-      driver: loki
-      options:
-        loki-url: http://loki:3100/loki/api/v1/push
+#    logging:
+#      driver: loki
+#      options:
+#        loki-url: http://loki:3100/loki/api/v1/push
 
   # ---------- #
   # Monitoring #
@@ -90,6 +102,7 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    restart: unless-stopped
     volumes:
       - .docker/monitoring/grafana/provisioning:/etc/grafana/provisioning
       - .docker/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
@@ -98,12 +111,12 @@ services:
       - "3000:3000"
     depends_on:
       - tempo
-      - loki
       - prometheus
 
   tempo:
     image: grafana/tempo:2.0.1
     command: [ "-config.file=/etc/config.yaml" ]
+    restart: unless-stopped
     volumes:
       - .docker/monitoring/config.tempo.yaml:/etc/config.yaml
       - tempo-data:/tmp/tempo

@@ -23,20 +23,21 @@ def include_service(
     if add_health_endpoint:
         from fastapi.responses import JSONResponse
 
-        for m in service.broker.middlewares:
-            if hasattr(m, "get_health_status") and callable(m.get_health_status):  # type: ignore
+        middlewares = [
+            m for m in service.broker.middlewares if hasattr(m, "get_health_status")
+        ]
+        if len(middlewares) and middlewares[0]:
+            m = middlewares[0]
 
-                @app.get(path, response_class=JSONResponse)
-                def get_health_status():
-                    """Return get broker connection status"""
-                    status = m.get_health_status()
-                    return (
-                        JSONResponse({"status": "ok"})
-                        if status
-                        else JSONResponse(
-                            {"status": "Connection error"}, status_code=503
-                        )
-                    )
+            @app.get(path, response_class=JSONResponse)
+            def get_health_status():
+                """Return get broker connection status"""
+                status = m.get_health_status()
+                return (
+                    JSONResponse({"status": "ok"})
+                    if status
+                    else JSONResponse({"status": "Connection error"}, status_code=503)
+                )
 
         raise ConfigurationError("HealthCheckMiddleware expected")
 

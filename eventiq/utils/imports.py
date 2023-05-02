@@ -29,12 +29,12 @@ else:
 
             try:
                 value = str_validator(value)
-            except errors.StrError:
+            except errors.StrError as e:
                 raise errors.PyObjectError(
                     error_message="value is neither a valid import path not a valid callable"
-                )
+                ) from e
 
             try:
                 return import_from_string(value)
             except ImportError as e:
-                raise errors.PyObjectError(error_message=str(e))
+                raise errors.PyObjectError(error_message=str(e)) from e
