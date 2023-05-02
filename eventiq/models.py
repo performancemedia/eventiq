@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Generic, Optional
 
 from pydantic import Extra, Field, validator
 from pydantic.fields import PrivateAttr
 from pydantic.generics import GenericModel
 
-from .types import D, RawMessage
+from .message import Message
+from .types import ID, D
 from .utils import str_uuid
 from .utils.datetime import utc_now
 
@@ -13,13 +14,13 @@ from .utils.datetime import utc_now
 class CloudEvent(GenericModel, Generic[D]):
     specversion: Optional[str] = "1.0"
     content_type: str = Field("application/json", alias="datacontenttype")
-    id: str = Field(default_factory=str_uuid)
-    trace_id: str = Field(default_factory=str_uuid, alias="traceid")
+    id: ID = Field(default_factory=str_uuid)
     time: datetime = Field(default_factory=utc_now)
     topic: str = Field(..., alias="subject")
     type: Optional[str] = None
     source: Optional[str] = None
     data: Optional[D] = None
+    trace_ctx: Dict[str, str] = {}
 
     _raw: Optional[Any] = PrivateAttr()
 
@@ -28,43 +29,39 @@ class CloudEvent(GenericModel, Generic[D]):
             return False
         return self.id == other.id
 
-    def __hash__(self):
-        return hash((self.trace_id, self.id))
-
     @validator("type", allow_reuse=True, always=True, pre=True)
     def get_type_from_cls_name(cls, v) -> str:
         return v or cls.__name__
 
     @property
-    def raw(self) -> RawMessage:
+    def raw(self) -> Message:
         if self._raw is None:
             raise AttributeError("raw property accessible only for incoming messages")
         return self._raw
 
+    def _set(self, name: str, value: Any):
+        object.__setattr__(self, name, value)
+
     def set_source(self, value: str) -> None:
         self._set("source", value)
 
-    def set_trace_id(self, value: str):
-        self._set("trace_id", value)
-
-    def _set(self, name: str, value: Any):
-        object.__setattr__(self, name, value)
+    def set_raw(self, value: Message):
+        self._set("_raw", value)
 
     def dict(self, **kwargs: Any) -> Dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
 
     @classmethod
-    def from_object(cls, obj: D, **kwargs):
+    def new(cls, obj: D, **kwargs):
         return cls(data=obj, **kwargs)
 
     @property
-    def context(self) -> Dict[str, Any]:
-        return self.dict(include={"trace_id", "id"})
+    def age(self) -> timedelta:
+        return utc_now() - self.time
 
-    @property
-    def age(self) -> int:
-        return (utc_now() - self.time).seconds
+    def fail(self):
+        self.raw.fail()
 
     class Config:
         use_enum_values = True

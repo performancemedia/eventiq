@@ -29,3 +29,9 @@ List of built-in middlewares
     options:
       show_root_heading: true
       show_source: true
+
+::: eventiq.middlewares.opentelemetry.OpenTelemetryMiddleware
+    handler: python
+    options:
+      show_root_heading: true
+      show_source: true

@@ -86,17 +86,19 @@ class FnConsumer(Consumer[T]):
 
 
 class GenericConsumer(Consumer[T], ABC):
-    name: str
-
     def __init__(self, *, topic: str, name: str | None = None, **options: Any):
 
-        super().__init__(name=name or type(self).__name__, topic=topic, **options)
+        super().__init__(
+            name=name or str(getattr(type(self), "name", type(self).__name__)),
+            topic=topic,
+            **options,
+        )
 
     def __init_subclass__(cls, **kwargs):
         if "abstract" not in kwargs:
             cls.event_type = cls.__orig_bases__[0].__args__[0]
             if not hasattr(cls, "name"):
-                setattr(cls, "name", cls.__name__)
+                cls.name = cls.__name__
             if not asyncio.iscoroutinefunction(cls.process):
                 cls.process = run_async(cls.process)
 

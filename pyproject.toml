@@ -41,9 +41,11 @@ python-json-logger = ">=2.0"
 aiorun = {version = "^2022.11.1", optional = true}
 typer = {version = ">=0.7.0", optional = true}
 
-# misc
+# monitoring
 prometheus-client = {version = ">=0.16.0,<1.0", optional = true}
-
+opentelemetry-api = {version = "^1.17.0", optional = true}
+opentelemetry-sdk = {version = "^1.17.0", optional = true}
+opentelemetry-semantic-conventions = {version = "^0.38b0", optional = true}
 # encoders
 orjson = {version = ">=3.8.7,<4.0", optional = true}
 ormsgpack = {version = ">=1.2.5,<2.0", optional = true}
@@ -55,10 +57,12 @@ aiokafka = {version = ">=0.8,<1.0", optional = true}
 aioredis = {version = ">=2.0,<3.0", optional = true}
 gcloud-aio-pubsub = {version = ">=5.2.0,<6.0", optional = true}
 
-
 [tool.poetry.extras]
-all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "aioredis", "aiokafka", "aio-pika", "gcloud-aio-pubsub"]
-commons = ["aiorun", "typer", "prometheus-client", "orjson"]
+all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "aioredis",
+    "aiokafka", "aio-pika", "gcloud-aio-pubsub",
+    "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"
+]
+common = ["aiorun", "typer", "prometheus-client", "orjson"]
 cli = ["aiorun", "typer"]
 
 # encoders
@@ -66,7 +70,7 @@ orjson = ["orjson"]
 ormsgpack = ["ormsgpack"]
 # observability
 prometheus = ["prometheus-client"]
-
+opentelemetry = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
 # backends
 nats = ["nats-py"]
 kafka = ["aiokafka"]
@@ -82,18 +86,23 @@ mypy = "^0.961"
 black = "^22.3.0"
 isort = "^5.10.1"
 tox = "^3.25.0"
-mkdocs-material = "^8.2.1"
 bandit = "^1.7.4"
 fastapi = "^0.87.0"
 uvicorn = "^0.19.0"
+watchfiles = "^0.18.1"
+python-semantic-release = "^7.33.2"
+flake8 = "^6.0.0"
+pyyaml = "^6.0"
+ruff = "^0.0.264"
+opentelemetry-exporter-otlp = "^1.17.0"
+opentelemetry-instrumentation-logging = "^0.38b0"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "^8.2.1"
+mkdocs = "^1.4.2"
 mkdocs-autorefs = "^0.4.1"
 mkdocs-gen-files = "^0.4.0"
 mkdocstrings-python = "^0.8.2"
-watchfiles = "^0.18.1"
-python-semantic-release = "^7.33.2"
-mkdocs = "^1.4.2"
-flake8 = "^6.0.0"
-
 
 [build-system]
 requires = ["poetry-core"]
@@ -108,11 +117,32 @@ asyncio_mode = "auto"
 
 [tool.mypy]
 python_version = 3.9
+namespace_packages = true
 ignore_missing_imports = true
 no_site_packages = true
 
 [tool.isort]
 profile = "black"
+
+[tool.ruff]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    #= "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+#    "C901",  # too complex
+]
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
 
 [tool.semantic_release]
 version_variable = [

@@ -4,6 +4,7 @@ import logging
 from eventiq import CloudEvent, Middleware, Service
 from eventiq.backends.nats.broker import JetStreamBroker
 from eventiq.middlewares import PrometheusMiddleware, RetryMiddleware
+from eventiq.middlewares.retries import MaxAge
 
 broker = JetStreamBroker(url="nats://localhost:4222")
 
@@ -26,6 +27,8 @@ broker.add_middlewares(
 )
 
 
-@service.subscribe("test.topic", prefetch_count=10)
+@service.subscribe(
+    "test.topic", prefetch_count=10, retry_strategy=MaxAge(max_age={"seconds": 60})
+)
 async def prometheus_consumer(message: CloudEvent):
     logger.info(f"Received Message {message.id} with data: {message.data}")

@@ -11,10 +11,17 @@ from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError, PublishError
 from eventiq.utils.functools import retry_async
 
+from ...message import Message
 from .settings import JetStreamSettings, NatsSettings
 
 if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Service
+
+
+class NatsMessageProxy(Message[NatsMsg]):
+    def __init__(self, message: NatsMsg):
+        super().__init__(message)
+        self._num_delivered = message.metadata.num_delivered
 
 
 class NatsBroker(Broker[NatsMsg]):
@@ -41,6 +48,10 @@ class NatsBroker(Broker[NatsMsg]):
         self.connection_options = connection_options or {}
         self._auto_flush = auto_flush
         self._nc = None
+
+    @property
+    def message_proxy_class(self) -> type[Message]:
+        return NatsMessageProxy
 
     @property
     def nc(self) -> nats.NATS:
@@ -164,10 +175,10 @@ class JetStreamBroker(NatsBroker):
             if consumer.dynamic:
                 await subscription.unsubscribe()
 
-    async def _ack(self, message: NatsMsg) -> None:
+    async def _ack(self, message: Message) -> None:
         if not message._ackd:
             await message.ack()
 
-    async def _nack(self, message: NatsMsg, delay=None) -> None:
+    async def _nack(self, message: Message) -> None:
         if not message._ackd:
-            await message.nak(delay=delay)
+            await message.nak(delay=message.delay)

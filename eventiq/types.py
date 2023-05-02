@@ -12,9 +12,12 @@ from typing import (
     TypeVar,
     Union,
 )
+from uuid import UUID
 
 if TYPE_CHECKING:
     from eventiq import CloudEvent, GenericConsumer
+
+ID = Union[str, int, UUID]
 
 
 RawMessage = TypeVar("RawMessage")

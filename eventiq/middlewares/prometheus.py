@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from eventiq.middleware import Middleware
+from eventiq.types import ID
 from eventiq.utils.datetime import current_millis
 
 if TYPE_CHECKING:
     from prometheus_client.registry import CollectorRegistry
 
-    from eventiq import Broker, CloudEvent, Consumer, RawMessage, Service
+    from eventiq import Broker, CloudEvent, Consumer, Message, Service
 
 
 DEFAULT_BUCKETS = (
@@ -50,7 +51,7 @@ class PrometheusMiddleware(Middleware):
         self.buckets = buckets or DEFAULT_BUCKETS
         self.server_host = server_host
         self.server_port = server_port
-        self.message_start_times: dict[str, int] = {}
+        self.message_start_times: dict[tuple[str, str, ID], int] = {}
         self.in_progress = Gauge(
             "messages_in_progress",
             "Total number of messages being processed.",
@@ -80,9 +81,9 @@ class PrometheusMiddleware(Middleware):
             ["topic", "service", "consumer"],
             registry=self.registry,
         )
-        self.total_rejected_messages = Counter(
-            "message_rejected_total",
-            "Total number of messages rejected",
+        self.total_failed_messages = Counter(
+            "message_failed_total",
+            "Total number of messages failed",
             ["topic", "service", "consumer"],
             registry=self.registry,
         )
@@ -99,7 +100,9 @@ class PrometheusMiddleware(Middleware):
     ):
         labels = (consumer.topic, service.name, consumer.name)
         self.in_progress.labels(*labels).inc()
-        self.message_start_times[message.id] = current_millis()
+        self.message_start_times[
+            (service.name, consumer.name, message.id)
+        ] = current_millis()
 
     async def after_process_message(
         self,
@@ -116,7 +119,9 @@ class PrometheusMiddleware(Middleware):
         if exc:
             self.total_errored_messages.labels(*labels).inc()
 
-        message_start_time = self.message_start_times.pop(message.id, current_millis())
+        message_start_time = self.message_start_times.pop(
+            (service.name, consumer.name, message.id), current_millis()
+        )
         message_duration = current_millis() - message_start_time
         self.message_durations.labels(*labels).observe(message_duration)
 
@@ -130,10 +135,21 @@ class PrometheusMiddleware(Middleware):
         self.total_messages_published.labels(message.topic, message.source).inc()
 
     async def after_nack(
-        self, broker: Broker, service: Service, consumer: Consumer, message: RawMessage
+        self, broker: Broker, service: Service, consumer: Consumer, message: Message
     ):
-        labels = (consumer.topic, service, consumer.name)
-        self.total_rejected_messages.labels(*labels).inc()
+        labels = (consumer.topic, service.name, consumer.name)
+        self.total_errored_messages.labels(*labels).inc()
+
+    async def after_ack(
+        self,
+        broker: Broker,
+        service: Service,
+        consumer: Consumer,
+        message: Message,
+    ) -> None:
+        if message.failed:
+            labels = (consumer.topic, service.name, consumer.name)
+            self.total_failed_messages.labels(*labels).inc()
 
     async def after_broker_connect(self, broker: Broker):
         if self.run_server:

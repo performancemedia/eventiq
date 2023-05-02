@@ -6,7 +6,7 @@
 - `PrometheusMiddleware` - Prometheus exporter of message processing metrics
 - `HealthCheckMiddleware` - Broker connection healthcheck middleware
 - `RetryMiddleware` - Automatic message retries middleware
-
+- `OpenTelemetryMiddleware` - Integration with OpenTelemetry, automatic spans on publish and process
 ## Writing custom middleware
 
 1. Subclass from `eventiq.Middleware`

@@ -42,6 +42,97 @@ services:
     depends_on:
       - zookeeper
 
+  worker:
+    hostname: worker
+    build:
+      dockerfile: ./.docker/Dockerfile
+      context: .
+    command: "eventiq run examples.tracing:service"
+    ports:
+      - "8888:8888"
+    environment: {}
+#      OTEL_PYTHON_LOG_CORRELATION: "true"
+#      OTEL_PYTHON_TRACER_PROVIDER: sdk_tracer_provider
+#      OTEL_SERVICE_NAME: your-service-name
+#      OTEL_RESOURCE_ATTRIBUTES: key1=value1,key2=value2
+#      OTEL_TRACES_SAMPLER: always_on
+#      OTEL_PROPAGATORS: tracecontext,baggage
+#      OTEL_TRACES_EXPORTER: otlp
+#      OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4317"
+#      OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: http
+
+    depends_on:
+      - nats
+      - grafana
+      - tempo
+      - prometheus
+#    logging:
+#      driver: loki
+#      options:
+#        loki-url: http://loki:3100/loki/api/v1/push
+
+  # ---------- #
+  # Monitoring #
+  # ---------- #
+
+  prometheus:
+    image: prom/prometheus:v2.42.0
+    command:
+    - --config.file=/etc/prometheus/config.yaml
+    volumes:
+      - .docker/monitoring/config.prometheus.yaml:/etc/prometheus/config.yaml:ro
+
+#  loki:
+#    image: grafana/loki:2.3.0
+#    command: -config.file=/etc/loki/config.yaml
+#    volumes:
+#      - .docker/monitoring/config.loki.yaml:/etc/loki/config.yaml
+
+  loki:
+    image: grafana/loki:2.3.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  grafana:
+    image: grafana/grafana:9.4.3
+    environment:
+      GL_PATHS_PROVISIONING: /etc/grafana/provisioning
+      GL_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    restart: unless-stopped
+    volumes:
+      - .docker/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - .docker/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - tempo
+      - prometheus
+
+  tempo:
+    image: grafana/tempo:2.0.1
+    command: [ "-config.file=/etc/config.yaml" ]
+    restart: unless-stopped
+    volumes:
+      - .docker/monitoring/config.tempo.yaml:/etc/config.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "8000:8000"
+      - "4317:4317"
+
+  otel-collector:
+    image: otel/opentelemetry-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - .docker/monitoring/config.otel.yaml:/etc/otel-collector-config.yaml
+
+
 volumes:
   nats-tmp:
   nats-data:
+  tempo-data:
+  grafana-data:
