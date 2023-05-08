@@ -1,6 +1,7 @@
 import asyncio
 from datetime import date
 from typing import AsyncGenerator
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
@@ -66,6 +67,7 @@ def generic_test_consumer(service) -> Consumer:
 @pytest.fixture()
 def ce() -> CloudEvent:
     return CloudEvent(
+        id=uuid4(),
         type="TestEvent",
         topic="test_topic",
         data={"today": date.today().isoformat(), "arr": [1, "2", 3.0]},

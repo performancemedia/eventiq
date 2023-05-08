@@ -15,9 +15,9 @@ from typing import (
 from uuid import UUID
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, GenericConsumer
+    from . import CloudEvent, GenericConsumer
 
-ID = Union[str, int, UUID]
+ID = Union[UUID, int, str]
 
 
 RawMessage = TypeVar("RawMessage")
@@ -53,7 +53,12 @@ class Encoder(Protocol):
         """
 
 
-FT = Callable[["CloudEvent"], Awaitable[Optional[Any]]]
+FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional[Any]]]
 MessageHandlerT = Union[Type["GenericConsumer"], FT]
 
 ExcHandler = Callable[["CloudEvent", Exception], Awaitable]
+
+
+class ResultBackend(Protocol):
+    async def get_result(self, service: str, message_id: ID) -> Any | None:
+        ...

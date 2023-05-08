@@ -31,7 +31,7 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         *,
         url: str,
         default_prefetch_count: int = 10,
-        queue_options: dict[str, Any] = None,
+        queue_options: dict[str, Any] | None = None,
         exchange_name: str = "events",
         connection_options: dict[str, Any] | None = None,
         **kwargs: Any,

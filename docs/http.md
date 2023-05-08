@@ -10,27 +10,25 @@ eventiq allows you to integrate `service` to an existing web app like
 
 ```python
 from typing import Any
-
+from uuid import UUID
 from fastapi import FastAPI, Body
 from fastapi.responses import JSONResponse, Response
 from eventiq import Service, CloudEvent
 from eventiq.middlewares import HealthCheckMiddleware
-from eventiq.backends.nats import JetStreamBroker, NatsJetStreamResultMiddleware
-from eventiq.http import include_service
-
+from eventiq.backends.nats import JetStreamBroker, JetStreamResultBackend
+from eventiq.contrib.fastapi import FastAPIServicePlugin
 
 broker = JetStreamBroker(url="nats://localhost:4222")
-kv = NatsJetStreamResultMiddleware(bucket="test")
+kv = JetStreamResultBackend(broker)
 
 broker.add_middleware(HealthCheckMiddleware())
-broker.add_middleware(kv)
 
 service = Service(name="example-service", broker=broker)
 
 
 app = FastAPI()
 
-include_service(app=app, service=service, add_health_endpoint=True)
+FastAPIServicePlugin(service, app, healthcheck_url="/healthz")
 
 
 @service.subscribe("events.topic", name="test_consumer", store_results=True)
@@ -45,9 +43,9 @@ async def publish_event(data: Any = Body(...)):
     await service.publish_event(event)
     return event
 
-@app.get("/{consumer}/{key}")
-async def get_result(consumer: str, key: str):
-    res = await kv.get(f"{consumer}:{key}")
+@app.get("/{message_id}")
+async def get_result(message_id: UUID):
+    res = await kv.get_result(service.name, message_id)
     if res is None:
         return Response(status_code=404, content="Key not found")
     return JSONResponse(content=res)

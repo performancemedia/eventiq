@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, get_type_hints
+from typing import Any, Callable, Generic, get_type_hints
 
-from .defaults import DEFAULT_CONSUMER_TIME_LIMIT
 from .logger import get_logger
 from .types import FT, MessageHandlerT, T
-from .utils.functools import run_async
+from .utils.functools import to_async
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class Consumer(ABC, Generic[T]):
         *,
         topic: str,
         name: str,
-        timeout: int = DEFAULT_CONSUMER_TIME_LIMIT,
+        timeout: int = 120,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         **options: Any,
@@ -53,7 +53,7 @@ class Consumer(ABC, Generic[T]):
         raise NotImplementedError
 
     @abstractmethod
-    async def process(self, message: T):
+    async def process(self, message: T) -> Any | None:
         raise NotImplementedError
 
 
@@ -71,7 +71,7 @@ class FnConsumer(Consumer[T]):
         assert event_type, f"Unable to resolve type hint for 'message' in {fn.__name__}"
         self.event_type = event_type
         if not asyncio.iscoroutinefunction(fn):
-            fn = run_async(fn)
+            fn = to_async(fn)
         self.fn = fn
 
     async def process(self, message: T) -> Any | None:
@@ -95,12 +95,8 @@ class GenericConsumer(Consumer[T], ABC):
         )
 
     def __init_subclass__(cls, **kwargs):
-        if "abstract" not in kwargs:
-            cls.event_type = cls.__orig_bases__[0].__args__[0]
-            if not hasattr(cls, "name"):
-                cls.name = cls.__name__
-            if not asyncio.iscoroutinefunction(cls.process):
-                cls.process = run_async(cls.process)
+        if not inspect.isabstract(cls) and not asyncio.iscoroutinefunction(cls.process):
+            cls.process = to_async(cls.process)
 
     @property
     def description(self) -> str:
@@ -126,7 +122,7 @@ class ConsumerGroup:
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         **options,
-    ):
+    ) -> Callable[[MessageHandlerT], MessageHandlerT]:
         def wrapper(func_or_cls: MessageHandlerT) -> MessageHandlerT:
             cls: type[Consumer] = FnConsumer
             if isinstance(func_or_cls, type) and issubclass(

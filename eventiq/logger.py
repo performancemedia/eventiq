@@ -4,7 +4,8 @@ from typing import Type, Union
 
 from pythonjsonlogger import jsonlogger
 
-from eventiq.utils.datetime import utc_now
+from .context import get_current_message
+from .utils.datetime import utc_now
 
 
 class EventiqJsonFormatter(jsonlogger.JsonFormatter):
@@ -12,6 +13,10 @@ class EventiqJsonFormatter(jsonlogger.JsonFormatter):
         super().add_fields(log_record, record, message_dict)
         if "timestamp" not in log_record:
             log_record["timestamp"] = utc_now()
+
+        msg = get_current_message()
+        if msg:
+            log_record.update(msg.log_context)
 
         log_record["level"] = record.levelname.upper()
 

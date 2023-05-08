@@ -12,7 +12,7 @@ from gcloud.aio.pubsub import (
 
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
-from eventiq.utils.functools import retry_async
+from eventiq.utils.functools import retry
 
 from .settings import PubSubSettings
 
@@ -62,17 +62,19 @@ class PubSubBroker(Broker[SubscriberMessage]):
             raise BrokerError("Broker not connected")
         return self._client
 
-    @retry_async(max_retries=3)
+    @retry(max_retries=3)
     async def _publish(
         self,
         message: CloudEvent,
-        timeout: int = 10,
-        ordering_key: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
+        ordering_key = kwargs.get("ordering_key", str(message.id))
+        timeout = kwargs.get("timeout", 10)
         msg = PubsubMessage(
             data=self.encoder.encode(message.dict()),
-            ordering_key=ordering_key or message.id,
+            ordering_key=ordering_key,
+            content_type=self.encoder.CONTENT_TYPE,
+            **kwargs.get("headers"),
         )
         await self.client.publish(topic=message.topic, messages=[msg], timeout=timeout)
 

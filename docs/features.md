@@ -1,7 +1,7 @@
 ## eventiq features
 
 - Modern, `asyncio` based python 3.8+ syntax
-- Minimal dependencies, only `pydantic`, `async_timeout` and `python-json-logger` are required
+- Minimal dependencies, only `pydantic` and `python-json-logger` are required
 - Automatic message parsing based on type annotations (like FastAPI)
 - Code hot-reload
 - Highly scalable: each service can process hundreds of tasks concurrently,

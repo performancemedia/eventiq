@@ -5,9 +5,9 @@ import functools
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic, Type, cast
 
-import async_timeout
 from pydantic import ValidationError
 
+from .context import _current_message, _current_service
 from .exceptions import DecodeError, Fail, Skip
 from .logger import LoggerMixin
 from .message import Message
@@ -20,41 +20,7 @@ if TYPE_CHECKING:
     from eventiq import Consumer, Service
 
 
-class AbstractBroker(ABC, Generic[RawMessage]):
-    @abstractmethod
-    def parse_incoming_message(self, message: RawMessage) -> Any:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def is_connected(self) -> bool:
-        """Return broker connection status"""
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _publish(self, message: CloudEvent, **kwargs) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _connect(self) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _disconnect(self) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
-        raise NotImplementedError
-
-    async def _ack(self, message: Message) -> None:
-        """Empty default implementation for backends that do not support explicit ack"""
-
-    async def _nack(self, message: Message) -> None:
-        """Same as for ._ack()"""
-
-
-class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
+class Broker(Generic[RawMessage], LoggerMixin, ABC):
     """Base broker class
     :param description: Broker (Server) Description
     :param encoder: Encoder (Serializer) class
@@ -96,6 +62,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
             exc: Exception | None = None
             result: Any = None
             msg = self.message_proxy_class(raw_message)
+            s_token = _current_service.set(service)
             try:
                 parsed = self.parse_incoming_message(raw_message)
                 message = consumer.validate_message(parsed)
@@ -105,7 +72,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                 msg.fail()
                 await self.ack(service, consumer, msg)
                 return
-
+            m_token = _current_message.set(message)
             try:
                 await self.dispatch_before(
                     "process_message", service, consumer, message
@@ -116,9 +83,12 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                 await self.ack(service, consumer, msg)
                 return
             try:
-                async with async_timeout.timeout(consumer.timeout):
-                    self.logger.info(f"Running consumer {consumer.name}")
-                    result = await consumer.process(message)
+                self.logger.info(
+                    f"Running consumer {consumer.name} with message {message.id}"
+                )
+                result = await asyncio.wait_for(
+                    consumer.process(message), timeout=consumer.timeout
+                )
                 if consumer.forward_response and result is not None:
                     await self.publish_event(
                         CloudEvent(
@@ -133,6 +103,7 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                 self.logger.error(f"Exception in {consumer.name} {e}")
                 exc = e
             finally:
+                self.logger.info(f"Finished running consumer {consumer.name}")
                 await self.dispatch_after(
                     "process_message", service, consumer, message, result, exc
                 )
@@ -140,6 +111,8 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
                     await self.ack(service, consumer, msg)
                 else:
                     await self.nack(service, consumer, msg)
+                _current_service.reset(s_token)
+                _current_message.reset(m_token)
 
         return handler
 
@@ -266,3 +239,35 @@ class Broker(AbstractBroker[RawMessage], LoggerMixin, ABC):
         **kwargs,
     ) -> Broker:
         return cls.from_settings(BrokerSettings(), **kwargs)
+
+    @abstractmethod
+    def parse_incoming_message(self, message: RawMessage) -> Any:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool:
+        """Return broker connection status"""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _publish(self, message: CloudEvent, **kwargs) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _connect(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _disconnect(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
+        raise NotImplementedError
+
+    async def _ack(self, message: Message) -> None:
+        """Empty default implementation for backends that do not support explicit ack"""
+
+    async def _nack(self, message: Message) -> None:
+        """Same as for ._ack()"""

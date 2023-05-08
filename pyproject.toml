@@ -34,7 +34,6 @@ eventiq = "eventiq.cli:cli"
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0"
 pydantic = ">=1.0"
-async-timeout = ">=4.0"
 python-json-logger = ">=2.0"
 
 # cli
@@ -58,11 +57,10 @@ aioredis = {version = ">=2.0,<3.0", optional = true}
 gcloud-aio-pubsub = {version = ">=5.2.0,<6.0", optional = true}
 
 [tool.poetry.extras]
-all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "aioredis",
-    "aiokafka", "aio-pika", "gcloud-aio-pubsub",
-    "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"
+all = ["aiorun", "typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "aioredis", "aiokafka", "aio-pika",
+    "gcloud-aio-pubsub", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"
 ]
-common = ["aiorun", "typer", "prometheus-client", "orjson", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
+common = ["aiorun", "typer", "prometheus-client", "orjson"]
 cli = ["aiorun", "typer"]
 
 # encoders
@@ -82,7 +80,7 @@ pubsub = ["gcloud-aio-pubsub"]
 pytest = "^7.2.1"
 pytest-asyncio = "^0.20.2"
 pytest-cov = "^4.0.0"
-mypy = "^0.961"
+mypy = "^1.2.0"
 black = "^22.3.0"
 isort = "^5.10.1"
 tox = "^3.25.0"
@@ -116,7 +114,7 @@ testpaths = [
 asyncio_mode = "auto"
 
 [tool.mypy]
-python_version = 3.9
+python_version = "3.11"
 namespace_packages = true
 ignore_missing_imports = true
 no_site_packages = true

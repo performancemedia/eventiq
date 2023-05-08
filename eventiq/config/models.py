@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Extra
 
@@ -37,12 +37,13 @@ class TypedModel(BaseModel):
 class BrokerConfig(TypedModel):
     encoder: TypedModel
     middlewares: List[TypedModel]
+    context: dict[str, Union[TypedModel, Any]] = {}
 
 
 class ConsumerConfig(TypedModel):
     topic: str
     name: Optional[str]
-    timeout: Optional[int]
+    timeout: int = 120
     dynamic: bool = False
 
     def build(self):
@@ -56,6 +57,7 @@ class ConsumerConfig(TypedModel):
 
 class ServiceConfig(BaseModel):
     name: str
+    broker: str = "default"
     title: Optional[str]
     version: str = "0.1.0"
     description: str = ""
@@ -65,5 +67,5 @@ class ServiceConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
-    broker: BrokerConfig
+    brokers: Dict[str, BrokerConfig]
     services: List[ServiceConfig]

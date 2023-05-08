@@ -4,12 +4,13 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 import nats
+from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
 from nats.js import JetStreamContext
 
 from eventiq.broker import Broker
-from eventiq.exceptions import BrokerError, PublishError
-from eventiq.utils.functools import retry_async
+from eventiq.exceptions import PublishError
+from eventiq.utils.functools import retry
 
 from ...message import Message
 from .settings import JetStreamSettings, NatsSettings
@@ -47,48 +48,42 @@ class NatsBroker(Broker[NatsMsg]):
         self.url = url
         self.connection_options = connection_options or {}
         self._auto_flush = auto_flush
-        self._nc = None
+        self.client = Client()
 
     @property
     def message_proxy_class(self) -> type[Message]:
         return NatsMessageProxy
 
-    @property
-    def nc(self) -> nats.NATS:
-        if self._nc is None:
-            raise BrokerError("Broker not connected. Call await broker.connect() first")
-        return self._nc
-
     def parse_incoming_message(self, message: NatsMsg) -> Any:
         return self.encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
-        await self.nc.subscribe(
+        await self.client.subscribe(
             subject=consumer.topic,
             queue=f"{service.name}:{consumer.name}",
             cb=self.get_handler(service, consumer),
         )
 
     async def _disconnect(self) -> None:
-        await self.nc.close()
+        await self.client.close()
 
     async def flush(self):
-        await self.nc.flush()
+        await self.client.flush()
 
-    @retry_async(max_retries=3)
+    @retry(max_retries=3)
     async def _connect(self) -> None:
-        self._nc = await nats.connect(self.url, **self.connection_options)
+        self._nc = await self.client.connect(self.url, **self.connection_options)
 
-    @retry_async(max_retries=3)
+    @retry(max_retries=3)
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         data = self.encoder.encode(message.dict())
-        await self.nc.publish(message.topic, data, **kwargs)
+        await self.client.publish(message.topic, data, **kwargs)
         if self._auto_flush:
-            await self.nc.flush()
+            await self.client.flush()
 
     @property
     def is_connected(self) -> bool:
-        return self.nc.is_connected
+        return self.client.is_connected
 
     Settings = NatsSettings
 
@@ -117,28 +112,18 @@ class JetStreamBroker(NatsBroker):
         self.prefetch_count = prefetch_count
         self.fetch_timeout = fetch_timeout
         self.jetstream_options = jetstream_options or {}
-        self._js = None
+        self.js = JetStreamContext(self.client, **self.jetstream_options)
 
-    @property
-    def js(self) -> JetStreamContext:
-        if not (self._nc and self._js):
-            raise BrokerError("Broker not connected")
-        return self._js
-
-    async def _connect(self) -> None:
-        await super()._connect()
-        self._js = self.nc.jetstream(**self.jetstream_options)
-
-    @retry_async(max_retries=3)
+    @retry(max_retries=3)
     async def _publish(
         self,
         message: CloudEvent,
-        timeout: float | None = None,
-        stream: str | None = None,
-        headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> None:
         data = self.encoder.encode(message)
-        headers = headers or {}
+        headers = kwargs.get("headers", {})
+        timeout = kwargs.get("timeout")
+        stream = kwargs.get("stream")
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
         try:
             await self.js.publish(

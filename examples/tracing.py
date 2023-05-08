@@ -23,7 +23,7 @@ logger = logging.getLogger("consumer-logger")
 
 
 resource = Resource(
-    attributes={"service.name": service.name, "service.version": "v0.1.0"}
+    attributes={"service.name": service.name, "service.version": service.version}
 )
 
 
@@ -59,27 +59,27 @@ broker.add_middlewares(
 
 
 @service.subscribe("test.topic", retry_strategy=MaxAge(max_age={"seconds": 60}))
-async def consumer_1(message: CloudEvent):
+async def consumer_1(message: CloudEvent, **_):
     logger.info(f"Received Message {message.id} with data: {message.data}")
     await asyncio.sleep(0.4)
     await service.publish("test.topic2", data=message.data)
 
 
 @service.subscribe("test.topic", retry_strategy=MaxAge(max_age={"seconds": 60}))
-async def consumer_2(message: CloudEvent):
+async def consumer_2(message: CloudEvent, **_):
     await asyncio.sleep(0.2)
     logger.info(f"Received Message {message.id} with data: {message.data}")
 
 
 @service.subscribe("test.topic2")
-async def consumer_3(message: CloudEvent):
+async def consumer_3(message: CloudEvent, **_):
     await asyncio.sleep(0.2)
     logger.info(f"Received Message {message.id} with data: {message.data}")
     await service.publish("test.topic3", data=message.data)
 
 
 @service.subscribe("test.topic3")
-async def consumer_4(message: CloudEvent):
+async def consumer_4(message: CloudEvent, **_):
     await asyncio.sleep(0.2)
     logger.info(f"Received Message {message.id} with data: {message.data}")
     if random.randint(1, 3) == 2:  # nosec

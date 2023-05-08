@@ -1,4 +1,4 @@
 from .broker import JetStreamBroker, NatsBroker
-from .middlewares import NatsJetStreamResultMiddleware
+from .plugins import JetStreamResultBackend
 
-__all__ = ["JetStreamBroker", "NatsBroker", "NatsJetStreamResultMiddleware"]
+__all__ = ["JetStreamBroker", "NatsBroker", "JetStreamResultBackend"]

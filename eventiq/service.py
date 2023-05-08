@@ -4,7 +4,6 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Callable
 
 from .consumer import Consumer, ConsumerGroup, ForwardResponse
-from .defaults import DEFAULT_CONSUMER_TIME_LIMIT
 from .logger import LoggerMixin
 from .models import CloudEvent
 from .settings import ServiceSettings
@@ -27,6 +26,7 @@ class Service(LoggerMixin):
         description: str = "",
         tags_metadata: list[TagMeta] | None = None,
         instance_id_generator: Callable[[], str] | None = None,
+        **context: Any,
     ):
         self.broker = broker
         self.name = name
@@ -36,6 +36,7 @@ class Service(LoggerMixin):
         self.tags_metadata = tags_metadata or []
         self.id = (instance_id_generator or generate_instance_id)()
         self.consumer_group = ConsumerGroup()
+        self.context = context
         # TODO: task gathering?
         self._tasks: list[asyncio.Task] = []
 
@@ -44,7 +45,7 @@ class Service(LoggerMixin):
         topic: str,
         *,
         name: str | None = None,
-        timeout: int = DEFAULT_CONSUMER_TIME_LIMIT,
+        timeout: int = 120,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         **options,
@@ -84,8 +85,8 @@ class Service(LoggerMixin):
         return await self.broker.publish_event(message, **kwargs)
 
     async def start(self):
-        await self.broker.dispatch_before("service_start", self)
         await self.broker.connect()
+        await self.broker.dispatch_before("service_start", self)
         for consumer in self.consumers.values():
             asyncio.create_task(self.broker.start_consumer(self, consumer))
         await self.broker.dispatch_after("service_start", self)

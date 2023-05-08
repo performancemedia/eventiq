@@ -30,6 +30,7 @@ repos:
     rev: 'v0.0.264'
     hooks:
       - id: ruff
+        args: ["--fix"]
 
   - repo: https://github.com/pycqa/isort
     rev: 5.11.5
@@ -50,7 +51,7 @@ repos:
       args: ["--skip", "B101", "-r", "./eventiq"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.961
+    rev: v1.2.0
     hooks:
       - id: mypy
 
