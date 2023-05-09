@@ -63,7 +63,7 @@ def populate_channel_spec(service: Service):
     return channels
 
 
-@functools.cache
+@functools.lru_cache
 def get_async_api_spec(service: Service) -> AsyncAPI:
     channels = populate_channel_spec(service)
     definitions = get_all_models_schema(service)
