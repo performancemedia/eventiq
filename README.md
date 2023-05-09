@@ -28,7 +28,7 @@ Repository: https://github.com/performancemedia/eventiq
 ---
 ## About
 
-The package utilizes `pydantic`, `async_timeout` and `python-json-logger` as the only required dependencies.
+The package utilizes `pydantic` and `python-json-logger` as the only required dependencies.
 For messages [Cloud Events](https://cloudevents.io/) format is used.
 Service can be run as standalone processes, or included into starlette (e.g. FastAPI) applications.
 

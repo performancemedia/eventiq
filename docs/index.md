@@ -14,6 +14,7 @@
 ![License](https://img.shields.io/github/license/performancemedia/eventiq)
 ![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json)](https://github.com/charliermarsh/ruff)
 
 *Cloud native, event driven microservice framework for python*
 
@@ -29,7 +30,7 @@ Repository: [https://github.com/performancemedia/eventiq](https://github.com/per
 ---
 ## About
 
-The package utilizes `pydantic`, `async_timeout` and `python-json-logger` as the only required dependencies.
+The package utilizes `pydantic` and `python-json-logger` as the only required dependencies.
 For messages [Cloud Events](https://cloudevents.io/) format is used.
 Service can be run as standalone processes, or included into starlette (e.g. FastAPI) applications.
 
@@ -54,6 +55,7 @@ pip install eventiq
   - broker of choice: `nats`, `kafka`, `rabbitmq`, `redis`, `pubsub`
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
+  - `opentelemetry` - Tracing support
 
 ## Motivation
 

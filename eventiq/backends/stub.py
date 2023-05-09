@@ -64,5 +64,5 @@ class StubBroker(Broker[StubMessage]):
     async def _nack(self, message: Message) -> None:
         await message.queue.put(message)
 
-    def is_connected(self) -> bool:
+    def is_connected(self) -> bool:  # type: ignore[override]
         return True

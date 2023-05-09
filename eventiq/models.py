@@ -5,6 +5,7 @@ from pydantic import Extra, Field, validator
 from pydantic.fields import PrivateAttr
 from pydantic.generics import GenericModel
 
+from .context import get_current_service
 from .message import Message
 from .types import ID, D
 from .utils import str_uuid
@@ -19,7 +20,7 @@ class CloudEvent(GenericModel, Generic[D]):
     topic: str = Field(..., alias="subject")
     type: Optional[str] = None
     source: Optional[str] = None
-    data: Optional[D] = None
+    data: D
     trace_ctx: Dict[str, str] = {}
 
     _raw: Optional[Any] = PrivateAttr()
@@ -39,6 +40,14 @@ class CloudEvent(GenericModel, Generic[D]):
             raise AttributeError("raw property accessible only for incoming messages")
         return self._raw
 
+    @property
+    def service(self):
+        return get_current_service()
+
+    @property
+    def log_context(self) -> Dict[str, Any]:
+        return {"message_id": str(self.id)}
+
     def _set(self, name: str, value: Any):
         object.__setattr__(self, name, value)
 
@@ -53,7 +62,7 @@ class CloudEvent(GenericModel, Generic[D]):
         return super().dict(**kwargs)
 
     @classmethod
-    def new(cls, obj: D, **kwargs):
+    def new(cls, obj: D, **kwargs: Any):
         return cls(data=obj, **kwargs)
 
     @property

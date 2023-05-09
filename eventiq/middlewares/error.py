@@ -4,7 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from eventiq.middleware import Middleware
-from eventiq.utils.functools import run_async
+from eventiq.utils.functools import to_async
 
 if TYPE_CHECKING:
     from eventiq import Broker, CloudEvent, Consumer, Service
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class ErrorHandlerMiddleware(Middleware):
     def __init__(self, errors: type[Exception] | tuple[type[Exception]], callback):
         if not asyncio.iscoroutinefunction(callback):
-            callback = run_async(callback)
+            callback = to_async(callback)
         self.cb = callback
         self.exc = errors
 

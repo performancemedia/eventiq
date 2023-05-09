@@ -4,22 +4,19 @@ from fastapi import Body, FastAPI
 from fastapi.responses import JSONResponse, Response
 
 from eventiq import CloudEvent, Service
-from eventiq.backends.nats import JetStreamBroker, NatsJetStreamResultMiddleware
-from eventiq.middlewares import HealthCheckMiddleware
-from eventiq.web import include_service
+from eventiq.backends.nats import JetStreamBroker
+from eventiq.backends.nats.plugins import JetStreamResultBackend
+from eventiq.contrib.fastapi import FastAPIServicePlugin
 
 broker = JetStreamBroker(url="nats://localhost:4222")
-kv = NatsJetStreamResultMiddleware(bucket="test")
-
-broker.add_middleware(HealthCheckMiddleware())
-broker.add_middleware(kv)
+results = JetStreamResultBackend(broker)
 
 service = Service(name="example-service", broker=broker)
 
 
 app = FastAPI()
 
-include_service(app=app, service=service, add_health_endpoint=True)
+FastAPIServicePlugin(service, app, healthcheck_url="/healthz")
 
 
 @service.subscribe("events.topic", name="test_consumer", store_results=True)
@@ -35,9 +32,9 @@ async def publish_event(data: Any = Body(...)):
     return event
 
 
-@app.get("/{consumer}/{key}")
-async def get_result(consumer: str, key: str):
-    res = await kv.get(f"{consumer}:{key}")
+@app.get("/{message_id}")
+async def get_result(message_id: str):
+    res: Any = await results.get_result(service.name, message_id)
     if res is None:
         return Response(status_code=404, content="Key not found")
     return JSONResponse(content=res)

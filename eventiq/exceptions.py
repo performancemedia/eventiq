@@ -5,10 +5,6 @@ class ConfigurationError(Exception):
     """Raised by framework when invalid configuration is supplied"""
 
 
-class PluginLoadError(ImportError):
-    """Raised when unable to load plugin"""
-
-
 class BrokerError(Exception):
     """Base Exception for broker related errors"""
 
