@@ -62,7 +62,7 @@ class CloudEvent(GenericModel, Generic[D]):
         return super().dict(**kwargs)
 
     @classmethod
-    def new(cls, obj: D, **kwargs):
+    def new(cls, obj: D, **kwargs: Any):
         return cls(data=obj, **kwargs)
 
     @property
