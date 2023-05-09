@@ -65,8 +65,8 @@ class JetStreamResultBackend(BrokerPlugin[JetStreamBroker], ResultBackend):
         self.broker.add_middleware(_NatsJetStreamResultMiddleware(self))
         self.buckets: dict[str, KeyValue] = {}
 
-    @retry(max_retries=3, backoff=5)
-    async def _get(self, kv: KeyValue, key: str) -> Any:
+    @retry(max_retries=3)
+    async def _get(self, kv: KeyValue, key: ID) -> Any:
         return await kv.get(str(key))
 
     async def get_result(self, service: str, message_id: ID) -> Any:
