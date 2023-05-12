@@ -228,10 +228,10 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     @classmethod
     def from_settings(cls, settings: BrokerSettings, **kwargs: Any) -> Broker:
-        broker_cls: type[Broker] = cast(Type[Broker], settings.broker_class)
-        kw = settings.dict(exclude={"broker_cls"})
+        broker_class: type[Broker] = cast(Type[Broker], settings.broker_class)
+        kw = settings.dict(exclude={"broker_class"})
         kw.update(kwargs)
-        return broker_cls(**kw)
+        return broker_class(**kw)
 
     @classmethod
     def from_env(

@@ -130,3 +130,4 @@ dmypy.json
 secrets/
 tmp/
 asyncapi.yaml
+.idea/
