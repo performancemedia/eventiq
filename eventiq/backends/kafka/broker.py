@@ -98,7 +98,7 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
     ):
         data = self.encoder.encode(message.dict())
         timestamp_ms = timestamp_ms or int(message.time.timestamp() * 1000)
-        key = key or getattr(message, "key", message.id)
+        key = key or getattr(message, "key", str(message.id))
         headers = headers or {}
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
         await self.publisher.send(

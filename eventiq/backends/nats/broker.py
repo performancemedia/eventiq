@@ -160,7 +160,7 @@ class JetStreamBroker(NatsBroker):
                 try:
                     messages = await subscription.fetch(batch=batch, timeout=timeout)
                     tasks = [asyncio.create_task(handler(message)) for message in messages]  # type: ignore
-                    await asyncio.gather(*tasks, return_exceptions=True)
+                    await asyncio.gather(*tasks)
                 except nats.errors.TimeoutError:
                     await asyncio.sleep(5)
         except Exception:
