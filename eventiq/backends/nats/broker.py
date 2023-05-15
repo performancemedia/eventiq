@@ -125,6 +125,7 @@ class JetStreamBroker(NatsBroker):
         timeout = kwargs.get("timeout")
         stream = kwargs.get("stream")
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
+        headers["Nats-Msg-Id"] = str(message.id)
         try:
             await self.js.publish(
                 subject=message.topic,
@@ -138,11 +139,19 @@ class JetStreamBroker(NatsBroker):
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         durable = f"{service.name}:{consumer.name}"
-        subscription = await self.js.pull_subscribe(
-            subject=consumer.topic,
-            durable=durable,
-            config=consumer.options.get("config"),
-        )
+        try:
+            subscription = await self.js.pull_subscribe(
+                subject=consumer.topic,
+                durable=durable,
+                config=consumer.options.get("config"),
+            )
+        except Exception as e:
+            self.logger.exception(
+                f"Error creating subscription for consumer {consumer.name} and topic {consumer.topic}",
+                exc_info=e,
+            )
+            return
+
         handler = self.get_handler(service, consumer)
         batch = consumer.options.get("prefetch_count", self.prefetch_count)
         timeout = consumer.options.get("fetch_timeout", self.fetch_timeout)
@@ -151,7 +160,7 @@ class JetStreamBroker(NatsBroker):
                 try:
                     messages = await subscription.fetch(batch=batch, timeout=timeout)
                     tasks = [asyncio.create_task(handler(message)) for message in messages]  # type: ignore
-                    await asyncio.gather(*tasks, return_exceptions=True)
+                    await asyncio.gather(*tasks)
                 except nats.errors.TimeoutError:
                     await asyncio.sleep(5)
         except Exception:

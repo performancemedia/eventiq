@@ -74,7 +74,7 @@ class PubSubBroker(Broker[SubscriberMessage]):
             data=self.encoder.encode(message.dict()),
             ordering_key=ordering_key,
             content_type=self.encoder.CONTENT_TYPE,
-            **kwargs.get("headers"),
+            **kwargs.get("headers", {}),
         )
         await self.client.publish(topic=message.topic, messages=[msg], timeout=timeout)
 

@@ -97,9 +97,20 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         self._channels.append(channel)
 
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
-        body = self.encoder.encode(message.data)
+        body = self.encoder.encode(
+            message.dict(
+                exclude={
+                    "id",
+                    "type",
+                    "source",
+                    "content_type",
+                    "version",
+                    "time",
+                    "topic",
+                }
+            )
+        )
         headers = kwargs.pop("headers", {})
-        headers.setdefault("X-Trace-ID", str(message.trace_id))
         headers.setdefault("specversion", message.specversion)
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
         msg = aio_pika.Message(
@@ -129,14 +140,18 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
     def parse_incoming_message(
         self, message: aio_pika.abc.AbstractIncomingMessage
     ) -> Any:
-        return {
-            "id": message.message_id,
-            "trace_id": message.headers.get("X-Trace-ID"),
-            "type": message.type,
-            "data": self.encoder.decode(message.body),
-            "source": message.app_id,
-            "content_type": message.content_type,
-            "version": message.headers.get("specversion"),
-            "time": message.timestamp,
-            "topic": message.routing_key,
-        }
+        msg = self.encoder.decode(message.body)
+        if not isinstance(msg, dict):
+            raise TypeError(f"Expected dict, got {type(msg)}")
+        msg.update(
+            {
+                "id": message.message_id,
+                "type": message.type,
+                "source": message.app_id,
+                "content_type": message.content_type,
+                "version": message.headers.get("specversion"),
+                "time": message.timestamp,
+                "topic": message.routing_key,
+            }
+        )
+        return msg
