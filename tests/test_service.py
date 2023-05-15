@@ -13,7 +13,7 @@ def test_service(service):
 async def test_service_scope(running_service: Service, ce):
     assert isinstance(running_service, Service)
     assert running_service.broker is not None
-    await running_service.publish_event(ce)
+    await running_service.publish(ce)
     assert isinstance(running_service.broker, StubBroker)
     queue: asyncio.Queue = running_service.broker.topics[ce.topic]
     msg = await queue.get()

@@ -44,7 +44,7 @@ class SendMessageMiddleware(Middleware):
         self.logger.info(f"After service start, running with {broker}")
         await asyncio.sleep(5)
         for i in range(3):
-            await service.publish("test.topic", data={"counter": i})
+            await service.send("test.topic", data={"counter": i})
         self.logger.info("Published event(s)")
 
 
@@ -62,7 +62,7 @@ broker.add_middlewares(
 async def consumer_1(message: CloudEvent, **_):
     logger.info(f"Received Message {message.id} with data: {message.data}")
     await asyncio.sleep(0.4)
-    await service.publish("test.topic2", data=message.data)
+    await service.send("test.topic2", data=message.data)
 
 
 @service.subscribe("test.topic", retry_strategy=MaxAge(max_age={"seconds": 60}))
@@ -75,7 +75,7 @@ async def consumer_2(message: CloudEvent, **_):
 async def consumer_3(message: CloudEvent, **_):
     await asyncio.sleep(0.2)
     logger.info(f"Received Message {message.id} with data: {message.data}")
-    await service.publish("test.topic3", data=message.data)
+    await service.send("test.topic3", data=message.data)
 
 
 @service.subscribe("test.topic3")
@@ -83,4 +83,4 @@ async def consumer_4(message: CloudEvent, **_):
     await asyncio.sleep(0.2)
     logger.info(f"Received Message {message.id} with data: {message.data}")
     if random.randint(1, 3) == 2:  # nosec
-        await service.publish("test.topic", data=message.data)
+        await service.send("test.topic", data=message.data)

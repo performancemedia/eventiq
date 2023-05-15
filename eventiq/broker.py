@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import functools
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic, Type, cast
 
@@ -90,7 +89,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                     consumer.process(message), timeout=consumer.timeout
                 )
                 if consumer.forward_response and result is not None:
-                    await self.publish_event(
+                    await self.publish(
                         CloudEvent(
                             type=consumer.forward_response.as_type,
                             topic=consumer.forward_response.topic,
@@ -157,7 +156,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 self._stopped = True
                 await self.dispatch_after("broker_disconnect")
 
-    async def publish_event(self, message: CloudEvent, **kwargs: Any) -> None:
+    async def publish(self, message: CloudEvent, **kwargs: Any) -> None:
         """
         :param message: Cloud event object to send
         :param kwargs: Additional params passed to broker._publish
@@ -166,36 +165,6 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         await self.dispatch_before("publish", message)
         await self._publish(message, **kwargs)
         await self.dispatch_after("publish", message)
-
-    async def publish(
-        self,
-        topic: str,
-        data: Any | None = None,
-        type_: type[CloudEvent] | str = "CloudEvent",
-        source: str = "",
-        **kwargs: Any,
-    ) -> None:
-        """Publish message to broker
-        :param topic: Topic to publish data
-        :param data: Message content
-        :param type_: Event type, name or class
-        :param source: message sender (service/app name)
-        :param kwargs: additional params passed to underlying broker implementation, such as headers
-        :rtype: None
-        """
-
-        if isinstance(type_, str):
-            cls = functools.partial(CloudEvent, type=type_)
-        else:
-            cls = type_  # type: ignore
-
-        message: CloudEvent = cls(
-            content_type=self.encoder.CONTENT_TYPE,
-            topic=topic,
-            data=data,
-            source=source,
-        )
-        await self.publish_event(message, **kwargs)
 
     async def start_consumer(self, service: Service, consumer: Consumer):
         await self.dispatch_before("consumer_start", service, consumer)

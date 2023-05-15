@@ -28,7 +28,7 @@ async def handler(message: CloudEvent):
 @app.post("/publish", status_code=202, response_model=CloudEvent)
 async def publish_event(data: Any = Body(...)):
     event: CloudEvent[Any] = CloudEvent(topic="events.topic", data=data)
-    await service.publish_event(event)
+    await service.publish(event)
     return event
 
 

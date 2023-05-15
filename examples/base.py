@@ -9,7 +9,7 @@ class SendMessageMiddleware(Middleware):
         print(f"After service start, running with {broker}")
         await asyncio.sleep(5)
         for i in range(100):
-            await service.publish("test.topic", data={"counter": i})
+            await service.send("test.topic", data={"counter": i})
         print("Published event(s)")
 
 
