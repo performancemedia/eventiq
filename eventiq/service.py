@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
+from .broker import Broker
 from .consumer import Consumer, ConsumerGroup, ForwardResponse
 from .logger import LoggerMixin
 from .models import CloudEvent
 from .settings import ServiceSettings
+from .types import TagMeta
 from .utils import generate_instance_id
-
-if TYPE_CHECKING:
-    from .broker import Broker
-    from .types import TagMeta
 
 
 class Service(LoggerMixin):
@@ -26,6 +24,7 @@ class Service(LoggerMixin):
         description: str = "",
         tags_metadata: list[TagMeta] | None = None,
         instance_id_generator: Callable[[], str] | None = None,
+        base_event_class: type[CloudEvent] = CloudEvent,
         **context: Any,
     ):
         self.broker = broker
@@ -37,6 +36,7 @@ class Service(LoggerMixin):
         self.id = (instance_id_generator or generate_instance_id)()
         self.consumer_group = ConsumerGroup()
         self.context = context
+        self.base_event_class = base_event_class
         # TODO: task gathering?
         self._tasks: list[asyncio.Task] = []
 
@@ -65,24 +65,38 @@ class Service(LoggerMixin):
     def add_consumer_group(self, consumer_group: ConsumerGroup) -> None:
         self.consumer_group.add_consumer_group(consumer_group)
 
-    async def publish(
+    async def send(
         self,
         topic: str,
-        data: Any | None = None,
         type_: type[CloudEvent] | str = "CloudEvent",
+        data: Any | None = None,
         **kwargs,
     ):
-        kwargs.setdefault("source", self.name)
-        return await self.broker.publish(topic, data, type_, **kwargs)
+        if isinstance(type_, str):
+            cls = self.base_event_class
+            type_name = type_
+        else:
+            cls = type_
+            type_name = type_.__name__
+
+        message: CloudEvent = cls(
+            content_type=self.broker.encoder.CONTENT_TYPE,
+            type=type_name,
+            topic=topic,
+            data=data,
+            source=self.name,
+            **kwargs,
+        )
+        return await self.broker.publish(message)
 
     @property
     def consumers(self):
         return self.consumer_group.consumers
 
-    async def publish_event(self, message: CloudEvent, **kwargs):
+    async def publish(self, message: CloudEvent, **kwargs):
         if not message.source:
             message.set_source(self.name)
-        return await self.broker.publish_event(message, **kwargs)
+        return await self.broker.publish(message, **kwargs)
 
     async def start(self):
         await self.broker.connect()

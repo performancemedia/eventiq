@@ -65,6 +65,11 @@ class CloudEvent(GenericModel, Generic[D]):
     def new(cls, obj: D, **kwargs: Any):
         return cls(data=obj, **kwargs)
 
+    def copy(self, **kwargs):
+        kwargs.setdefault("exclude", {"id", "trace_ctx"})
+        kwargs.setdefault("deep", True)
+        return super().copy(**kwargs)
+
     @property
     def age(self) -> timedelta:
         return utc_now() - self.time
