@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
+from .broker import Broker
 from .consumer import Consumer, ConsumerGroup, ForwardResponse
 from .logger import LoggerMixin
 from .models import CloudEvent
 from .settings import ServiceSettings
+from .types import TagMeta
 from .utils import generate_instance_id
-
-if TYPE_CHECKING:
-    from .broker import Broker
-    from .types import TagMeta
 
 
 class Service(LoggerMixin):
