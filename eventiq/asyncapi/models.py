@@ -29,7 +29,7 @@ class PublishInfo(BaseModel):
 
     @classmethod
     def s(cls, even_type: Type[CloudEvent], topic: Optional[str] = None, **kwargs: Any):
-        return cls(event_type=even_type, topic=topic, **kwargs)
+        return cls(event_type=even_type, topic=topic, kwargs=kwargs)
 
 
 class PayloadRef(BaseModel):
