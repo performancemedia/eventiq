@@ -34,6 +34,8 @@ class NatsBroker(Broker[NatsMsg]):
     """
 
     protocol = "nats"
+    WILDCARD_ONE = "*"
+    WILDCARD_MANY = ">"
 
     def __init__(
         self,
@@ -59,7 +61,7 @@ class NatsBroker(Broker[NatsMsg]):
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         await self.client.subscribe(
-            subject=consumer.topic,
+            subject=self.format_topic(consumer.topic),
             queue=f"{service.name}:{consumer.name}",
             cb=self.get_handler(service, consumer),
         )
@@ -141,7 +143,7 @@ class JetStreamBroker(NatsBroker):
         durable = f"{service.name}:{consumer.name}"
         try:
             subscription = await self.js.pull_subscribe(
-                subject=consumer.topic,
+                subject=self.format_topic(consumer.topic),
                 durable=durable,
                 config=consumer.options.get("config"),
             )

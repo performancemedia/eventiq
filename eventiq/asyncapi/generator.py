@@ -15,9 +15,11 @@ from eventiq.asyncapi.models import (
     Info,
     Message,
     Operation,
+    Parameter,
     PayloadRef,
 )
 
+from ..broker import TOPIC_PATTERN
 from ..service import Service
 from .registry import PUBLISH_REGISTRY
 
@@ -36,11 +38,23 @@ def get_all_models_schema(service: Service):
     return all_schemas(all_models, ref_prefix=PREFIX).get("definitions", [])
 
 
+def get_topic_parameters(topic: str, **kwargs) -> dict[str, Parameter]:
+    params = {}
+    for k in topic.split("."):
+        if TOPIC_PATTERN.fullmatch(k):
+            param_name = k[1:-1]
+            params[param_name] = kwargs.get(param_name, Parameter())
+    return params
+
+
 def populate_channel_spec(service: Service):
     channels: dict[str, ChannelItem] = defaultdict(ChannelItem)
     # tags = {t["name"]: Tag(**t) for t in service.tags_metadata}
 
     for publishes in PUBLISH_REGISTRY.values():
+        params = get_topic_parameters(publishes.topic, **publishes.kwargs)
+        for k, v in params.items():
+            channels[publishes.topic].parameters.setdefault(k, v)
         channels[publishes.topic].publish = Operation(
             message=Message(
                 message_id=normalize(f"{service.name}_{publishes.event_type.__name__}"),
@@ -60,6 +74,11 @@ def populate_channel_spec(service: Service):
             )
         )
         channels[consumer.topic].subscribe = subscribe
+        params = get_topic_parameters(
+            consumer.topic, **consumer.options.get("params", {})
+        )
+        for k, v in params.items():
+            channels[consumer.topic].parameters.setdefault(k, v)
     return channels
 
 

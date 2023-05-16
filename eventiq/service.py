@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
+from .asyncapi.models import PublishInfo
+from .asyncapi.registry import PUBLISH_REGISTRY
 from .broker import Broker
 from .consumer import Consumer, ConsumerGroup, ForwardResponse
 from .logger import LoggerMixin
@@ -25,6 +27,7 @@ class Service(LoggerMixin):
         tags_metadata: list[TagMeta] | None = None,
         instance_id_generator: Callable[[], str] | None = None,
         base_event_class: type[CloudEvent] = CloudEvent,
+        publish_info: Sequence[PublishInfo] = (),
         **context: Any,
     ):
         self.broker = broker
@@ -39,6 +42,8 @@ class Service(LoggerMixin):
         self.base_event_class = base_event_class
         # TODO: task gathering?
         self._tasks: list[asyncio.Task] = []
+        for p in publish_info:
+            PUBLISH_REGISTRY[p.event_type.__name__] = p
 
     def subscribe(
         self,
@@ -118,10 +123,7 @@ class Service(LoggerMixin):
 
     @classmethod
     def from_settings(cls, settings: ServiceSettings, **kwargs: Any) -> Service:
-        kw = settings.dict(exclude={"broker_settings"})
-        kw.update(**kwargs)
-        broker = Broker.from_settings(settings.broker_settings)
-        return cls(broker=broker, **kw)
+        return cls(**settings.dict(), **kwargs)
 
     @classmethod
     def from_env(cls, **kwargs: Any) -> Service:

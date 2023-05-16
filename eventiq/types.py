@@ -14,10 +14,19 @@ from typing import (
 )
 from uuid import UUID
 
+from pydantic import ConstrainedStr
+
 if TYPE_CHECKING:
     from . import CloudEvent, GenericConsumer
 
-ID = Union[UUID, int, str]
+
+class StrId(ConstrainedStr):
+    strip_whitespace = True
+    min_length = 1
+    max_length = 64
+
+
+ID = Union[UUID, int, StrId]
 
 
 RawMessage = TypeVar("RawMessage")

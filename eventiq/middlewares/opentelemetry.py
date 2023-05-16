@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 class EventiqGetter(Getter[CloudEvent]):
     def get(self, carrier: CloudEvent, key: str) -> list[str] | None:
-        val = carrier.trace_ctx.get(key, None)
+        val = carrier.tracecontext.get(key, None)
         if val is None:
             return None
         if isinstance(val, Iterable) and not isinstance(val, str):
@@ -33,12 +33,12 @@ class EventiqGetter(Getter[CloudEvent]):
         return [val]
 
     def keys(self, carrier: CloudEvent) -> list[str]:
-        return list(carrier.trace_ctx.keys())
+        return list(carrier.tracecontext.keys())
 
 
 class EventiqSetter(Setter[CloudEvent]):
     def set(self, carrier: CloudEvent, key: str, value: str) -> None:
-        carrier.trace_ctx[key] = value
+        carrier.tracecontext[key] = value
 
 
 eventiq_getter = EventiqGetter()
@@ -68,11 +68,14 @@ class OpenTelemetryMiddleware(Middleware):
             attributes={
                 SpanAttributes.MESSAGING_OPERATION: MessagingOperationValues.PROCESS.value,
                 SpanAttributes.MESSAGING_MESSAGE_ID: str(message.id),
+                SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source
+                or "(anonymous)",
+                SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type,
             },
         )
         activation = trace.use_span(span, end_on_exit=True)
         activation.__enter__()
-        self.process_span_registry[(service.name, consumer.name, str(message.id))] = (
+        self.process_span_registry[(service.name, consumer.name, message.id)] = (
             span,
             activation,
         )
@@ -86,7 +89,7 @@ class OpenTelemetryMiddleware(Middleware):
         result: Any | None = None,
         exc: Exception | None = None,
     ) -> None:
-        key = (service.name, consumer.name, str(message.id))
+        key = (service.name, consumer.name, message.id)
         span, activation = self.process_span_registry.pop(key, (None, None))
         if span is None or activation is None:
             self.logger.warning("No active span was found")
@@ -109,6 +112,8 @@ class OpenTelemetryMiddleware(Middleware):
                 SpanAttributes.MESSAGING_MESSAGE_ID: str(message.id),
                 SpanAttributes.MESSAGING_DESTINATION_KIND: MessagingDestinationKindValues.TOPIC.value,
                 SpanAttributes.MESSAGING_DESTINATION: message.topic,
+                SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: source,
+                SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type,
             },
         )
         activation = trace.use_span(span, end_on_exit=True)

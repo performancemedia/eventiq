@@ -29,6 +29,9 @@ class PubSubBroker(Broker[SubscriberMessage]):
 
     Settings = PubSubSettings
 
+    WILDCARD_ONE = "*"
+    WILDCARD_MANY = "*"
+
     def __init__(
         self,
         *,
