@@ -51,14 +51,14 @@ class Operation(BaseModel):
 
 class Parameter(BaseModel):
     description: Optional[str] = None
-    param_schema: dict[str, Any] = Field({"type": "string"}, alias="schema")
+    param_schema: Dict[str, Any] = Field({"type": "string"}, alias="schema")
     location: Optional[str] = None
 
 
 class ChannelItem(BaseModel):
     publish: Optional[Operation] = None
     subscribe: Optional[Operation] = None
-    parameters: dict[str, Parameter] = {}
+    parameters: Dict[str, Parameter] = {}
 
 
 class Server(BaseModel):

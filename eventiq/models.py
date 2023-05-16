@@ -23,7 +23,7 @@ class CloudEvent(GenericModel, Generic[D]):
     source: Optional[str] = None
     data: D
     dataschema: Optional[AnyUrl] = None
-    tracecontext: dict[str, Any] = {}
+    tracecontext: Dict[str, Any] = {}
 
     _raw: Optional[Any] = PrivateAttr()
 
