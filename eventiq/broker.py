@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic, Type, cast
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic
 
 from pydantic import ValidationError
 
@@ -14,9 +16,12 @@ from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
 from .types import Encoder, RawMessage
+from .utils.imports import import_from_string
 
 if TYPE_CHECKING:
     from eventiq import Consumer, Service
+
+TOPIC_PATTERN = re.compile(r"{\w+}")
 
 
 class Broker(Generic[RawMessage], LoggerMixin, ABC):
@@ -28,6 +33,9 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     protocol: str
     Settings = BrokerSettings
+
+    WILDCARD_ONE: str
+    WILDCARD_MANY: str
 
     def __init__(
         self,
@@ -197,17 +205,23 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     @classmethod
     def from_settings(cls, settings: BrokerSettings, **kwargs: Any) -> Broker:
-        broker_class: type[Broker] = cast(Type[Broker], settings.broker_class)
-        kw = settings.dict(exclude={"broker_class"})
-        kw.update(kwargs)
-        return broker_class(**kw)
+        return cls(**settings.dict(), **kwargs)
+
+    @classmethod
+    def _from_env(cls, **kwargs) -> Broker:
+        return cls.from_settings(cls.Settings(**kwargs))
 
     @classmethod
     def from_env(
         cls,
         **kwargs,
     ) -> Broker:
-        return cls.from_settings(BrokerSettings(), **kwargs)
+        if cls == Broker:
+            type_name = os.getenv("BROKER_CLASS", "eventiq.backends.stub:StubBroker")
+            broker_type = import_from_string(type_name)
+        else:
+            broker_type = cls
+        return broker_type._from_env(**kwargs)
 
     @abstractmethod
     def parse_incoming_message(self, message: RawMessage) -> Any:
@@ -240,3 +254,14 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     async def _nack(self, message: Message) -> None:
         """Same as for ._ack()"""
+
+    def format_topic(self, topic: str) -> str:
+        result = []
+        for k in topic.split("."):
+            if re.fullmatch(TOPIC_PATTERN, k):
+                result.append(self.WILDCARD_ONE)
+            elif k in {"*", ">"}:
+                result.append(self.WILDCARD_MANY)
+            else:
+                result.append(k)
+        return ".".join(filter(None, result))

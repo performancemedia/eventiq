@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel as _BaseModel
-from pydantic import Field
+from pydantic import Field, validator
 
 from eventiq.models import CloudEvent
 
@@ -17,9 +17,19 @@ class Info(BaseModel):
 
 
 class PublishInfo(BaseModel):
-    topic: str
     event_type: Type[CloudEvent]
-    kwargs: Dict[str, Any]
+    topic: str
+    kwargs: Dict[str, Any] = {}
+
+    @validator("topic", always=True, pre=True, allow_reuse=True)
+    def set_default_topic(cls, v, values):
+        if v is None:
+            v = values["event_type"].__fields__["topic"].get_default()
+        return v
+
+    @classmethod
+    def s(cls, even_type: Type[CloudEvent], topic: Optional[str] = None, **kwargs: Any):
+        return cls(event_type=even_type, topic=topic, **kwargs)
 
 
 class PayloadRef(BaseModel):
@@ -39,9 +49,16 @@ class Operation(BaseModel):
     message: Message
 
 
+class Parameter(BaseModel):
+    description: Optional[str] = None
+    param_schema: Dict[str, Any] = Field({"type": "string"}, alias="schema")
+    location: Optional[str] = None
+
+
 class ChannelItem(BaseModel):
     publish: Optional[Operation] = None
     subscribe: Optional[Operation] = None
+    parameters: Dict[str, Parameter] = {}
 
 
 class Server(BaseModel):

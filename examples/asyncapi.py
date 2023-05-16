@@ -3,12 +3,10 @@ import asyncio
 from pydantic import BaseModel
 
 from eventiq import CloudEvent, Middleware, Service
-from eventiq.asyncapi.registry import publishes
+from eventiq.asyncapi.models import PublishInfo
 from eventiq.backends.nats.broker import JetStreamBroker
 
 broker = JetStreamBroker(url="nats://localhost:4222")
-
-service = Service(name="example-service", version="1.0", broker=broker)
 
 
 class MyData(BaseModel):
@@ -18,9 +16,17 @@ class MyData(BaseModel):
     info: str
 
 
-@publishes("test.topic")
+# @publishes("test.topic.{param}.*")
 class MyEvent(CloudEvent[MyData]):
     """Some custom event"""
+
+
+service = Service(
+    name="example-service",
+    version="1.0",
+    broker=broker,
+    publish_info=[PublishInfo.s(MyEvent, topic="test.topic.{param}.*")],
+)
 
 
 class SendMessageMiddleware(Middleware):
@@ -29,7 +35,9 @@ class SendMessageMiddleware(Middleware):
         await asyncio.sleep(5)
         for i in range(100):
             await broker.publish(
-                "test.topic", type_=MyEvent, data={"counter": i, "info": "default"}
+                MyEvent(
+                    topic="test.topic", data=MyData(**{"counter": i, "info": "default"})
+                )
             )
         self.logger.info("Published event(s)")
 
@@ -37,7 +45,7 @@ class SendMessageMiddleware(Middleware):
 broker.add_middleware(SendMessageMiddleware())
 
 
-@service.subscribe("test.topic")
+@service.subscribe("test.topic.{param}.*")
 async def example_run(message: MyEvent):
     """Consumer for processing MyEvent(s)"""
     print(f"Received Message {message.id} with data: {message.data}")

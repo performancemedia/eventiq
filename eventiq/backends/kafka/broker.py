@@ -23,6 +23,9 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
     :param kwargs: Broker base class parameters
     """
 
+    WILDCARD_MANY = "*"
+    WILDCARD_ONE = r"\w+"
+
     Settings = KafkaSettings
     protocol = "kafka"
 
@@ -51,13 +54,13 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         handler = self.get_handler(service, consumer)
         subscriber = aiokafka.AIOKafkaConsumer(
-            consumer.topic,
             group_id=f"{service.name}:{consumer.name}",
             bootstrap_servers=self.bootstrap_servers,
             enable_auto_commit=False,
             **consumer.options.get("kafka_consumer_options", self._consumer_options),
         )
         await subscriber.start()
+        subscriber.subscribe(pattern=self.format_topic(consumer.topic))
         while self._stopped:
             result = await subscriber.getmany(
                 timeout_ms=consumer.options.get("timeout_ms", 600)
@@ -70,6 +73,8 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
                     ]
                     await asyncio.gather(*tasks, return_exceptions=True)
                     await subscriber.commit({tp: messages[-1].offset + 1})
+        if consumer.dynamic:
+            subscriber.unsubscribe()
 
     async def _disconnect(self):
         if self._publisher:

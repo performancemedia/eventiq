@@ -7,6 +7,7 @@ from eventiq import CloudEvent, Service
 from eventiq.backends.nats import JetStreamBroker
 from eventiq.backends.nats.plugins import JetStreamResultBackend
 from eventiq.contrib.fastapi import FastAPIServicePlugin
+from eventiq.types import ID
 
 broker = JetStreamBroker(url="nats://localhost:4222")
 results = JetStreamResultBackend(broker)
@@ -33,7 +34,7 @@ async def publish_event(data: Any = Body(...)):
 
 
 @app.get("/{message_id}")
-async def get_result(message_id: str):
+async def get_result(message_id: ID):
     res: Any = await results.get_result(service.name, message_id)
     if res is None:
         return Response(status_code=404, content="Key not found")

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any, Dict, Generic, Optional
 
-from pydantic import Extra, Field, validator
+from pydantic import AnyUrl, Extra, Field, validator
 from pydantic.fields import PrivateAttr
 from pydantic.generics import GenericModel
 
@@ -21,7 +22,8 @@ class CloudEvent(GenericModel, Generic[D]):
     type: Optional[str] = None
     source: Optional[str] = None
     data: D
-    trace_ctx: Dict[str, str] = {}
+    dataschema: Optional[AnyUrl] = None
+    tracecontext: Dict[str, Any] = {}
 
     _raw: Optional[Any] = PrivateAttr()
 
@@ -31,7 +33,7 @@ class CloudEvent(GenericModel, Generic[D]):
         return self.id == other.id
 
     @validator("type", allow_reuse=True, always=True, pre=True)
-    def get_type_from_cls_name(cls, v) -> str:
+    def get_type_from_cls_name(cls, v):
         return v or cls.__name__
 
     @property
@@ -66,7 +68,13 @@ class CloudEvent(GenericModel, Generic[D]):
         return cls(data=obj, **kwargs)
 
     def copy(self, **kwargs):
-        kwargs.setdefault("exclude", {"id", "trace_ctx"})
+        kwargs.setdefault(
+            "exclude",
+            {
+                "id",
+                "time",
+            },
+        )
         kwargs.setdefault("deep", True)
         return super().copy(**kwargs)
 
@@ -83,3 +91,6 @@ class CloudEvent(GenericModel, Generic[D]):
         extra = Extra.allow
         # events are immutable, however it's sometimes useful to set source or traceid for unpublished events
         allow_mutation = False
+
+
+TopicField = partial(Field, const=True, alias="subject")

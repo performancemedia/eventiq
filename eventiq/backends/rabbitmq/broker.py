@@ -26,6 +26,9 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
 
     Settings = RabbitMQSettings
 
+    WILDCARD_ONE = "*"
+    WILDCARD_MANY = "#"
+
     def __init__(
         self,
         *,

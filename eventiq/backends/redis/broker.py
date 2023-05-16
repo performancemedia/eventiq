@@ -20,6 +20,8 @@ class RedisBroker(Broker[dict[str, str]]):
     :param kwargs: base class arguments
     """
 
+    WILDCARD_ONE = "*"
+    WILDCARD_MANY = "*"
     Settings = RedisSettings
 
     def __init__(

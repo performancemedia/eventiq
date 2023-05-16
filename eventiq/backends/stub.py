@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -25,6 +26,9 @@ class StubBroker(Broker[StubMessage]):
 
     protocol = "in-memory"
 
+    WILDCARD_ONE = r"\w+"
+    WILDCARD_MANY = "*"
+
     def __init__(
         self,
         *,
@@ -43,7 +47,7 @@ class StubBroker(Broker[StubMessage]):
         self._stopped = True
 
     async def _start_consumer(self, service: Service, consumer: Consumer):
-        queue = self.topics[consumer.topic]
+        queue = self.topics[self.format_topic(consumer.topic)]
         handler = self.get_handler(service, consumer)
         while not self._stopped:
             message = await queue.get()
@@ -53,10 +57,11 @@ class StubBroker(Broker[StubMessage]):
         pass
 
     async def _publish(self, message: CloudEvent, **_) -> None:
-        queue = self.topics[message.topic]
         data = self.encoder.encode(message.dict())
-        msg = StubMessage(data=data, queue=queue)
-        await queue.put(msg)
+        for topic, queue in self.topics.items():
+            if re.fullmatch(topic, message.topic):
+                msg = StubMessage(data=data, queue=queue)
+                await queue.put(msg)
 
     async def _ack(self, message: Message) -> None:
         message.queue.task_done()
