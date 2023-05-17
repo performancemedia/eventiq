@@ -17,7 +17,7 @@ from eventiq.asyncapi.models import (
     Message,
     Operation,
     Parameter,
-    PayloadRef,
+    Ref,
     Server,
     Tag,
 )
@@ -55,42 +55,49 @@ def get_topic_parameters(topic: str, **kwargs) -> dict[str, Parameter]:
     return params
 
 
-def populate_channel_spec(service: Service):
+def get_tag_list(tags, taggable):
+    tag_list = []
+    for t in taggable.get("tags", []):
+        if t not in tags:
+            tags[t] = Tag(name=t)
+        tag_list.append(tags[t])
+    return tag_list
+
+
+def populate_spec(service: Service):
     channels: dict[str, ChannelItem] = defaultdict(ChannelItem)
+    messages: dict[str, Message] = {}
     tags = {t["name"]: Tag.parse_obj(t) for t in service.tags_metadata}
 
     for publishes in PUBLISH_REGISTRY.values():
-        publish_tags = []
-        for t in publishes.kwargs.get("tags", []):
-            if t not in tags:
-                tags[t] = Tag(name=t)
-            publish_tags.append(tags[t])
+        event_type = publishes.event_type.__name__
         params = get_topic_parameters(publishes.topic, **publishes.kwargs)
         for k, v in params.items():
             channels[publishes.topic].parameters.setdefault(k, v)
-        channels[publishes.topic].publish = Operation(
-            message=Message(
-                message_id=camel2snake(f"publish_{publishes.event_type.__name__}"),
+        if event_type not in messages:
+            messages[event_type] = Message(
                 content_type=service.broker.encoder.CONTENT_TYPE,
-                payload=PayloadRef(ref=f"{PREFIX}{publishes.event_type.__name__}"),
+                payload=Ref(ref=f"{PREFIX}{event_type}"),
                 description=publishes.kwargs.get("description", ""),
-            ),
-            tags=publish_tags or None,
+            )
+        channels[publishes.topic].publish = Operation(
+            operation_id=f"publish_{camel2snake(event_type)}",
+            message=Ref(ref=f"#/components/messages/{event_type}"),
+            tags=get_tag_list(tags, publishes.kwargs),
         )
     for consumer in service.consumers.values():
-        consumer_tags = []
-        for t in consumer.options.get("tags", []):
-            if t not in tags:
-                tags[t] = Tag(name=t)
-            consumer_tags.append(tags[t])
-        subscribe = Operation(
-            message=Message(
-                message_id=camel2snake(f"subscribe_{camel2snake(consumer.name)}"),
+        event_type = consumer.event_type.__name__
+        # message_id = camel2snake(f"{consumer.name}_{event_type}")
+        if event_type not in messages:
+            messages[event_type] = Message(
                 content_type=service.broker.encoder.CONTENT_TYPE,
-                payload=PayloadRef(ref=f"{PREFIX}{consumer.event_type.__name__}"),
+                payload=Ref(ref=f"{PREFIX}{event_type}"),
                 description=consumer.description,
-            ),
-            tags=consumer_tags or None,
+            )
+        subscribe = Operation(
+            operation_id=camel2snake(consumer.name),
+            message=Ref(ref=f"#/components/messages/{event_type}"),
+            tags=get_tag_list(tags, consumer.options) or None,
         )
         channels[consumer.topic].subscribe = subscribe
         params = get_topic_parameters(
@@ -98,12 +105,12 @@ def populate_channel_spec(service: Service):
         )
         for k, v in params.items():
             channels[consumer.topic].parameters.setdefault(k, v)
-    return channels, tags
+    return channels, messages
 
 
 @functools.lru_cache
 def get_async_api_spec(service: Service) -> AsyncAPI:
-    channels, tags = populate_channel_spec(service)
+    channels, messages = populate_spec(service)
     definitions = get_all_models_schema(service)
     doc_model = AsyncAPI(
         info=Info(title=service.title, version=service.version),
@@ -116,7 +123,7 @@ def get_async_api_spec(service: Service) -> AsyncAPI:
             )
         },
         channels=channels,
-        components=Components(schemas=definitions),
+        components=Components(schemas=definitions, messages=messages),
         default_content_type=service.broker.encoder.CONTENT_TYPE,
     )
     return doc_model

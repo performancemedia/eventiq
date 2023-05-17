@@ -6,6 +6,8 @@ from .types import RawMessage
 
 
 class Message(Generic[RawMessage]):
+    __slots__ = ("_message", "_failed", "_retry_delay")
+
     def __init__(self, message: RawMessage):
         self._message = message
         self._failed = False
@@ -33,3 +35,7 @@ class Message(Generic[RawMessage]):
 
     def fail(self) -> None:
         self._failed = True
+
+    @property
+    def num_delivered(self) -> int | None:
+        return None

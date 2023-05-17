@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
 from eventiq.exceptions import Retry
 from eventiq.logger import LoggerMixin
@@ -30,7 +30,7 @@ class RetryStrategy(LoggerMixin):
         self.logger.error(f"Retry limit exceeded for message {message.id}.")
         self.logger.exception("Original exception:", exc_info=exc)
 
-    async def maybe_retry(self, message: CloudEvent, exc: Exception):
+    def maybe_retry(self, message: CloudEvent, exc: Exception):
         if self.throws and isinstance(exc, self.throws):
             message.fail()
         else:
@@ -46,9 +46,9 @@ class MaxAge(RetryStrategy):
             max_age = timedelta(**max_age)
         self.max_age: timedelta = max_age
 
-    async def maybe_retry(self, message: CloudEvent, exc: Exception):
+    def maybe_retry(self, message: CloudEvent, exc: Exception):
         if message.age <= self.max_age:
-            await super().maybe_retry(message, exc)
+            super().maybe_retry(message, exc)
         else:
             self.fail(message, exc)
 
@@ -58,30 +58,26 @@ class MaxRetries(RetryStrategy):
         super().__init__(**extra)
         self.max_retries = max_retries
 
-    async def maybe_retry(self, message: CloudEvent, exc: Exception):
-        retries = getattr(
-            message.raw, "_num_delivered", message.age.seconds
-        )  # age used when num delivered is not supported
+    def maybe_retry(self, message: CloudEvent, exc: Exception):
+        retries = message.raw.num_delivered or message.age.seconds
         if retries <= self.max_retries:
-            await super().maybe_retry(message, exc)
+            super().maybe_retry(message, exc)
         else:
             self.fail(message, exc)
 
 
 class RetryWhen(RetryStrategy):
-    def __init__(
-        self, retry_when: Callable[[CloudEvent, Exception], Awaitable[bool]], **extra
-    ):
+    def __init__(self, retry_when: Callable[[CloudEvent, Exception], bool], **extra):
         super().__init__(**extra)
         self.retry_when = retry_when
 
-    async def maybe_retry(
+    def maybe_retry(
         self,
         message: CloudEvent,
         exc: Exception,
     ):
-        if await self.retry_when(message, exc):
-            await super().maybe_retry(message, exc)
+        if self.retry_when(message, exc):
+            super().maybe_retry(message, exc)
         else:
             self.fail(message, exc)
 
@@ -123,4 +119,4 @@ class RetryMiddleware(Middleware):
         if retry_strategy is None:
             return
 
-        await retry_strategy.maybe_retry(message, exc)
+        retry_strategy.maybe_retry(message, exc)

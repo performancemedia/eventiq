@@ -53,21 +53,21 @@ class PublishInfo(BaseModel):
         return cls(event_type=even_type, topic=topic, kwargs=kwargs)
 
 
-class PayloadRef(BaseModel):
+class Ref(BaseModel):
     ref: str = Field(..., alias="$ref")
 
 
 class Message(BaseModel):
-    message_id: str = Field(..., alias="messageId")
-    payload: PayloadRef
+    payload: Ref
     content_type: str = Field(..., alias="contentType")
     description: Optional[str] = None
     tags: Optional[List[Tag]] = None
 
 
 class Operation(BaseModel):
+    operation_id: str = Field(..., alias="operationId")
     summary: Optional[str] = None
-    message: Message
+    message: Ref
     tags: Optional[List[Tag]] = None
 
 
@@ -91,7 +91,8 @@ class Server(BaseModel):
 
 
 class Components(BaseModel):
-    schemas: Dict[str, Any]
+    schemas: Dict[str, Any] = {}
+    messages: Dict[str, Any] = {}
 
 
 class AsyncAPI(BaseModel):
