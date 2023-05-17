@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
+from nats.errors import NotJSMessageError
 from nats.js import JetStreamContext
 
 from eventiq.broker import Broker
@@ -19,10 +20,16 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Service
 
 
-class NatsMessageProxy(Message[NatsMsg]):
+class JsMessageProxy(Message[NatsMsg]):
     def __init__(self, message: NatsMsg):
         super().__init__(message)
-        self._num_delivered = message.metadata.num_delivered
+
+    @property
+    def num_delivered(self) -> int | None:
+        try:
+            return self._message.metadata.num_delivered
+        except NotJSMessageError:
+            return None
 
 
 class NatsBroker(Broker[NatsMsg]):
@@ -51,10 +58,6 @@ class NatsBroker(Broker[NatsMsg]):
         self.connection_options = connection_options or {}
         self._auto_flush = auto_flush
         self.client = Client()
-
-    @property
-    def message_proxy_class(self) -> type[Message]:
-        return NatsMessageProxy
 
     def parse_incoming_message(self, message: NatsMsg) -> Any:
         return self.encoder.decode(message.data)
@@ -115,6 +118,10 @@ class JetStreamBroker(NatsBroker):
         self.fetch_timeout = fetch_timeout
         self.jetstream_options = jetstream_options or {}
         self.js = JetStreamContext(self.client, **self.jetstream_options)
+
+    @property
+    def message_proxy_class(self) -> type[Message]:
+        return JsMessageProxy
 
     @retry(max_retries=3)
     async def _publish(
