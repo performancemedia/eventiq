@@ -85,7 +85,7 @@ def populate_channel_spec(service: Service):
             consumer_tags.append(tags[t])
         subscribe = Operation(
             message=Message(
-                message_id=camel2snake(f"subscribe_{consumer.event_type.__name__}"),
+                message_id=camel2snake(f"subscribe_{camel2snake(consumer.name)}"),
                 content_type=service.broker.encoder.CONTENT_TYPE,
                 payload=PayloadRef(ref=f"{PREFIX}{consumer.event_type.__name__}"),
                 description=consumer.description,
