@@ -19,7 +19,7 @@
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.1.10
+Version: 0.1.11
 
 Documentation: https://performancemedia.github.io/eventiq/
 
@@ -107,7 +107,7 @@ or web server like gunicorn.
 ## Features
 
 - Modern, `asyncio` based python 3.8+ syntax
-- Minimal dependencies, only `pydantic`, `async_timeout` and `python-json-logger` are required
+- Minimal dependencies, only `pydantic` and `python-json-logger` are required
 - Automatic message parsing based on type annotations (like FastAPI)
 - Code hot-reload
 - Highly scalable: each service can process hundreds of tasks concurrently,

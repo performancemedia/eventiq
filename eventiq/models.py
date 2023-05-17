@@ -15,7 +15,9 @@ from .utils.datetime import utc_now
 
 class CloudEvent(GenericModel, Generic[D]):
     specversion: Optional[str] = "1.0"
-    content_type: str = Field("application/json", alias="datacontenttype")
+    content_type: str = Field(
+        "application/json", alias="datacontenttype", description="Message content type"
+    )
     id: ID = Field(default_factory=str_uuid)
     time: datetime = Field(default_factory=utc_now)
     topic: str = Field(..., alias="subject")
@@ -26,6 +28,9 @@ class CloudEvent(GenericModel, Generic[D]):
     tracecontext: Dict[str, Any] = {}
 
     _raw: Optional[Any] = PrivateAttr()
+
+    def __init_subclass__(cls, **kwargs):
+        cls.__fields__["type"].default = cls.__name__
 
     def __eq__(self, other):
         if not isinstance(other, CloudEvent):

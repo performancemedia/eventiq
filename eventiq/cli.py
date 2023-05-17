@@ -27,6 +27,8 @@ def run(
     setup_logging(log_level.upper())
     logger.info(f"Running [{service_or_runner}]...")
     obj = import_from_string(service_or_runner)
+    if callable(obj):
+        obj = obj()
     obj.run(use_uvloop=use_uvloop)
 
 

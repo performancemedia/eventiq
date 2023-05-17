@@ -1,16 +1,19 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseSettings, Field
 
 from eventiq.utils.imports import ImportedType
 
 from .middleware import Middleware
+from .types import Encoder
 
 
 class BrokerSettings(BaseSettings):
     description: Optional[str] = None
     middlewares: Optional[List[Middleware]] = None
-    encoder: Optional[ImportedType] = Field(None, env="BROKER_ENCODER_CLASS")
+    encoder: Optional[Union[Encoder, ImportedType]] = Field(
+        None, env="BROKER_ENCODER_CLASS"
+    )
 
 
 class ServiceSettings(BaseSettings):
