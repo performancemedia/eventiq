@@ -37,7 +37,7 @@ class TypedModel(BaseModel):
 class BrokerConfig(TypedModel):
     encoder: TypedModel
     middlewares: List[TypedModel]
-    context: dict[str, Union[TypedModel, Any]] = {}
+    context: Dict[str, Union[TypedModel, Any]] = {}
 
 
 class ConsumerConfig(TypedModel):

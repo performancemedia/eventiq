@@ -5,7 +5,7 @@ from .consumer import Consumer, ConsumerGroup, ForwardResponse, GenericConsumer
 from .context import get_current_service
 from .message import Message
 from .middleware import Middleware
-from .models import CloudEvent
+from .models import CloudEvent, TopicField
 from .plugins import BrokerPlugin, ServicePlugin
 from .runner import ServiceRunner
 from .service import Service
@@ -26,6 +26,7 @@ __all__ = [
     "Service",
     "ServicePlugin",
     "ServiceRunner",
+    "TopicField",
     "publishes",
     "get_current_service",
 ]

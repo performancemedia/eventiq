@@ -11,6 +11,7 @@ from typing import (
     TypedDict,
     TypeVar,
     Union,
+    runtime_checkable,
 )
 from uuid import UUID
 
@@ -40,6 +41,7 @@ class TagMeta(TypedDict):
     description: str
 
 
+@runtime_checkable
 class Encoder(Protocol):
     """
     Encoder object protocol.

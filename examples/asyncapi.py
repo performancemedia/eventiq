@@ -25,7 +25,8 @@ service = Service(
     name="example-service",
     version="1.0",
     broker=broker,
-    publish_info=[PublishInfo.s(MyEvent, topic="test.topic.{param}.*")],
+    publish_info=[PublishInfo.s(MyEvent, topic="test.topic.{param}.*", tags=["tag2"])],
+    tags_metadata=[{"name": "tag1", "description": "Some tag 1"}],
 )
 
 
@@ -45,7 +46,7 @@ class SendMessageMiddleware(Middleware):
 broker.add_middleware(SendMessageMiddleware())
 
 
-@service.subscribe("test.topic.{param}.*")
+@service.subscribe("test.topic.{param}.*", tags=["tag1"])
 async def example_run(message: MyEvent):
     """Consumer for processing MyEvent(s)"""
     print(f"Received Message {message.id} with data: {message.data}")

@@ -32,6 +32,8 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
     """
 
     protocol: str
+    protocol_version: str | None = None
+
     Settings = BrokerSettings
 
     WILDCARD_ONE: str
@@ -41,7 +43,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         self,
         *,
         description: str | None = None,
-        encoder: Encoder | None = None,
+        encoder: Encoder | type[Encoder] | None = None,
         middlewares: list[Middleware] | None = None,
     ) -> None:
 
@@ -49,8 +51,11 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
             from .encoders import get_default_encoder
 
             encoder = get_default_encoder()
-        self.description = description or type(self).__doc__
+        elif isinstance(encoder, type):
+            encoder = encoder()
         self.encoder = encoder
+
+        self.description = description or type(self).__name__
         self.middlewares: list[Middleware] = middlewares or []
         self._lock = asyncio.Lock()
         self._stopped = True

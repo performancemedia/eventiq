@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Type
 
+from pydantic import AnyUrl
 from pydantic import BaseModel as _BaseModel
 from pydantic import Field, validator
 
@@ -11,9 +12,29 @@ class BaseModel(_BaseModel):
         allow_population_by_field_name = True
 
 
+class ExtendableBaseModel(BaseModel):
+    class Config:
+        allow_population_by_field_name = True
+        extra = "allow"
+
+
 class Info(BaseModel):
     title: str
     version: str
+
+
+class ExternalDocumentation(ExtendableBaseModel):
+    description: Optional[str] = None
+    url: AnyUrl
+
+
+class Tag(ExtendableBaseModel):
+    name: str
+    description: Optional[str] = None
+    externalDocs: Optional[ExternalDocumentation] = None
+
+    class Config:
+        extra = "allow"
 
 
 class PublishInfo(BaseModel):
@@ -41,12 +62,13 @@ class Message(BaseModel):
     payload: PayloadRef
     content_type: str = Field(..., alias="contentType")
     description: Optional[str] = None
-    tags: List[str] = []
+    tags: Optional[List[Tag]] = None
 
 
 class Operation(BaseModel):
     summary: Optional[str] = None
     message: Message
+    tags: Optional[List[Tag]] = None
 
 
 class Parameter(BaseModel):
@@ -62,20 +84,10 @@ class ChannelItem(BaseModel):
 
 
 class Server(BaseModel):
-    url: Optional[str] = None
     protocol: str
+    url: Optional[str] = None
+    protocol_version: Optional[str] = Field(None, alias="protocolVersion")
     description: Optional[str] = None
-
-
-class ExternalDocs(BaseModel):
-    description: Optional[str] = None
-    url: str
-
-
-class Tag(BaseModel):
-    name: str
-    description: Optional[str] = None
-    external_docs: Optional[str] = Field(None, alias="externalDocs")
 
 
 class Components(BaseModel):
@@ -89,3 +101,4 @@ class AsyncAPI(BaseModel):
     channels: Dict[str, ChannelItem] = {}
     default_content_type: str = Field("application/json", alias="defaultContentType")
     components: Components
+    tags: Optional[List[Tag]] = None

@@ -114,7 +114,7 @@ testpaths = [
 asyncio_mode = "auto"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.8"
 namespace_packages = true
 ignore_missing_imports = true
 no_site_packages = true
