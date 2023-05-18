@@ -16,7 +16,11 @@ class MsgPackEncoder:
     @staticmethod
     def encode(data: Any) -> bytes:
         try:
-            return ormsgpack.packb(data, default=pydantic_encoder)
+            return ormsgpack.packb(
+                data,
+                option=ormsgpack.OPT_NON_STR_KEYS | ormsgpack.OPT_SERIALIZE_NUMPY,
+                default=pydantic_encoder,
+            )
         except ormsgpack.MsgpackEncodeError as e:
             raise EncodeError from e
 

@@ -94,6 +94,7 @@ pyyaml = "^6.0"
 ruff = "^0.0.264"
 opentelemetry-exporter-otlp = "^1.17.0"
 opentelemetry-instrumentation-logging = "^0.38b0"
+numpy = "^1.24.3"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^8.2.1"
