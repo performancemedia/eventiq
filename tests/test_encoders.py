@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from eventiq import CloudEvent
 from eventiq.encoders.json import JsonEncoder
@@ -28,3 +29,12 @@ def test_encoder_cloud_events(encoder, data):
     assert isinstance(encoded, bytes)
     decoded = encoder.decode(encoded)
     assert decoded["data"] == ce_dict["data"]
+
+
+@pytest.mark.parametrize("encoder", (OrjsonEncoder,))
+def test_encoders_numpy_data(encoder):
+    data: np.ndarray = np.ones(1280).astype(np.float32)
+    encoded = encoder.encode(data)
+    assert isinstance(encoded, bytes)
+    decoded = encoder.decode(encoded)
+    assert np.array_equal(decoded, data)
