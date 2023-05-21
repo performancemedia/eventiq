@@ -27,8 +27,8 @@ class ServiceRunner(LoggerMixin):
                     self.logger.exception("Unhandled exception", exc_info=e)
                     return
 
-                async for signum in signals:
-                    self.logger.warning(f"Signal {signum} received...")
+                async for _ in signals:
+                    self.logger.info("Exiting...")
                     await tg.cancel_scope.cancel()
                     async with anyio.move_on_after(30, shield=True):
                         for service in self.services:

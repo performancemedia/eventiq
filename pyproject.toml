@@ -121,6 +121,13 @@ no_site_packages = true
 [tool.isort]
 profile = "black"
 
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError"
+]
+
 [tool.ruff]
 select = [
     "E",  # pycodestyle errors

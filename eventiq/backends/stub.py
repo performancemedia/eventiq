@@ -43,17 +43,17 @@ class StubBroker(Broker[StubMessage]):
     def parse_incoming_message(self, message: StubMessage) -> Any:
         return self.encoder.decode(message.data)
 
-    async def _disconnect(self) -> None:
-        self._stopped = True
-
     async def _start_consumer(self, service: Service, consumer: Consumer):
         queue = self.topics[self.format_topic(consumer.topic)]
         handler = self.get_handler(service, consumer)
-        while not self._stopped:
+        while self._running:
             message = await queue.get()
             await handler(message)
 
     async def _connect(self) -> None:
+        pass
+
+    async def _disconnect(self) -> None:
         pass
 
     async def _publish(self, message: CloudEvent, **_) -> None:

@@ -57,7 +57,6 @@ class NatsBroker(Broker[NatsMsg]):
         super().__init__(**kwargs)
         self.url = url
         self.connection_options = connection_options or {}
-        self.connection_options.setdefault("max_reconnect_attempts", 5)
         self._auto_flush = auto_flush
         self.client = Client()
 

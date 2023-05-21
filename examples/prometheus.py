@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from eventiq import CloudEvent, Middleware, Service
-from eventiq.backends.nats.broker import JetStreamBroker
+from eventiq.backends.nats import JetStreamBroker
 from eventiq.middlewares import PrometheusMiddleware, RetryMiddleware
 from eventiq.middlewares.retries import MaxAge
 
@@ -33,4 +33,3 @@ broker.add_middlewares(
 )
 async def prometheus_consumer(message: CloudEvent):
     logger.info(f"Received Message {message.id} with data: {message.data}")
-    await asyncio.sleep(0.2)

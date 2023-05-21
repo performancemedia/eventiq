@@ -23,7 +23,7 @@ class RetryStrategy(LoggerMixin):
     def set_delay(self, message: CloudEvent, exc: Exception):
         delay = getattr(exc, "delay", None) or self.backoff * message.age.seconds
         message.raw.delay = delay
-        self.logger.info("Will retry message %d seconds.", delay)
+        self.logger.info("Will retry message in %d seconds.", delay)
 
     def fail(self, message: CloudEvent, exc: Exception):
         message.fail()

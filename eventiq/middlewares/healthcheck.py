@@ -35,20 +35,17 @@ class HealthCheckMiddleware(Middleware):
     async def _run_forever(self):
         p = Path(os.path.join(self.BASE_DIR, "healthy"))
         p.touch(exist_ok=True)
-        try:
-            while True:
-                try:
-                    unhealthy = not self._broker.is_connected
-                except Exception as e:
-                    self.logger.exception("Healthcheck failed", exc_info=e)
-                    unhealthy = True
+        while True:
+            try:
+                unhealthy = not self._broker.is_connected
+            except Exception as e:
+                self.logger.exception("Healthcheck failed", exc_info=e)
+                unhealthy = True
 
-                if unhealthy:
-                    p.rename(os.path.join(self.BASE_DIR, "unhealthy"))
-                    break
-                await asyncio.sleep(self.interval)
-        except asyncio.CancelledError:
-            pass
+            if unhealthy:
+                p.rename(os.path.join(self.BASE_DIR, "unhealthy"))
+                break
+            await asyncio.sleep(self.interval)
 
     def get_health_status(self) -> bool:
         if self._broker:

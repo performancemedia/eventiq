@@ -24,13 +24,18 @@ def run(
     service_or_runner: str,
     log_level: str = typer.Option(default="info"),
     use_uvloop: bool = typer.Option(False),
+    debug: bool = typer.Option(False),
 ) -> None:
     setup_logging(log_level.upper())
     logger.info(f"Running [{service_or_runner}]...")
     obj = import_from_string(service_or_runner)
     if callable(obj):
         obj = obj()
-    anyio.run(obj.run, backend="asyncio", backend_options={"use_uvloop": use_uvloop})
+    anyio.run(
+        obj.run,
+        backend="asyncio",
+        backend_options={"use_uvloop": use_uvloop, "debug": debug},
+    )
 
 
 @cli.command(help="Watch and reload on files change")

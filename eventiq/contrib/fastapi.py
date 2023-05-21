@@ -21,15 +21,16 @@ class FastAPIServicePlugin(ServicePlugin):
         healthcheck_url: str | None = None,
     ):
         super().__init__(service)
+        self._task: asyncio.Task | None = None
 
         @app.on_event("startup")
         async def create_service_task():
-            app._eventiq_task = asyncio.create_task(service.start())
+            self._task = asyncio.create_task(service.start())
 
         @app.on_event("shutdown")
         async def stop_service_task():
-            app._eventiq_task.cancel()
-            await asyncio.wait_for(app._eventiq_task, timeout=10)
+            self._task.cancel()
+            await asyncio.wait_for(self._task, timeout=5)
             await service.stop()
 
         if async_api_url:
