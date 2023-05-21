@@ -1,27 +1,36 @@
-import asyncio
+import signal
 from typing import Sequence
 
+import anyio
+
+from .logger import LoggerMixin
 from .service import Service
 
 
-class ServiceRunner:
+class ServiceRunner(LoggerMixin):
     """
-    Service container for running multiple service instances in one process.
+    Service container for running multiple service instances in one process
     :param services: Sequence of services to run
     """
 
     def __init__(self, services: Sequence[Service]) -> None:
         self.services = services
 
-    def run(self, use_uvloop: bool = False, **kwargs) -> None:
-        import aiorun
+    async def run(self):
 
-        aiorun.run(
-            self._run(), shutdown_callback=self._stop, use_uvloop=use_uvloop, **kwargs
-        )
+        async with anyio.open_signal_receiver(signal.SIGINT, signal.SIGTERM) as signals:
+            async with anyio.create_task_group() as tg:
+                try:
+                    for service in self.services:
+                        tg.start_soon(service.start)
+                except Exception as e:
+                    self.logger.exception("Unhandled exception", exc_info=e)
+                    return
 
-    async def _run(self):
-        await asyncio.gather(*[s.start() for s in self.services])
-
-    async def _stop(self, *args, **kwargs):
-        await asyncio.gather(*[s.stop() for s in self.services])
+                async for signum in signals:
+                    self.logger.warning(f"Signal {signum} received...")
+                    await tg.cancel_scope.cancel()
+                    async with anyio.move_on_after(30, shield=True):
+                        for service in self.services:
+                            await service.stop()
+                    return

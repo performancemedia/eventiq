@@ -47,8 +47,7 @@ class RedisBroker(Broker[Dict[str, str]]):
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         handler = self.get_handler(service, consumer)
         psub = self.redis.pubsub()
-
-        while True:
+        while self._running:
             message = await psub.get_message(ignore_subscribe_messages=True)
             if message:
                 await handler(message)

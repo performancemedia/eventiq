@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import anyio
 import typer
 
 from eventiq.logger import get_logger, setup_logging
@@ -29,7 +30,7 @@ def run(
     obj = import_from_string(service_or_runner)
     if callable(obj):
         obj = obj()
-    obj.run(use_uvloop=use_uvloop)
+    anyio.run(obj.run, backend="asyncio", backend_options={"use_uvloop": use_uvloop})
 
 
 @cli.command(help="Watch and reload on files change")

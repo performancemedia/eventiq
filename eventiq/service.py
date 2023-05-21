@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Callable, Sequence
 
+import anyio
+
 from .asyncapi.models import PublishInfo
 from .asyncapi.registry import PUBLISH_REGISTRY
 from .broker import Broker
@@ -104,22 +106,26 @@ class Service(LoggerMixin):
         return await self.broker.publish(message, **kwargs)
 
     async def start(self):
+        self.logger.info(f"Starting service {self.name}")
         await self.broker.connect()
         await self.broker.dispatch_before("service_start", self)
-        for consumer in self.consumers.values():
-            asyncio.create_task(self.broker.start_consumer(self, consumer))
-        await self.broker.dispatch_after("service_start", self)
+
+        async with anyio.create_task_group() as tg:
+            for consumer in self.consumers.values():
+                self.logger.info(f"Starting consumer {consumer.name}")
+                tg.start_soon(self.broker.start_consumer, self, consumer)
+            await self.broker.dispatch_after("service_start", self)
 
     async def stop(self, *args, **kwargs):
         await self.broker.dispatch_before("service_stop", self)
         await self.broker.disconnect()
         await self.broker.dispatch_after("service_stop", self)
 
-    def run(self, *args, **kwargs):
+    async def run(self):
         from .runner import ServiceRunner
 
         runner = ServiceRunner([self])
-        runner.run(*args, **kwargs)
+        await runner.run()
 
     @classmethod
     def from_settings(cls, settings: ServiceSettings, **kwargs: Any) -> Service:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+import anyio
 import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
@@ -10,7 +11,7 @@ from nats.errors import NotJSMessageError
 from nats.js import JetStreamContext
 
 from eventiq.broker import Broker
-from eventiq.exceptions import PublishError
+from eventiq.exceptions import BrokerError, PublishError
 from eventiq.utils.functools import retry
 
 from ...message import Message
@@ -56,6 +57,7 @@ class NatsBroker(Broker[NatsMsg]):
         super().__init__(**kwargs)
         self.url = url
         self.connection_options = connection_options or {}
+        self.connection_options.setdefault("max_reconnect_attempts", 5)
         self._auto_flush = auto_flush
         self.client = Client()
 
@@ -75,7 +77,6 @@ class NatsBroker(Broker[NatsMsg]):
     async def flush(self):
         await self.client.flush()
 
-    @retry(max_retries=3)
     async def _connect(self) -> None:
         self._nc = await self.client.connect(self.url, **self.connection_options)
 
@@ -155,21 +156,20 @@ class JetStreamBroker(NatsBroker):
                 config=consumer.options.get("config"),
             )
         except Exception as e:
-            self.logger.exception(
-                f"Error creating subscription for consumer {consumer.name} and topic {consumer.topic}",
-                exc_info=e,
-            )
-            return
+            raise BrokerError(
+                f"Error creating subscription for consumer {consumer.name} and topic {consumer.topic}"
+            ) from e
 
         handler = self.get_handler(service, consumer)
         batch = consumer.options.get("prefetch_count", self.prefetch_count)
         timeout = consumer.options.get("fetch_timeout", self.fetch_timeout)
         try:
-            while not self._stopped:
+            while self._running:
                 try:
                     messages = await subscription.fetch(batch=batch, timeout=timeout)
-                    tasks = [asyncio.create_task(handler(message)) for message in messages]  # type: ignore
-                    await asyncio.gather(*tasks)
+                    async with anyio.create_task_group() as tg:
+                        for msg in messages:
+                            tg.start_soon(handler, msg)
                 except nats.errors.TimeoutError:
                     await asyncio.sleep(5)
         except Exception:

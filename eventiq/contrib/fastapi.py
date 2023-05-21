@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -19,8 +21,16 @@ class FastAPIServicePlugin(ServicePlugin):
         healthcheck_url: str | None = None,
     ):
         super().__init__(service)
-        app.on_event("startup")(service.start)
-        app.on_event("shutdown")(service.stop)
+
+        @app.on_event("startup")
+        async def create_service_task():
+            app._eventiq_task = asyncio.create_task(service.start())
+
+        @app.on_event("shutdown")
+        async def stop_service_task():
+            app._eventiq_task.cancel()
+            await asyncio.wait_for(app._eventiq_task, timeout=10)
+            await service.stop()
 
         if async_api_url:
 
