@@ -5,6 +5,7 @@ import functools
 import time
 from typing import Any, Awaitable, Callable, TypeVar
 
+import anyio
 from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
@@ -14,8 +15,7 @@ R = TypeVar("R", bound=Any)
 def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Awaitable[R]:
-        loop = asyncio.get_running_loop()
-        return loop.run_in_executor(None, functools.partial(func, *args, **kwargs))
+        return anyio.to_thread.run_sync(functools.partial(func, *args, **kwargs))
 
     return wrapper
 
@@ -57,7 +57,6 @@ def retry(max_retries: int = 5, backoff: int = 2):
     def _wrapper(
         func: Callable[P, R] | Callable[P, Awaitable[R]]
     ) -> Callable[P, R] | Callable[P, Awaitable[R]]:
-
         if asyncio.iscoroutinefunction(func):
             return _retry_async(func, max_retries, backoff)
 

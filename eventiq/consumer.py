@@ -75,10 +75,7 @@ class FnConsumer(Consumer[T]):
         self.fn = fn
 
     async def process(self, message: T) -> Any | None:
-        self.logger.info("Processing message <%s>", message.type)
-        result = await self.fn(message)
-        self.logger.info("Finished processing <%s>", message.type)
-        return result
+        return await self.fn(message)
 
     @property
     def description(self) -> str:

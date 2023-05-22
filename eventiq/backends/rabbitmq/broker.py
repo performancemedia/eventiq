@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 
 import aio_pika
@@ -68,14 +67,12 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         )
 
     async def _disconnect(self) -> None:
-        await asyncio.gather(
-            *[c.close() for c in self._channels], return_exceptions=True
-        )
+        for c in self._channels:
+            await c.close()
         await self.connection.close()
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         """
-        TODO: refactor rabbitmq to use 1 queue per service and internal handlers [routing_key:consumer_handler] dict
         to route the messages to consumers
         :param service:
         :param consumer:

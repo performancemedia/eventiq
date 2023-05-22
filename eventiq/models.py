@@ -94,6 +94,7 @@ class CloudEvent(GenericModel, Generic[D]):
         use_enum_values = True
         allow_population_by_field_name = True
         extra = Extra.allow
+        arbitrary_types_allowed = True
         # events are immutable, however it's sometimes useful to set source or traceid for unpublished events
         allow_mutation = False
 

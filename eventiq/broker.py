@@ -4,8 +4,9 @@ import asyncio
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generic
 
+import anyio
 from pydantic import ValidationError
 
 from .context import _current_message, _current_service
@@ -57,8 +58,8 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
         self.description = description or type(self).__name__
         self.middlewares: list[Middleware] = middlewares or []
-        self._lock = asyncio.Lock()
-        self._stopped = True
+        self._lock = anyio.Lock()
+        self._running = False
 
     def __repr__(self):
         return type(self).__name__
@@ -69,7 +70,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     def get_handler(
         self, service: Service, consumer: Consumer
-    ) -> Callable[[RawMessage], Awaitable[Any | None]]:
+    ) -> Callable[..., Coroutine[Any, Any, Any]]:
         async def handler(raw_message: RawMessage) -> None:
             exc: Exception | None = None
             result: Any = None
@@ -98,19 +99,20 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 self.logger.info(
                     f"Running consumer {consumer.name} with message {message.id}"
                 )
-                result = await asyncio.wait_for(
-                    consumer.process(message), timeout=consumer.timeout
-                )
-                if consumer.forward_response and result is not None:
-                    await self.publish(
-                        CloudEvent(
-                            type=consumer.forward_response.as_type,
-                            topic=consumer.forward_response.topic,
-                            data=result,
-                            source=service.name,
+                async with anyio.move_on_after(consumer.timeout) as scope:
+                    result = await consumer.process(message)
+
+                    if consumer.forward_response and result is not None:
+                        await self.publish(
+                            CloudEvent(
+                                type=consumer.forward_response.as_type,
+                                topic=consumer.forward_response.topic,
+                                data=result,
+                                source=service.name,
+                            )
                         )
-                    )
-            # TODO: asyncio.CanceledError handling (?)
+                if scope.cancel_called:
+                    exc = asyncio.TimeoutError()
             except Exception as e:
                 self.logger.error(f"Exception in {consumer.name} {e}")
                 exc = e
@@ -153,20 +155,20 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
             message,
         )
 
-    async def connect(self) -> None:
+    async def connect(self, **kwargs) -> None:
         async with self._lock:
-            if self._stopped:
+            if not self._running:
                 await self.dispatch_before("broker_connect")
                 await self._connect()
-                self._stopped = False
+                self._running = True
                 await self.dispatch_after("broker_connect")
 
     async def disconnect(self) -> None:
         async with self._lock:
-            if not self._stopped:
+            if self._running:
                 await self.dispatch_before("broker_disconnect")
+                self._running = False
                 await self._disconnect()
-                self._stopped = True
                 await self.dispatch_after("broker_disconnect")
 
     async def publish(self, message: CloudEvent, **kwargs: Any) -> None:

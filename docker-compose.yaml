@@ -47,7 +47,7 @@ services:
     build:
       dockerfile: ./.docker/Dockerfile
       context: .
-    command: "eventiq run examples.tracing:service"
+    command: "eventiq watch examples.tracing:service"
     ports:
       - "8888:8888"
     environment: {}

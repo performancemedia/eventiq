@@ -33,8 +33,12 @@ def test_encoder_cloud_events(encoder, data):
 
 @pytest.mark.parametrize("encoder", (OrjsonEncoder, MsgPackEncoder, PickleEncoder))
 def test_encoders_numpy_data(encoder):
-    data: np.ndarray = np.ones(1280).astype(np.float32)
-    encoded = encoder.encode(data)
+    class NumpyCe(CloudEvent[np.ndarray]):
+        class Config:
+            arbitrary_types_allowed = True
+
+    ce = NumpyCe(topic="test.topic", data=np.ones(1280).astype(np.float32))
+    encoded = encoder.encode(ce.dict())
     assert isinstance(encoded, bytes)
     decoded = encoder.decode(encoded)
-    assert np.array_equal(decoded, data)
+    assert np.array_equal(ce.data, decoded["data"])

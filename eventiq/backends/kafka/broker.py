@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 
 import aiokafka
+import anyio
 
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
@@ -61,20 +61,21 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         )
         await subscriber.start()
         subscriber.subscribe(pattern=self.format_topic(consumer.topic))
-        while self._stopped:
-            result = await subscriber.getmany(
-                timeout_ms=consumer.options.get("timeout_ms", 600)
-            )
-            for tp, messages in result.items():
+        try:
+            while self._running:
+                result = await subscriber.getmany(
+                    timeout_ms=consumer.options.get("timeout_ms", 600)
+                )
 
-                if messages:
-                    tasks: list[asyncio.Task] = [
-                        asyncio.create_task(handler(message)) for message in messages  # type: ignore
-                    ]
-                    await asyncio.gather(*tasks, return_exceptions=True)
-                    await subscriber.commit({tp: messages[-1].offset + 1})
-        if consumer.dynamic:
-            subscriber.unsubscribe()
+                for tp, messages in result.items():
+                    if messages:
+                        async with anyio.create_task_group() as tg:
+                            for message in messages:
+                                tg.start_soon(handler, message)
+                        await subscriber.commit({tp: messages[-1].offset + 1})
+        finally:
+            if consumer.dynamic:
+                subscriber.unsubscribe()
 
     async def _disconnect(self):
         if self._publisher:

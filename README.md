@@ -19,7 +19,7 @@
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.1.13
+Version: 0.1.14
 
 Documentation: https://performancemedia.github.io/eventiq/
 
@@ -28,7 +28,7 @@ Repository: https://github.com/performancemedia/eventiq
 ---
 ## About
 
-The package utilizes `pydantic` and `python-json-logger` as the only required dependencies.
+The package utilizes `anyio`, `pydantic` and `python-json-logger` as the only required dependencies.
 For messages [Cloud Events](https://cloudevents.io/) format is used.
 Service can be run as standalone processes, or included into starlette (e.g. FastAPI) applications.
 
@@ -49,7 +49,7 @@ pip install eventiq
 - And more coming
 
 ## Optional Dependencies
-  - `cli` - `typer` and `aiorun`
+  - `cli` - `typer`
   - broker of choice: `nats`, `kafka`, `rabbitmq`, `redis`, `pubsub`
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
