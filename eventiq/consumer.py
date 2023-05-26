@@ -92,8 +92,11 @@ class GenericConsumer(Consumer[T], ABC):
         )
 
     def __init_subclass__(cls, **kwargs):
-        if not inspect.isabstract(cls) and not asyncio.iscoroutinefunction(cls.process):
-            cls.process = to_async(cls.process)
+        if not inspect.isabstract(cls):
+            cls.event_type = cls.__orig_bases__[0].__args__[0]
+
+            if not asyncio.iscoroutinefunction(cls.process):
+                cls.process = to_async(cls.process)
 
     @property
     def description(self) -> str:
