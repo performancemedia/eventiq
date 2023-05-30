@@ -97,12 +97,10 @@ def populate_spec(service: Service):
         subscribe = Operation(
             operation_id=camel2snake(consumer.name),
             message=Ref(ref=f"#/components/messages/{event_type}"),
-            tags=get_tag_list(tags, consumer.options) or None,
+            tags=get_tag_list(tags, consumer.tags) or None,
         )
         channels[consumer.topic].subscribe = subscribe
-        params = get_topic_parameters(
-            consumer.topic, **consumer.options.get("params", {})
-        )
+        params = get_topic_parameters(consumer.topic, **consumer.parameters)
         for k, v in params.items():
             channels[consumer.topic].parameters.setdefault(k, v)
     return channels, messages

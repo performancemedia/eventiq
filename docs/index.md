@@ -30,7 +30,7 @@ Repository: [https://github.com/performancemedia/eventiq](https://github.com/per
 ---
 ## About
 
-The package utilizes `pydantic` and `python-json-logger` as the only required dependencies.
+The package utilizes `anyio` and `pydantic` as the only required dependencies.
 For messages [Cloud Events](https://cloudevents.io/) format is used.
 Service can be run as standalone processes, or included into starlette (e.g. FastAPI) applications.
 

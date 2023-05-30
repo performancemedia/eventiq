@@ -12,9 +12,9 @@ from nats.js import JetStreamContext
 
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError, PublishError
-from eventiq.utils.functools import retry
 
 from ...message import Message
+from ...utils import retry
 from .settings import JetStreamSettings, NatsSettings
 
 if TYPE_CHECKING:

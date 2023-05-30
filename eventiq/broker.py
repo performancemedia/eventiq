@@ -11,13 +11,13 @@ from pydantic import ValidationError
 
 from .context import _current_message, _current_service
 from .exceptions import DecodeError, Fail, Skip
+from .imports import import_from_string
 from .logger import LoggerMixin
 from .message import Message
 from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
 from .types import Encoder, RawMessage
-from .utils.imports import import_from_string
 
 if TYPE_CHECKING:
     from eventiq import Consumer, Service

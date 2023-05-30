@@ -5,22 +5,18 @@ from typing import TYPE_CHECKING, Any, ContextManager, Iterable
 from opentelemetry import trace
 from opentelemetry.propagate import extract, inject
 from opentelemetry.propagators.textmap import Getter, Setter
-from opentelemetry.semconv.trace import (
-    MessagingDestinationKindValues,
-    MessagingOperationValues,
-    SpanAttributes,
-)
+from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import SpanKind, StatusCode
 
 from .._version import __version__
 from ..middleware import Middleware
 from ..models import CloudEvent
-from ..types import ID
 
 if TYPE_CHECKING:
     from opentelemetry.sdk.trace import Span, TracerProvider
 
     from eventiq import Broker, Consumer, Service
+    from eventiq.types import ID
 
 
 class EventiqGetter(Getter[CloudEvent]):
@@ -56,22 +52,26 @@ class OpenTelemetryMiddleware(Middleware):
         ] = {}
         self.publish_span_registry: dict[ID, tuple[Span, ContextManager[Span]]] = {}
 
+    @staticmethod
+    def _get_span_attributes(message: CloudEvent):
+        return {
+            SpanAttributes.CLOUDEVENTS_EVENT_ID: str(message.id),
+            SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source or "(anonymous)",
+            SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type or "CloudEvent",
+            SpanAttributes.CLOUDEVENTS_EVENT_SUBJECT: message.topic,
+            **message.extra_span_attributes,
+        }
+
     async def before_process_message(
         self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
         trace_ctx = extract(message, getter=eventiq_getter)
 
         span = self.tracer.start_span(
-            name=f"{service.name}.{consumer.name} receive",
+            name=f"{consumer.name} receive",
             kind=SpanKind.CONSUMER,
             context=trace_ctx,
-            attributes={
-                SpanAttributes.MESSAGING_OPERATION: MessagingOperationValues.PROCESS.value,
-                SpanAttributes.MESSAGING_MESSAGE_ID: str(message.id),
-                SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source
-                or "(anonymous)",
-                SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type,
-            },
+            attributes=self._get_span_attributes(message),
         )
         activation = trace.use_span(span, end_on_exit=True)
         activation.__enter__()
@@ -96,8 +96,10 @@ class OpenTelemetryMiddleware(Middleware):
             return
 
         if span.is_recording():
-            status = (StatusCode.ERROR, str(exc)) if exc else (StatusCode.OK,)
-            span.set_status(*status)
+            if exc:
+                span.set_status(status=StatusCode.ERROR, description=str(exc))
+            else:
+                span.set_status(StatusCode.OK)
         activation.__exit__(None, None, None)
 
     async def before_publish(
@@ -108,13 +110,7 @@ class OpenTelemetryMiddleware(Middleware):
         span = self.tracer.start_span(
             f"{source} publish",
             kind=SpanKind.PRODUCER,
-            attributes={
-                SpanAttributes.MESSAGING_MESSAGE_ID: str(message.id),
-                SpanAttributes.MESSAGING_DESTINATION_KIND: MessagingDestinationKindValues.TOPIC.value,
-                SpanAttributes.MESSAGING_DESTINATION: message.topic,
-                SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: source,
-                SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type,
-            },
+            attributes=self._get_span_attributes(message),
         )
         activation = trace.use_span(span, end_on_exit=True)
         activation.__enter__()

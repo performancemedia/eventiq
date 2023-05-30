@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 import anyio
 
 from .asyncapi.models import PublishInfo
 from .asyncapi.registry import PUBLISH_REGISTRY
-from .broker import Broker
 from .consumer import Consumer, ConsumerGroup, ForwardResponse
 from .logger import LoggerMixin
 from .models import CloudEvent
-from .settings import ServiceSettings
-from .types import TagMeta
+from .settings import DEFAULT_TIMEOUT, ServiceSettings
 from .utils import generate_instance_id
+
+if TYPE_CHECKING:
+    from eventiq import Broker
+
+    from .middlewares.retries import RetryStrategy
+    from .types import TagMeta, Tags
 
 
 class Service(LoggerMixin):
@@ -42,8 +45,6 @@ class Service(LoggerMixin):
         self.consumer_group = ConsumerGroup()
         self.context = context
         self.base_event_class = base_event_class
-        # TODO: task gathering?
-        self._tasks: list[asyncio.Task] = []
         for p in publish_info:
             PUBLISH_REGISTRY[p.event_type.__name__] = p
 
@@ -52,10 +53,14 @@ class Service(LoggerMixin):
         topic: str,
         *,
         name: str | None = None,
-        timeout: int = 120,
+        timeout: int = DEFAULT_TIMEOUT,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
-        **options,
+        tags: Tags = None,
+        retry_strategy: RetryStrategy | None = None,
+        store_results: bool = False,
+        parameters: dict[str, Any] | None = None,
+        **options: Any,
     ):
         return self.consumer_group.subscribe(
             topic=topic,
@@ -63,6 +68,10 @@ class Service(LoggerMixin):
             timeout=timeout,
             dynamic=dynamic,
             forward_response=forward_response,
+            tags=tags,
+            retry_strategy=retry_strategy,
+            store_results=store_results,
+            parameters=parameters,
             **options,
         )
 

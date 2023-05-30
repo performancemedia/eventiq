@@ -28,7 +28,7 @@ Repository: https://github.com/performancemedia/eventiq
 ---
 ## About
 
-The package utilizes `anyio`, `pydantic` and `python-json-logger` as the only required dependencies.
+The package utilizes `anyio` and `pydantic` as the only required dependencies.
 For messages [Cloud Events](https://cloudevents.io/) format is used.
 Service can be run as standalone processes, or included into starlette (e.g. FastAPI) applications.
 
@@ -55,6 +55,8 @@ pip install eventiq
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
   - `opentelemetry` - tracing support
 ## Motivation
+
+Python has many "worker-queue" libraries and frameworks, such as:
 
 - [Celery](https://docs.celeryq.dev/en/stable/getting-started/introduction.html)
 - [Dramatiq](https://dramatiq.io/)

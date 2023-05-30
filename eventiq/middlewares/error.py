@@ -4,7 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from eventiq.middleware import Middleware
-from eventiq.utils.functools import to_async
+from eventiq.utils import to_async
 
 if TYPE_CHECKING:
     from eventiq import Broker, CloudEvent, Consumer, Service

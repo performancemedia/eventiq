@@ -1,15 +1,15 @@
-from __future__ import annotations
-
+import logging.config
 import sys
 from pathlib import Path
+from typing import Optional
 
 import anyio
 import typer
 
-from eventiq.logger import get_logger, setup_logging
+from eventiq.logger import get_logger
 
+from .imports import import_from_string
 from .service import Service
-from .utils.imports import import_from_string
 
 cli = typer.Typer()
 
@@ -22,11 +22,16 @@ if "." not in sys.path:
 @cli.command(help="Run service")
 def run(
     service_or_runner: str,
-    log_level: str = typer.Option(default="info"),
+    log_level: Optional[str] = typer.Option(None),
+    log_config: Optional[str] = typer.Option(None),
     use_uvloop: bool = typer.Option(False),
     debug: bool = typer.Option(False),
 ) -> None:
-    setup_logging(log_level.upper())
+    if log_level:
+        logging.basicConfig(level=log_level.upper())
+    if log_config:
+        logging.config.fileConfig(log_config)
+
     logger.info(f"Running [{service_or_runner}]...")
     obj = import_from_string(service_or_runner)
     if callable(obj):
@@ -47,7 +52,6 @@ def watch(
     from watchfiles import run_process
 
     logger.info(f"Watching [{service_or_runner}]...")
-    setup_logging(log_level.upper())
 
     run_process(
         directory,
@@ -59,7 +63,7 @@ def watch(
     )
 
 
-@cli.command(help="Verify service configuration and imports without runnning the app")
+@cli.command(help="Verify service configuration and imports without running the app")
 def verify(service: str = typer.Argument(...)) -> None:
     typer.echo(f"Verifying service [{service}]...")
     s = import_from_string(service)
