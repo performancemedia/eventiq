@@ -17,7 +17,7 @@ service = Service(name="example-service", broker=broker)
 
 app = FastAPI()
 
-FastAPIServicePlugin(service, app, healthcheck_url="/healthz")
+FastAPIServicePlugin(service).configure_app(app, healthcheck_url="/healthz")
 
 
 @service.subscribe("events.topic", name="test_consumer", store_results=True)

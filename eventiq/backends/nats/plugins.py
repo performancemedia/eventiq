@@ -9,7 +9,7 @@ from eventiq.backends.nats.broker import JetStreamBroker
 from eventiq.middleware import Middleware
 from eventiq.plugins import BrokerPlugin
 from eventiq.types import ID, ResultBackend
-from eventiq.utils.functools import retry
+from eventiq.utils import retry
 
 if TYPE_CHECKING:
     from eventiq import Broker, CloudEvent, Consumer, Service
@@ -35,7 +35,7 @@ class _NatsJetStreamResultMiddleware(Middleware):
         exc: Exception | None = None,
     ) -> None:
         """Store message result in JetStream K/V Store"""
-        if consumer.options.get("store_results", True) is False:
+        if not consumer.store_results:
             return
 
         kv = self.result_backend.buckets.get(service.name)

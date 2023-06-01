@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any
 from eventiq import Middleware, Service
 from eventiq.plugins import BrokerPlugin
 from eventiq.types import ID, ResultBackend
-from eventiq.utils.functools import retry
 
+from ...utils import retry
 from .broker import RedisBroker
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ class _RedisResultMiddleware(Middleware):
         result: Any | None = None,
         exc: Exception | None = None,
     ) -> None:
-        if consumer.options.get("store_results", True) is False:
+        if not consumer.store_results:
             return
 
         if exc is None:

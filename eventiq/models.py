@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Dict, Generic, Optional
+from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, Extra, Field, validator
 from pydantic.fields import PrivateAttr
@@ -8,9 +9,8 @@ from pydantic.generics import GenericModel
 
 from .context import get_current_service
 from .message import Message
-from .types import ID, D
-from .utils import str_uuid
-from .utils.datetime import utc_now
+from .types import D
+from .utils import utc_now
 
 
 class CloudEvent(GenericModel, Generic[D]):
@@ -18,16 +18,16 @@ class CloudEvent(GenericModel, Generic[D]):
     content_type: str = Field(
         "application/json", alias="datacontenttype", description="Message content type"
     )
-    id: ID = Field(default_factory=str_uuid)
-    time: datetime = Field(default_factory=utc_now)
-    topic: str = Field(..., alias="subject")
-    type: Optional[str] = None
-    source: Optional[str] = None
-    data: D
-    dataschema: Optional[AnyUrl] = None
-    tracecontext: Dict[str, Any] = {}
+    id: UUID = Field(default_factory=uuid4, description="Event ID")
+    time: datetime = Field(default_factory=utc_now, description="Event created time")
+    topic: str = Field(..., alias="subject", description="Event subject (topic)")
+    type: Optional[str] = Field(None, description="Event type")
+    source: Optional[str] = Field(None, description="Event source (app)")
+    data: D = Field(..., description="Event payload")
+    dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
+    tracecontext: Dict[str, str] = Field({}, description="Distributed tracing context")
 
-    _raw: Optional[Any] = PrivateAttr()
+    _raw: Optional[Any] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
         cls.__fields__["type"].default = cls.__name__
@@ -84,6 +84,10 @@ class CloudEvent(GenericModel, Generic[D]):
         return super().copy(**kwargs)
 
     @property
+    def extra_span_attributes(self) -> Dict[str, str]:
+        return {}
+
+    @property
     def age(self) -> timedelta:
         return utc_now() - self.time
 
@@ -99,4 +103,4 @@ class CloudEvent(GenericModel, Generic[D]):
         allow_mutation = False
 
 
-TopicField = partial(Field, const=True, alias="subject")
+TopicField = partial(Field, const=True, alias="subject", description="Event topic")

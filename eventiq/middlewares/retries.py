@@ -112,10 +112,8 @@ class RetryMiddleware(Middleware):
         if isinstance(exc, Retry):
             message.raw.delay = exc.delay
             return
+        retry_strategy = consumer.retry_strategy or self.default_retry_strategy
 
-        retry_strategy: RetryStrategy = consumer.options.get(
-            "retry_strategy", self.default_retry_strategy
-        )
         if retry_strategy is None:
             return
 

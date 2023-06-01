@@ -12,8 +12,8 @@ from gcloud.aio.pubsub import (
 
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
-from eventiq.utils.functools import retry
 
+from ...utils import retry
 from .settings import PubSubSettings
 
 if TYPE_CHECKING:

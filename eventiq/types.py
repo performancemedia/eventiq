@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,
+    List,
     Optional,
     Protocol,
     Type,
@@ -15,25 +17,19 @@ from typing import (
 )
 from uuid import UUID
 
-from pydantic import ConstrainedStr
-
 if TYPE_CHECKING:
     from . import CloudEvent, GenericConsumer
 
 
-class StrId(ConstrainedStr):
-    strip_whitespace = True
-    min_length = 1
-    max_length = 64
-
-
-ID = Union[UUID, int, StrId]
+ID = Union[UUID, str]
 
 
 RawMessage = TypeVar("RawMessage")
 
 T = TypeVar("T", bound="CloudEvent")
 D = TypeVar("D")
+
+Tags = Optional[List[Union[str, Enum]]]
 
 
 class TagMeta(TypedDict):

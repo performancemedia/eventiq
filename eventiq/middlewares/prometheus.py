@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from eventiq.middleware import Middleware
 from eventiq.types import ID
-from eventiq.utils.datetime import current_millis
+from eventiq.utils import current_millis
 
 if TYPE_CHECKING:
     from prometheus_client.registry import CollectorRegistry
