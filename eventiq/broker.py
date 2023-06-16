@@ -114,7 +114,9 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 if scope.cancel_called:
                     exc = asyncio.TimeoutError()
             except Exception as e:
-                self.logger.error(f"Exception in {consumer.name} {e}")
+                self.logger.warning(
+                    f"Exception in {consumer.name} {type(e).__name__}, {e}"
+                )
                 exc = e
             finally:
                 self.logger.info(f"Finished running consumer {consumer.name}")
