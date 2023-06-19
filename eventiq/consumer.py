@@ -22,7 +22,7 @@ class ForwardResponse:
 
 
 class Consumer(ABC, Generic[T]):
-    """ """
+    """Base consumer class"""
 
     event_type: T
 
