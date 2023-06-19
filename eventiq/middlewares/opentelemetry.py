@@ -97,7 +97,9 @@ class OpenTelemetryMiddleware(Middleware):
 
         if span.is_recording():
             if exc:
-                span.set_status(status=StatusCode.ERROR, description=str(exc))
+                span.set_status(
+                    status=StatusCode.ERROR, description=str(exc) or type(exc).__name__
+                )
             else:
                 span.set_status(StatusCode.OK)
         activation.__exit__(None, None, None)
