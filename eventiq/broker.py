@@ -115,7 +115,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                     exc = asyncio.TimeoutError()
             except Exception as e:
                 self.logger.warning(
-                    f"Exception in {consumer.name} {type(e).__name__}, {e}"
+                    f"Exception in {consumer.name} <{type(e).__name__}> {e}"
                 )
                 exc = e
             finally:

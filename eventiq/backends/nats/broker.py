@@ -9,6 +9,7 @@ from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
 from nats.errors import NotJSMessageError
 from nats.js import JetStreamContext
+from nats.js.api import ConsumerConfig
 
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError, PublishError
@@ -148,11 +149,13 @@ class JetStreamBroker(NatsBroker):
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         durable = f"{service.name}:{consumer.name}"
+        config = consumer.options.get("config", ConsumerConfig())
+        config.ack_wait = consumer.timeout + 10  # consumer timeout + 10s for .ack()
         try:
             subscription = await self.js.pull_subscribe(
                 subject=self.format_topic(consumer.topic),
                 durable=durable,
-                config=consumer.options.get("config"),
+                config=config,
             )
         except Exception as e:
             raise BrokerError(
