@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Mapping
 
-from eventiq.exceptions import Retry
+from eventiq.exceptions import Fail, Retry
 from eventiq.logger import LoggerMixin
 from eventiq.middleware import Middleware
 
@@ -15,9 +15,11 @@ class RetryStrategy(LoggerMixin):
     def __init__(
         self,
         backoff: int = 2,
-        throws: type[Exception] | tuple[type[Exception]] | None = None,
+        throws: tuple[type[Exception], ...] = (),
     ):
         self.backoff = backoff
+        if Fail not in throws:
+            throws = (*throws, Fail)
         self.throws = throws
 
     def set_delay(self, message: CloudEvent, exc: Exception):
@@ -59,7 +61,12 @@ class MaxRetries(RetryStrategy):
         self.max_retries = max_retries
 
     def maybe_retry(self, message: CloudEvent, exc: Exception):
-        retries = message.raw.num_delivered or message.age.seconds
+        retries = message.raw.num_delivered
+        if retries is None:
+            self.logger.warning(
+                "Retries property not found in message, backing off to message.age.seconds"
+            )
+            retries = message.age.seconds
         if retries <= self.max_retries:
             super().maybe_retry(message, exc)
         else:
