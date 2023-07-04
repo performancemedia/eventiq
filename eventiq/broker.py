@@ -120,13 +120,14 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 exc = e
             finally:
                 self.logger.info(f"Finished running consumer {consumer.name}")
-                await self.dispatch_after(
-                    "process_message", service, consumer, message, result, exc
-                )
-                if exc is None or isinstance(exc, Fail) or msg.failed:
-                    await self.ack(service, consumer, msg)
-                else:
-                    await self.nack(service, consumer, msg)
+                async with anyio.move_on_after(10, shield=True):
+                    await self.dispatch_after(
+                        "process_message", service, consumer, message, result, exc
+                    )
+                    if exc is None or isinstance(exc, Fail) or msg.failed:
+                        await self.ack(service, consumer, msg)
+                    else:
+                        await self.nack(service, consumer, msg)
                 _current_service.reset(s_token)
                 _current_message.reset(m_token)
 
