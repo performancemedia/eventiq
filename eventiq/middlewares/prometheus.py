@@ -43,6 +43,7 @@ class PrometheusMiddleware(Middleware):
         buckets: tuple[float] | None = None,
         server_host: str = "0.0.0.0",  # nosec
         server_port: int = 8888,
+        prefix: str = "",
     ):
         from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
@@ -52,48 +53,54 @@ class PrometheusMiddleware(Middleware):
         self.server_host = server_host
         self.server_port = server_port
         self.message_start_times: dict[tuple[str, str, ID], int] = {}
+        self.prefix = prefix
         self.in_progress = Gauge(
-            "messages_in_progress",
+            self.format("messages_in_progress"),
             "Total number of messages being processed.",
             ["topic", "service", "consumer"],
             registry=self.registry,
         )
         self.total_messages = Counter(
-            "messages_total",
+            self.format("messages_total"),
             "Total number of messages processed.",
             ["topic", "service", "consumer"],
             registry=self.registry,
         )
         self.total_skipped_messages = Counter(
-            "messages_skipped_total",
+            self.format("messages_skipped_total"),
             "Total number of messages skipped processing.",
             registry=self.registry,
         )
         self.total_messages_published = Counter(
-            "messages_published_total",
+            self.format("messages_published_total"),
             "Total number of messages published",
             ["topic", "service"],
             registry=self.registry,
         )
         self.total_errored_messages = Counter(
-            "message_error_total",
+            self.format("message_error_total"),
             "Total number of errored messages.",
             ["topic", "service", "consumer"],
             registry=self.registry,
         )
         self.total_failed_messages = Counter(
-            "message_failed_total",
+            self.format("message_failed_total"),
             "Total number of messages failed",
             ["topic", "service", "consumer"],
             registry=self.registry,
         )
         self.message_durations = Histogram(
-            "message_duration_ms",
+            self.format("message_duration_ms"),
             "Time spend processing message",
             ["topic", "service", "consumer"],
             registry=self.registry,
             buckets=self.buckets,
         )
+
+    def format(self, value: str) -> str:
+        if self.prefix:
+            return f"{self.prefix}_{value}"
+        return value
 
     async def before_process_message(
         self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent

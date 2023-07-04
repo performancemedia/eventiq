@@ -58,6 +58,7 @@ class NatsBroker(Broker[NatsMsg]):
         super().__init__(**kwargs)
         self.url = url
         self.connection_options = connection_options or {}
+        self.connection_options.setdefault("pending_size", 0)
         self._auto_flush = auto_flush
         self.client = Client()
 
@@ -78,7 +79,7 @@ class NatsBroker(Broker[NatsMsg]):
         await self.client.flush()
 
     async def _connect(self) -> None:
-        self._nc = await self.client.connect(self.url, **self.connection_options)
+        await self.client.connect(self.url, **self.connection_options)
 
     @retry(max_retries=3)
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
@@ -144,6 +145,8 @@ class JetStreamBroker(NatsBroker):
                 stream=stream,
                 headers=headers,
             )
+            if self._auto_flush:
+                await self.client.flush()
         except Exception as e:
             raise PublishError from e
 
