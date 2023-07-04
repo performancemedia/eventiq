@@ -19,7 +19,7 @@
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.1.18
+Version: 0.1.19
 
 Documentation: https://performancemedia.github.io/eventiq/
 
