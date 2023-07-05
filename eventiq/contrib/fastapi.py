@@ -42,13 +42,14 @@ class FastAPIServicePlugin(ServicePlugin):
     def _add_run_service_events(self, app):
         @app.on_event("startup")
         async def create_service_task():
-            app._eventiq_task = asyncio.create_task(self.service.start())
+            self._task = asyncio.create_task(self.service.start())
 
         @app.on_event("shutdown")
         async def stop_service_task():
-            self._task.cancel()
-            await asyncio.wait_for(self._task, timeout=5)
-            await self.service.stop()
+            if self._task:
+                self._task.cancel()
+                await asyncio.wait_for(self._task, timeout=15)
+                await self.service.stop()
 
     def _add_broker_connect_events(self, app):
         @app.on_event("startup")
