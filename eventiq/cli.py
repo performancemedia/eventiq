@@ -9,7 +9,6 @@ import typer
 from eventiq.logger import get_logger
 
 from .imports import import_from_string
-from .service import Service
 
 cli = typer.Typer()
 
@@ -63,16 +62,6 @@ def watch(
     )
 
 
-@cli.command(help="Verify service configuration and imports without running the app")
-def verify(service: str = typer.Argument(...)) -> None:
-    typer.echo(f"Verifying service [{service}]...")
-    s = import_from_string(service)
-    if not isinstance(s, Service):
-        typer.secho(f"Expected Service instance, got {type(s)}", fg="red")
-        raise typer.Exit(-1)
-    typer.secho("OK", fg="green")
-
-
 @cli.command(help="Generate AsyncAPI documentation from service")
 def generate_docs(
     service: str = typer.Argument(
@@ -87,8 +76,6 @@ def generate_docs(
     from .asyncapi.generator import get_async_api_spec, save_async_api_to_file
 
     svc = import_from_string(service)
-    if not isinstance(svc, Service):
-        typer.secho(f"Service instance expected, got {type(svc)}", fg="red")
     spec = get_async_api_spec(svc)
     save_async_api_to_file(spec, out, format)
     typer.secho(f"Docs saved successfully to {out}", fg="green")
