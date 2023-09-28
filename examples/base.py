@@ -24,4 +24,4 @@ async def example_run(message: CloudEvent):
 
 
 if __name__ == "__main__":
-    service.run()
+    asyncio.run(service.run())

@@ -4,4 +4,4 @@ RUN pip install 'eventiq[commons, nats]'
 
 COPY ./service.py ./service
 
-CMD ['eventiq', 'service:service']
+CMD ['eventiq', 'run', 'service:service']
