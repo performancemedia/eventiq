@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
+from typing import Iterable
 
 from pydantic.schema import schema as all_schemas
 
@@ -55,9 +56,9 @@ def get_topic_parameters(topic: str, **kwargs) -> dict[str, Parameter]:
     return params
 
 
-def get_tag_list(tags, taggable):
+def get_tag_list(tags: dict[str, Tag], taggable: Iterable):
     tag_list = []
-    for t in taggable.get("tags", []):
+    for t in taggable:
         if t not in tags:
             tags[t] = Tag(name=t)
         tag_list.append(tags[t])
@@ -83,7 +84,7 @@ def populate_spec(service: Service):
         channels[publishes.topic].publish = Operation(
             operation_id=f"publish_{camel2snake(event_type)}",
             message=Ref(ref=f"#/components/messages/{event_type}"),
-            tags=get_tag_list(tags, publishes.kwargs),
+            tags=get_tag_list(tags, publishes.kwargs.get("tags", [])),
         )
     for consumer in service.consumers.values():
         event_type = consumer.event_type.__name__

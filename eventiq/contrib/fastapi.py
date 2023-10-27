@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from ..asyncapi.generator import get_async_api_spec
@@ -27,6 +27,7 @@ class FastAPIServicePlugin(ServicePlugin):
         async_api_url: str | None = None,
         healthcheck_url: str | None = None,
     ) -> None:
+        app._service = self.service
         if run_service:
             self._add_run_service_events(app)
 
@@ -79,3 +80,11 @@ class FastAPIServicePlugin(ServicePlugin):
                     {"detail": "Service Unavailable", "status": 503},
                     status_code=503,
                 )
+
+
+def get_service(request: Request) -> Service:
+    return request.app._service
+
+
+def ProvideService():
+    return Depends(get_service)
