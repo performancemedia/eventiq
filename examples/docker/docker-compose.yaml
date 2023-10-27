@@ -11,5 +11,5 @@ services:
     restart: unless-stopped
     environment:
       ENCODER_CLASS: eventiq.encoders.orjson:OrjsonEncoder
-      BROKER_CLASS: eventiq.backends.nats:JetstreamBroker
+      BROKER_CLASS: eventiq.backends.nats:JetStreamBroker
       BROKER_URL: nats://nats:4222

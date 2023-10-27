@@ -1,5 +1,7 @@
 import asyncio
 
+import anyio
+
 from eventiq import CloudEvent, Middleware, Service
 from eventiq.backends.stub import StubBroker
 
@@ -24,4 +26,4 @@ async def example_run(message: CloudEvent):
 
 
 if __name__ == "__main__":
-    service.run()
+    anyio.run(service.run)
