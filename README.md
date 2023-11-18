@@ -95,6 +95,7 @@ async def example_run(message: CloudEvent):
 
 
 if __name__ == "__main__":
+    # or use cli: eventiq run main:service
     service.run()
 
 ```
@@ -109,7 +110,7 @@ or web server like gunicorn.
 ## Features
 
 - Modern, `asyncio` based python 3.8+ syntax
-- Minimal dependencies, only `pydantic` and `python-json-logger` are required
+- Minimal dependencies, only `anyio` and `pydantic` are required
 - Automatic message parsing based on type annotations (like FastAPI)
 - Code hot-reload
 - Highly scalable: each service can process hundreds of tasks concurrently,

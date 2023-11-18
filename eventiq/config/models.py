@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, ConfigDict
 
 from eventiq.consumer import FnConsumer, GenericConsumer
+from eventiq.imports import ImportedType
 from eventiq.types import TagMeta
-from eventiq.utils.imports import ImportedType
 
 
 def resolve_nested(v: Any):
