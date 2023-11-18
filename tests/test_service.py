@@ -19,5 +19,5 @@ async def test_service_scope(running_service: Service, ce):
     msg = await queue.get()
     queue.task_done()
     decoded = running_service.broker.encoder.decode(msg.data)
-    ce2 = CloudEvent.parse_obj(decoded)
+    ce2 = CloudEvent.model_validate(decoded)
     assert ce.dict() == ce2.dict()

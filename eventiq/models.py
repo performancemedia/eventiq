@@ -3,9 +3,7 @@ from functools import partial
 from typing import Any, Dict, Generic, Optional
 from uuid import UUID, uuid4
 
-from pydantic import AnyUrl, Extra, Field, validator
-from pydantic.fields import PrivateAttr
-from pydantic.generics import GenericModel
+from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 from .context import get_current_service
 from .message import Message
@@ -13,15 +11,15 @@ from .types import D
 from .utils import utc_now
 
 
-class CloudEvent(GenericModel, Generic[D]):
-    specversion: Optional[str] = "1.0"
+class CloudEvent(BaseModel, Generic[D]):
+    specversion: str = "1.0"
     content_type: str = Field(
         "application/json", alias="datacontenttype", description="Message content type"
     )
     id: UUID = Field(default_factory=uuid4, description="Event ID")
     time: datetime = Field(default_factory=utc_now, description="Event created time")
     topic: str = Field(..., alias="subject", description="Event subject (topic)")
-    type: Optional[str] = Field(None, description="Event type")
+    type: str = Field("CloudEvent", description="Event type")
     source: Optional[str] = Field(None, description="Event source (app)")
     data: D = Field(..., description="Event payload")
     dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
@@ -30,16 +28,17 @@ class CloudEvent(GenericModel, Generic[D]):
     _raw: Optional[Any] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
-        cls.__fields__["type"].default = cls.__name__
+        cls.model_fields["type"].default = cls.__name__
 
     def __eq__(self, other):
         if not isinstance(other, CloudEvent):
             return False
         return self.id == other.id
 
-    @validator("type", allow_reuse=True, always=True, pre=True)
-    def get_type_from_cls_name(cls, v):
-        return v or cls.__name__
+    @field_validator("type")
+    @classmethod
+    def get_default_type(cls, value, info):
+        return value or cls.__name__
 
     @property
     def raw(self) -> Message:
@@ -66,7 +65,7 @@ class CloudEvent(GenericModel, Generic[D]):
 
     def dict(self, **kwargs: Any) -> Dict[str, Any]:
         kwargs.setdefault("by_alias", True)
-        return super().dict(**kwargs)
+        return super().model_dump(**kwargs)
 
     @classmethod
     def new(cls, obj: D, **kwargs: Any):
@@ -94,13 +93,13 @@ class CloudEvent(GenericModel, Generic[D]):
     def fail(self):
         self.raw.fail()
 
-    class Config:
-        use_enum_values = True
-        allow_population_by_field_name = True
-        extra = Extra.allow
-        arbitrary_types_allowed = True
-        # events are immutable, however it's sometimes useful to set source or traceid for unpublished events
-        allow_mutation = False
+    model_config = ConfigDict(
+        use_enum_values=True,
+        populate_by_name=True,
+        extra="allow",
+        arbitrary_types_allowed=True,
+        frozen=False,
+    )
 
 
 TopicField = partial(Field, const=True, alias="subject", description="Event topic")

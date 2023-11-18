@@ -102,7 +102,7 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         timestamp_ms: int | None = None,
         **kwargs: Any,
     ):
-        data = self.encoder.encode(message.dict())
+        data = self.encoder.encode(message.model_dump())
         timestamp_ms = timestamp_ms or int(message.time.timestamp() * 1000)
         key = key or getattr(message, "key", str(message.id))
         headers = headers or {}

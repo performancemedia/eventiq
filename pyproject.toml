@@ -34,7 +34,8 @@ eventiq = "eventiq.cli:cli"
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0"
 anyio = ">=3.0"
-pydantic = ">=1.0,<2.0"
+pydantic = ">=2.0"
+pydantic-settings = "^2.0.3"
 
 # cli
 typer = {version = "^0.9.0", optional = true}
@@ -82,7 +83,6 @@ black = "^22.3.0"
 isort = "^5.10.1"
 tox = "^3.25.0"
 bandit = "^1.7.4"
-fastapi = "^0.87.0"
 uvicorn = "^0.19.0"
 watchfiles = "^0.18.1"
 python-semantic-release = "^7.33.2"
@@ -93,6 +93,8 @@ opentelemetry-exporter-otlp = "^1.17.0"
 opentelemetry-instrumentation-logging = "^0.38b0"
 numpy = "^1.24.3"
 python-json-logger = "^2.0.7"
+fastapi = "^0.104.0"
+bump-pydantic = "^0.7.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^8.2.1"

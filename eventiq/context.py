@@ -14,7 +14,7 @@ _current_message: ContextVar[CloudEvent | None] = ContextVar(
 _current_service: ContextVar[Service] = ContextVar("_current_service")
 
 
-def get_current_message():
+def get_current_message() -> CloudEvent | None:
     global _current_message
     return _current_message.get()
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from pydantic import ConfigDict
 
 from eventiq import CloudEvent
 from eventiq.encoders.json import JsonEncoder
@@ -34,8 +35,7 @@ def test_encoder_cloud_events(encoder, data):
 @pytest.mark.parametrize("encoder", (OrjsonEncoder, MsgPackEncoder, PickleEncoder))
 def test_encoders_numpy_data(encoder):
     class NumpyCe(CloudEvent[np.ndarray]):
-        class Config:
-            arbitrary_types_allowed = True
+        model_config = ConfigDict(arbitrary_types_allowed=True)
 
     ce = NumpyCe(topic="test.topic", data=np.ones(1280).astype(np.float32))
     encoded = encoder.encode(ce.dict())

@@ -98,7 +98,7 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
 
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         body = self.encoder.encode(
-            message.dict(
+            message.model_dump(
                 exclude={
                     "id",
                     "type",

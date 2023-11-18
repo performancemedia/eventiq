@@ -48,7 +48,7 @@ class Encoder(Protocol):
     def encode(self, data: Any) -> bytes:
         """
         Serialize object to bytes
-        :param data: input value, usually CloudEvent.dict()
+        :param data: input value, usually CloudEvent.model_dump()
         :return: raw content as bytes
         """
 

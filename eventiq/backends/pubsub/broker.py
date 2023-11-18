@@ -74,7 +74,7 @@ class PubSubBroker(Broker[SubscriberMessage]):
         ordering_key = kwargs.get("ordering_key", str(message.id))
         timeout = kwargs.get("timeout", 10)
         msg = PubsubMessage(
-            data=self.encoder.encode(message.dict()),
+            data=self.encoder.encode(message.model_dump()),
             ordering_key=ordering_key,
             content_type=self.encoder.CONTENT_TYPE,
             **kwargs.get("headers", {}),

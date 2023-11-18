@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from pydantic.json import pydantic_encoder
+from pydantic_core import to_jsonable_python
 
 from ..exceptions import DecodeError, EncodeError
 
@@ -16,7 +16,7 @@ class JsonEncoder:
     @staticmethod
     def encode(data: Any) -> bytes:
         try:
-            return json.dumps(data, default=pydantic_encoder).encode("utf-8")
+            return json.dumps(data, default=to_jsonable_python).encode("utf-8")
         except TypeError as e:
             raise EncodeError from e
 

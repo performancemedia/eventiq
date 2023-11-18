@@ -46,6 +46,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         description: str | None = None,
         encoder: Encoder | type[Encoder] | None = None,
         middlewares: list[Middleware] | None = None,
+        default_consumer_timeout: int = 300,
     ) -> None:
 
         if encoder is None:
@@ -58,6 +59,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
         self.description = description or type(self).__name__
         self.middlewares: list[Middleware] = middlewares or []
+        self.default_consumer_timeout = default_consumer_timeout
         self._lock = anyio.Lock()
         self._running = False
 
@@ -99,7 +101,8 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 self.logger.info(
                     f"Running consumer {consumer.name} with message {message.id}"
                 )
-                async with anyio.move_on_after(consumer.timeout) as scope:
+                timeout = consumer.timeout or self.default_consumer_timeout
+                async with anyio.move_on_after(timeout) as scope:
                     result = await consumer.process(message)
 
                     if consumer.forward_response and result is not None:
@@ -215,7 +218,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     @classmethod
     def from_settings(cls, settings: BrokerSettings, **kwargs: Any) -> Broker:
-        return cls(**settings.dict(), **kwargs)
+        return cls(**settings.model_dump(), **kwargs)
 
     @classmethod
     def _from_env(cls, **kwargs) -> Broker:

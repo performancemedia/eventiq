@@ -83,7 +83,7 @@ class NatsBroker(Broker[NatsMsg]):
 
     @retry(max_retries=3)
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
-        data = self.encoder.encode(message.dict())
+        data = self.encoder.encode(message.model_dump())
         await self.client.publish(message.topic, data, **kwargs)
         if self._auto_flush:
             await self.client.flush()
@@ -153,7 +153,9 @@ class JetStreamBroker(NatsBroker):
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         durable = f"{service.name}:{consumer.name}"
         config = consumer.options.get("config", ConsumerConfig())
-        config.ack_wait = consumer.timeout + 10  # consumer timeout + 10s for .ack()
+        config.ack_wait = (
+            consumer.timeout or self.default_consumer_timeout
+        ) + 10  # consumer timeout + 10s for .ack()
         try:
             subscription = await self.js.pull_subscribe(
                 subject=self.format_topic(consumer.topic),

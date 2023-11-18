@@ -2,20 +2,17 @@ from typing import Any, Dict, List, Optional, Type
 
 from pydantic import AnyUrl
 from pydantic import BaseModel as _BaseModel
-from pydantic import Field, validator
+from pydantic import ConfigDict, Field, model_validator
 
 from eventiq.models import CloudEvent
 
 
 class BaseModel(_BaseModel):
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ExtendableBaseModel(BaseModel):
-    class Config:
-        allow_population_by_field_name = True
-        extra = "allow"
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
 
 class Info(BaseModel):
@@ -32,21 +29,19 @@ class Tag(ExtendableBaseModel):
     name: str
     description: Optional[str] = None
     externalDocs: Optional[ExternalDocumentation] = None
-
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class PublishInfo(BaseModel):
     event_type: Type[CloudEvent]
-    topic: str
+    topic: str = ""
     kwargs: Dict[str, Any] = {}
 
-    @validator("topic", always=True, pre=True, allow_reuse=True)
-    def set_default_topic(cls, v, values):
-        if v is None:
-            v = values["event_type"].__fields__["topic"].get_default()
-        return v
+    @model_validator(mode="after")
+    def set_default_topic(self):
+        if not self.topic:
+            self.topic = self.event_type.model_fields["event_type"].get_default()
+        return self
 
     @classmethod
     def s(cls, even_type: Type[CloudEvent], topic: Optional[str] = None, **kwargs: Any):

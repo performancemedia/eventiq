@@ -57,7 +57,7 @@ class StubBroker(Broker[StubMessage]):
         pass
 
     async def _publish(self, message: CloudEvent, **_) -> None:
-        data = self.encoder.encode(message.dict())
+        data = self.encoder.encode(message.model_dump())
         for topic, queue in self.topics.items():
             if re.fullmatch(topic, message.topic):
                 msg = StubMessage(data=data, queue=queue)

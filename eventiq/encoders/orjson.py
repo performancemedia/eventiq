@@ -1,7 +1,7 @@
 from typing import Any
 
 import orjson
-from pydantic.json import pydantic_encoder
+from pydantic_core import to_jsonable_python
 
 from ..exceptions import DecodeError, EncodeError
 
@@ -19,7 +19,7 @@ class OrjsonEncoder:
             return orjson.dumps(
                 data,
                 option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY,
-                default=pydantic_encoder,
+                default=to_jsonable_python,
             )
         except TypeError as e:
             raise EncodeError from e

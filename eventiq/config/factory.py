@@ -15,7 +15,7 @@ def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
         data = f.read()
     formatted = data.format(**os.environ)
     loaded = yaml.safe_load(formatted)
-    parsed = AppConfig.parse_obj(loaded[section] if section else loaded)
+    parsed = AppConfig.model_validate(loaded[section] if section else loaded)
     _brokers = {}
     services = []
     for service_config in parsed.services:
@@ -25,7 +25,7 @@ def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
             ].build()
         service = Service(
             broker=_brokers[service_config.broker],
-            **service_config.dict(exclude={"consumers", "broker"}),
+            **service_config.model_dump(exclude={"consumers", "broker"}),
         )
         for consumer_config in service_config.consumers:
             consumer = consumer_config.build()

@@ -1,7 +1,7 @@
 from typing import Any
 
 import ormsgpack
-from pydantic.json import pydantic_encoder
+from pydantic_core import to_jsonable_python
 
 from ..exceptions import DecodeError, EncodeError
 
@@ -19,7 +19,7 @@ class MsgPackEncoder:
             return ormsgpack.packb(
                 data,
                 option=ormsgpack.OPT_NON_STR_KEYS | ormsgpack.OPT_SERIALIZE_NUMPY,
-                default=pydantic_encoder,
+                default=to_jsonable_python,
             )
         except ormsgpack.MsgpackEncodeError as e:
             raise EncodeError from e

@@ -6,7 +6,7 @@ from eventiq.settings import BrokerSettings
 
 
 class RedisSettings(BrokerSettings):
-    url: str = Field(..., env="BROKER_URL")
+    url: str = Field(..., validation_alias="BROKER_URL")
     connection_options: Optional[Dict[str, Any]] = Field(
-        None, env="BROKER_CONNECTION_OPTIONS"
+        None, validation_alias="BROKER_CONNECTION_OPTIONS"
     )

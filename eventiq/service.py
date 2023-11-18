@@ -9,7 +9,7 @@ from .asyncapi.registry import PUBLISH_REGISTRY
 from .consumer import Consumer, ConsumerGroup, ForwardResponse
 from .logger import LoggerMixin
 from .models import CloudEvent
-from .settings import DEFAULT_TIMEOUT, ServiceSettings
+from .settings import ServiceSettings
 from .utils import generate_instance_id
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ class Service(LoggerMixin):
         topic: str,
         *,
         name: str | None = None,
-        timeout: int = DEFAULT_TIMEOUT,
+        timeout: int | None = None,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         tags: Tags = None,
@@ -138,7 +138,7 @@ class Service(LoggerMixin):
 
     @classmethod
     def from_settings(cls, settings: ServiceSettings, **kwargs: Any) -> Service:
-        return cls(**settings.dict(), **kwargs)
+        return cls(**settings.model_dump(), **kwargs)
 
     @classmethod
     def from_env(cls, **kwargs: Any) -> Service:

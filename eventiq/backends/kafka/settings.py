@@ -7,11 +7,11 @@ from eventiq.settings import BrokerSettings
 
 class KafkaSettings(BrokerSettings):
     bootstrap_servers: Union[str, List[str]] = Field(
-        ..., env="BROKER_BOOTSTRAP_SERVERS"
+        ..., validation_alias="BROKER_BOOTSTRAP_SERVERS"
     )
     publisher_options: Optional[Dict[str, Any]] = Field(
-        None, env="BROKER_PUBLISHER_OPTIONS"
+        None, validation_alias="BROKER_PUBLISHER_OPTIONS"
     )
     consumer_options: Optional[Dict[str, Any]] = Field(
-        None, env="BROKER_CONSUMER_OPTIONS"
+        None, validation_alias="BROKER_CONSUMER_OPTIONS"
     )

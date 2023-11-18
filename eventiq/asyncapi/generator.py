@@ -8,7 +8,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Iterable
 
-from pydantic.schema import schema as all_schemas
+from pydantic.json_schema import models_json_schema
 
 from eventiq.asyncapi.models import (
     AsyncAPI,
@@ -41,10 +41,13 @@ def camel2snake(camel: str) -> str:
 
 def get_all_models_schema(service: Service):
     all_models = [
-        m.event_type  # type: ignore
+        (m.event_type, "validation")
         for m in chain(service.consumers.values(), PUBLISH_REGISTRY.values())
     ]
-    return all_schemas(all_models, ref_prefix=PREFIX).get("definitions", [])
+    _, top_level_schema = models_json_schema(
+        all_models, ref_template="#/components/schemas/{model}"  # type: ignore
+    )
+    return top_level_schema.get("$defs", {})
 
 
 def get_topic_parameters(topic: str, **kwargs) -> dict[str, Parameter]:
@@ -68,7 +71,7 @@ def get_tag_list(tags: dict[str, Tag], taggable: Iterable):
 def populate_spec(service: Service):
     channels: dict[str, ChannelItem] = defaultdict(ChannelItem)
     messages: dict[str, Message] = {}
-    tags = {t["name"]: Tag.parse_obj(t) for t in service.tags_metadata}
+    tags = {t["name"]: Tag.model_validate(t) for t in service.tags_metadata}
 
     for publishes in PUBLISH_REGISTRY.values():
         event_type = publishes.event_type.__name__
@@ -135,4 +138,4 @@ def save_async_api_to_file(spec: AsyncAPI, path: Path, fmt: str) -> None:
 
         dump = yaml.dump
     with open(path, "w") as f:
-        dump(spec.dict(by_alias=True, exclude_none=True), f)
+        dump(spec.model_dump(by_alias=True, exclude_none=True), f)

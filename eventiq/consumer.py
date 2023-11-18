@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Generic, get_type_hints
 
 from .logger import get_logger
-from .settings import DEFAULT_TIMEOUT
 from .types import FT, MessageHandlerT, T, Tags
 from .utils import to_async
 
@@ -31,7 +30,7 @@ class Consumer(ABC, Generic[T]):
         *,
         topic: str,
         name: str,
-        timeout: int = DEFAULT_TIMEOUT,
+        timeout: int | None = None,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         tags: Tags = None,
@@ -53,7 +52,7 @@ class Consumer(ABC, Generic[T]):
         self.logger = get_logger(__name__, name)
 
     def validate_message(self, message: Any) -> T:
-        return self.event_type.parse_obj(message)
+        return self.event_type.model_validate(message)
 
     @property
     def name(self) -> str:
@@ -125,7 +124,7 @@ class ConsumerGroup:
         topic: str,
         *,
         name: str | None = None,
-        timeout: int = DEFAULT_TIMEOUT,
+        timeout: int | None = None,
         dynamic: bool = False,
         forward_response: ForwardResponse | None = None,
         tags: Tags = None,
