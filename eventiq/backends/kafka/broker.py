@@ -8,6 +8,7 @@ import anyio
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
 
+from ...utils import get_safe_url
 from .settings import KafkaSettings
 
 if TYPE_CHECKING:
@@ -115,3 +116,9 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
             headers=headers,
             timestamp_ms=timestamp_ms,
         )
+
+    @property
+    def safe_url(self) -> str:
+        if isinstance(self.bootstrap_servers, str):
+            return get_safe_url(self.bootstrap_servers)
+        return ",".join(get_safe_url(server) for server in self.bootstrap_servers)

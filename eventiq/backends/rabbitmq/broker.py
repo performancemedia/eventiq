@@ -6,6 +6,7 @@ import aio_pika
 
 from eventiq.broker import Broker
 
+from ...utils import get_safe_url
 from .settings import RabbitMQSettings
 
 if TYPE_CHECKING:
@@ -48,6 +49,10 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         self._connection = None
         self._exchange = None
         self._channels: list[aio_pika.abc.AbstractRobustChannel] = []
+
+    @property
+    def safe_url(self) -> str:
+        return get_safe_url(self.url)
 
     @property
     def connection(self) -> aio_pika.RobustConnection:

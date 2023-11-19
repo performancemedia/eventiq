@@ -1,10 +1,11 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, ConfigDict
 
+from eventiq import Broker
 from eventiq.consumer import FnConsumer, GenericConsumer
 from eventiq.imports import ImportedType
-from eventiq.types import TagMeta
+from eventiq.types import Encoder, MessageHandlerT, TagMeta
 
 
 def resolve_nested(v: Any):
@@ -21,8 +22,11 @@ def resolve_nested(v: Any):
     return v
 
 
-class TypedModel(BaseModel):
-    type: ImportedType
+T = TypeVar("T")
+
+
+class TypedModel(BaseModel, Generic[T]):
+    type: ImportedType[T]
 
     def build(self):
         kwargs = self.model_dump(exclude={"type"}, exclude_none=True)
@@ -33,13 +37,13 @@ class TypedModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class BrokerConfig(TypedModel):
-    encoder: TypedModel
+class BrokerConfig(TypedModel[Broker]):
+    encoder: TypedModel[Encoder]
     middlewares: List[TypedModel]
     context: Dict[str, Union[TypedModel, Any]] = {}
 
 
-class ConsumerConfig(TypedModel):
+class ConsumerConfig(TypedModel[MessageHandlerT]):
     topic: str
     name: Optional[str] = None
     timeout: int = 120
@@ -61,7 +65,7 @@ class ServiceConfig(BaseModel):
     version: str = "0.1.0"
     description: str = ""
     tags_metadata: List[TagMeta] = []
-    instance_id_generator: Optional[ImportedType] = None
+    instance_id_generator: Optional[ImportedType[Callable[[], str]]] = None
     consumers: List[ConsumerConfig]
 
 

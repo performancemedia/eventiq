@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from eventiq.middleware import Middleware
 
@@ -16,9 +16,15 @@ class HealthCheckMiddleware(Middleware):
 
     BASE_DIR = os.getenv("HEALTHCHECK_DIR", "/tmp")  # nosec
 
-    def __init__(self, interval: int = 30, file_mode: bool = False):
+    def __init__(
+        self,
+        interval: int = 30,
+        file_mode: bool = False,
+        predicates: list[Callable[..., Awaitable[Any]]] | None = None,
+    ):
         self.interval = interval
         self.file_mode = file_mode
+        self.predicates = predicates
         self._broker: Broker | None = None
         self._task: asyncio.Task | None = None
 
@@ -38,6 +44,9 @@ class HealthCheckMiddleware(Middleware):
         while True:
             try:
                 unhealthy = not self._broker.is_connected
+                if self.predicates:
+                    task = asyncio.gather(f() for f in self.predicates)
+                    await asyncio.wait_for(task, 10)
             except Exception as e:
                 self.logger.exception("Healthcheck failed", exc_info=e)
                 unhealthy = True

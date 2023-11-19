@@ -53,13 +53,17 @@ class OpenTelemetryMiddleware(Middleware):
         self.publish_span_registry: dict[ID, tuple[Span, ContextManager[Span]]] = {}
 
     @staticmethod
-    def _get_span_attributes(message: CloudEvent):
+    def _get_span_attributes(message: CloudEvent, broker: Broker | None = None):
+        broker_extra = (
+            broker.extra_message_span_attributes(message.raw) if broker else {}
+        )
         return {
             SpanAttributes.CLOUDEVENTS_EVENT_ID: str(message.id),
             SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source or "(anonymous)",
             SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type or "CloudEvent",
             SpanAttributes.CLOUDEVENTS_EVENT_SUBJECT: message.topic,
             **message.extra_span_attributes,
+            **broker_extra,
         }
 
     async def before_process_message(
@@ -71,7 +75,7 @@ class OpenTelemetryMiddleware(Middleware):
             name=f"{consumer.name} receive",
             kind=SpanKind.CONSUMER,
             context=trace_ctx,
-            attributes=self._get_span_attributes(message),
+            attributes=self._get_span_attributes(message, broker),
         )
         activation = trace.use_span(span, end_on_exit=True)
         activation.__enter__()

@@ -236,6 +236,14 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
             broker_type = cls
         return broker_type._from_env(**kwargs)
 
+    @property
+    def safe_url(self) -> str:
+        return ""
+
+    @staticmethod
+    def extra_message_span_attributes(message: RawMessage) -> dict[str, str]:
+        return {}
+
     @abstractmethod
     def parse_incoming_message(self, message: RawMessage) -> Any:
         raise NotImplementedError

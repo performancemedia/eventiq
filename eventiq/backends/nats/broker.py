@@ -15,7 +15,7 @@ from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError, PublishError
 
 from ...message import Message
-from ...utils import retry
+from ...utils import get_safe_url, retry
 from .settings import JetStreamSettings, NatsSettings
 
 if TYPE_CHECKING:
@@ -61,6 +61,14 @@ class NatsBroker(Broker[NatsMsg]):
         self.connection_options.setdefault("pending_size", 0)
         self._auto_flush = auto_flush
         self.client = Client()
+
+    @property
+    def safe_url(self) -> str:
+        return get_safe_url(self.url)
+
+    @staticmethod
+    def extra_message_span_attributes(message: NatsMsg) -> dict[str, str]:
+        return {"messaging.nats.sequence": message.metadata.sequence}
 
     def parse_incoming_message(self, message: NatsMsg) -> Any:
         return self.encoder.decode(message.data)

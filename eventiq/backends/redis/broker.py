@@ -6,6 +6,7 @@ import aioredis
 
 from eventiq.broker import Broker
 
+from ...utils import get_safe_url
 from .settings import RedisSettings
 
 if TYPE_CHECKING:
@@ -36,6 +37,10 @@ class RedisBroker(Broker[Dict[str, str]]):
         self.url = url
         self.connect_options = connect_options or {}
         self._redis = None
+
+    @property
+    def safe_url(self) -> str:
+        return get_safe_url(self.url)
 
     def parse_incoming_message(self, message: RawMessage) -> Any:
         return message

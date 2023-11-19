@@ -82,12 +82,12 @@ def populate_spec(service: Service):
             messages[event_type] = Message(
                 content_type=service.broker.encoder.CONTENT_TYPE,
                 payload=Ref(ref=f"{PREFIX}{event_type}"),
-                description=publishes.kwargs.get("description", ""),
             )
         channels[publishes.topic].publish = Operation(
             operation_id=f"publish_{camel2snake(event_type)}",
             message=Ref(ref=f"#/components/messages/{event_type}"),
             tags=get_tag_list(tags, publishes.kwargs.get("tags", [])),
+            summary=publishes.kwargs.get("description"),
         )
     for consumer in service.consumers.values():
         event_type = consumer.event_type.__name__
@@ -96,12 +96,12 @@ def populate_spec(service: Service):
             messages[event_type] = Message(
                 content_type=service.broker.encoder.CONTENT_TYPE,
                 payload=Ref(ref=f"{PREFIX}{event_type}"),
-                description=consumer.description,
             )
         subscribe = Operation(
             operation_id=camel2snake(consumer.name),
             message=Ref(ref=f"#/components/messages/{event_type}"),
             tags=get_tag_list(tags, consumer.tags) or None,
+            summary=consumer.description,
         )
         channels[consumer.topic].subscribe = subscribe
         params = get_topic_parameters(consumer.topic, **consumer.parameters)
@@ -120,7 +120,7 @@ def get_async_api_spec(service: Service) -> AsyncAPI:
             "default": Server(
                 protocol=service.broker.protocol,
                 description=service.broker.description,
-                url=getattr(service.broker, "url", ""),
+                url=service.broker.safe_url,
                 protocol_version=service.broker.protocol_version,
             )
         },

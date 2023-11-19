@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -14,7 +14,7 @@ class BrokerSettings(BaseSettings):
     )
     description: Optional[str] = None
     middlewares: Optional[List[Middleware]] = None
-    encoder: Optional[Union[Encoder, ImportedType]] = Field(
+    encoder: Optional[ImportedType[Encoder]] = Field(
         None, validation_alias="BROKER_ENCODER_CLASS"
     )
 

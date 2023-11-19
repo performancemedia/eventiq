@@ -43,6 +43,10 @@ class PubSubBroker(Broker[SubscriberMessage]):
         self.service_file = service_file
         self._client = None
 
+    @property
+    def safe_url(self) -> str:
+        return "https://pubsub.googleapis.com/v1"
+
     def parse_incoming_message(self, message: SubscriberMessage) -> Any:
         return self.encoder.decode(message.data)
 

@@ -115,7 +115,9 @@ class Service(LoggerMixin):
         return await self.broker.publish(message, **kwargs)
 
     async def start(self):
-        self.logger.info(f"Starting service {self.name}")
+        self.logger.info(
+            f"Starting service {self.name} using <{type(self.broker)}: {self.broker.safe_url}>"
+        )
         await self.broker.connect()
         await self.broker.dispatch_before("service_start", self)
 

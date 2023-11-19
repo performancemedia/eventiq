@@ -6,6 +6,7 @@ import socket
 import time
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, TypeVar
+from urllib.parse import urlparse
 
 import anyio
 from typing_extensions import ParamSpec
@@ -77,3 +78,14 @@ def _retry_sync(func: Callable[P, R], max_retries: int, backoff: int) -> Callabl
         raise exc
 
     return wrapper
+
+
+def get_safe_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.username and parsed.password:
+        parsed = parsed._replace(
+            netloc="{}:{}@{}:{}".format(
+                parsed.username or "", "*****", parsed.hostname, parsed.port
+            )
+        )
+    return parsed.geturl()
