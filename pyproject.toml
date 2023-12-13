@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eventiq"
-version = "0.1.22"
+version = "0.1.23"
 description = "Cloud native framework for building event driven applications in Python."
 authors = ["Radzim Kowalow <radzim.kowalow@performance-media.pl>"]
 readme = "README.md"
@@ -33,7 +33,7 @@ eventiq = "eventiq.cli:cli"
 
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0"
-anyio = ">=3.0"
+anyio = ">=3.0,<4.0"
 pydantic = ">=1.0,<2.0"
 
 # cli
