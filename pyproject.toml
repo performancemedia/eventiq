@@ -113,7 +113,7 @@ opentelemetry-instrumentation-fastapi = "^0.43b0"
 mkdocs = "^1.4.2"
 mkdocs-material = "^8.2.1"
 mkdocs-autorefs = "^0.4.1"
-mkdocs-gen-files = "^0.4.0"
+mkdocs-gen-files = ">=0.4,<0.6"
 mkdocstrings = {version = ">=0.18", extras = ["python"]}
 
 
