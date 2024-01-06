@@ -11,7 +11,7 @@ jobs:
           python-version: "3.10"
       - run: sudo apt-get update && sudo apt-get install -y curl
       - run: curl -sSL https://install.python-poetry.org | python3 -
-      - run: poetry install -E all
+      - run: poetry install --all-extras
       - run: poetry run ruff ./eventiq
       - run: poetry run black --check ./eventiq
       - run: poetry run mypy ./eventiq
@@ -33,7 +33,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: sudo apt-get update && sudo apt-get install -y gcc curl
       - run: curl -sSL https://install.python-poetry.org | python3 -
-      - run: poetry install -E all
+      - run: poetry install --all-extras
       - run: poetry run pytest --cov=./eventiq --cov-report=xml -v ./tests
 #      - name: upload codecov
 #        if: matrix.python == 3.9
