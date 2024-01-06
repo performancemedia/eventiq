@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
 from urllib.parse import urlparse
 
-from redis import asyncio as aioredis
+from redis.asyncio import Redis
 
 from eventiq.broker import Broker
 
@@ -12,10 +12,20 @@ from ...utils import get_safe_url
 from .settings import RedisSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, RawMessage, Service
+    from eventiq import CloudEvent, Consumer, Service
 
 
-class RedisBroker(Broker[dict[str, str]]):
+class RMessage(TypedDict):
+    type: bytes | str
+    pattern: bytes | str | None
+    channel: bytes | str | None
+    data: bytes
+
+
+RedisRawMessage = TypeVar("RedisRawMessage", bound=RMessage)
+
+
+class RedisBroker(Broker[RedisRawMessage]):
     """
     Broker implementation based on redis PUB/SUB and aioredis package
     :param url: connection string to redis
@@ -53,33 +63,34 @@ class RedisBroker(Broker[dict[str, str]]):
         }
 
     def parse_incoming_message(
-        self, message: RawMessage, encoder: Encoder | None = None
+        self, message: RedisRawMessage, encoder: Encoder | None = None
     ) -> Any:
-        return message
-        # return encoder.decode(message)
+        encoder = encoder or self.encoder
+        return encoder.decode(message["data"])
 
     @property
     def is_connected(self) -> bool:
         return self.redis.connection.is_connected
 
-    async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
-        handler = self.get_handler(service, consumer)
-        psub = self.redis.pubsub()
-        while self._running:
-            message = await psub.get_message(ignore_subscribe_messages=True)
-            if message:
-                await handler(message)
-
-    async def _disconnect(self) -> None:
-        await self.redis.close()
-
     @property
-    def redis(self) -> aioredis.Redis:
+    def redis(self) -> Redis:
         assert self._redis is not None, "Not connected"
         return self._redis
 
+    async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
+        handler = self.get_handler(service, consumer)
+        async with self.redis.pubsub() as sub:
+            await sub.psubscribe(consumer.topic)
+            while self._running:
+                message = await sub.get_message(ignore_subscribe_messages=True)
+                if message:
+                    await handler(message)
+
+    async def _disconnect(self) -> None:
+        await self.redis.aclose()
+
     async def _connect(self) -> None:
-        self._redis = aioredis.from_url(url=self.url, **self.connect_options)
+        self._redis = Redis.from_url(self.url, **self.connect_options)
 
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         data = self.encoder.encode(message)

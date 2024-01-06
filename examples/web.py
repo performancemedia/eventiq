@@ -5,13 +5,12 @@ from fastapi.responses import JSONResponse, Response
 
 from eventiq import CloudEvent, Service
 from eventiq.asyncapi import PublishInfo
-from eventiq.backends.nats import JetStreamBroker
-from eventiq.backends.nats.plugins import JetStreamResultBackend
+from eventiq.backends.redis import RedisBroker, RedisResultBackend
 from eventiq.contrib.fastapi import FastAPIServicePlugin
 from eventiq.types import ID
 
-broker = JetStreamBroker(url="nats://localhost:4222")
-results = JetStreamResultBackend(broker)
+broker: RedisBroker = RedisBroker(url="redis://localhost:6379/0")
+results = RedisResultBackend(broker)
 
 service = Service(
     name="example-service",
@@ -33,7 +32,7 @@ FastAPIServicePlugin(service).configure_app(
 )
 
 
-@service.subscribe("events.topic", name="test_consumer", store_results=True)
+@service.subscribe("events.*", name="test_consumer", store_results=True)
 async def handler(message: CloudEvent):
     print(f"Received Message {message.id} with data: {message.data}")
     return message.data
@@ -41,7 +40,7 @@ async def handler(message: CloudEvent):
 
 @app.post("/publish", status_code=202, response_model=CloudEvent)
 async def publish_event(data: Any = Body(...)):
-    event: CloudEvent[Any] = CloudEvent(topic="events.topic", data=data)
+    event: CloudEvent[Any] = CloudEvent(topic="events.nested.topic", data=data)
     await service.publish(event)
     return event
 
