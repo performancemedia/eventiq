@@ -80,10 +80,10 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
     ) -> Callable[..., Coroutine[Any, Any, Any]]:
         async def handler(raw_message: RawMessage) -> None:
             exc: Exception | None = None
-            result: Any = None
             msg = self.message_proxy_class(raw_message)
+            encoder = consumer.encoder or self.encoder
             try:
-                parsed = self.parse_incoming_message(raw_message, consumer.encoder)
+                parsed = self.parse_incoming_message(raw_message, encoder)
                 message = consumer.validate_message(parsed)
                 message.raw = msg
                 message.service = service
@@ -246,9 +246,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def parse_incoming_message(
-        self, message: RawMessage, encoder: Encoder | None = None
-    ) -> Any:
+    def parse_incoming_message(self, message: RawMessage, encoder: Encoder) -> Any:
         raise NotImplementedError
 
     @property

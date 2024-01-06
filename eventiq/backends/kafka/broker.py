@@ -48,9 +48,8 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         self._publisher = None
 
     def parse_incoming_message(
-        self, message: aiokafka.ConsumerRecord, encoder: Encoder | None = None
+        self, message: aiokafka.ConsumerRecord, encoder: Encoder
     ) -> Any:
-        encoder = encoder or self.encoder
         return encoder.decode(message.value)
 
     @property

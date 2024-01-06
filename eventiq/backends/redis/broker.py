@@ -7,9 +7,9 @@ from redis.asyncio import Redis
 
 from eventiq.broker import Broker
 
+from ...settings import UrlBrokerSettings
 from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
-from .settings import RedisSettings
 
 if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Service
@@ -35,7 +35,7 @@ class RedisBroker(Broker[RedisRawMessage]):
 
     WILDCARD_ONE = "*"
     WILDCARD_MANY = "*"
-    Settings = RedisSettings
+    Settings = UrlBrokerSettings
 
     def __init__(
         self,
@@ -62,10 +62,7 @@ class RedisBroker(Broker[RedisRawMessage]):
             "pathname": parsed.path,
         }
 
-    def parse_incoming_message(
-        self, message: RedisRawMessage, encoder: Encoder | None = None
-    ) -> Any:
-        encoder = encoder or self.encoder
+    def parse_incoming_message(self, message: RedisRawMessage, encoder: Encoder) -> Any:
         return encoder.decode(message["data"])
 
     @property

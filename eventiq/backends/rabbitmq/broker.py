@@ -153,11 +153,8 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         return not self.connection.is_closed
 
     def parse_incoming_message(
-        self,
-        message: aio_pika.abc.AbstractIncomingMessage,
-        encoder: Encoder | None = None,
+        self, message: aio_pika.abc.AbstractIncomingMessage, encoder: Encoder
     ) -> Any:
-        encoder = encoder or self.encoder
         msg = encoder.decode(message.body)
         if not isinstance(msg, dict):
             raise TypeError(f"Expected dict, got {type(msg)}")

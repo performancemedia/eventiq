@@ -80,14 +80,13 @@ class NatsBroker(Broker[NatsMsg]):
     @staticmethod
     def extra_message_span_attributes(message: NatsMsg) -> dict[str, str]:
         try:
-            return {"messaging.nats.sequence": message.metadata.sequence}
+            return {
+                "messaging.nats.consumer_sequence": message.metadata.sequence.consumer
+            }
         except Exception:
             return {}
 
-    def parse_incoming_message(
-        self, message: NatsMsg, encoder: Encoder | None = None
-    ) -> Any:
-        encoder = encoder or self.encoder
+    def parse_incoming_message(self, message: NatsMsg, encoder: Encoder) -> Any:
         return encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:

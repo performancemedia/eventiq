@@ -13,7 +13,9 @@ from eventiq.middleware import Middleware
 
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
-    return asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.stop()
 
 
 @pytest.fixture(scope="session")

@@ -57,9 +57,8 @@ class PubSubBroker(Broker[SubscriberMessage]):
         }
 
     def parse_incoming_message(
-        self, message: SubscriberMessage, encoder: Encoder | None = None
+        self, message: SubscriberMessage, encoder: Encoder
     ) -> Any:
-        encoder = encoder or self.encoder
         return encoder.decode(message.data)
 
     async def _disconnect(self) -> None:

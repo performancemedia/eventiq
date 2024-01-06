@@ -47,18 +47,16 @@ class Service(AbstractService, LoggerMixin):
         base_event_class: type[CloudEvent] = CloudEvent,
         publish_info: Sequence[PublishInfo] = (),
         brokers: dict[str, Broker] | None = None,
-        default_broker_name: str = "default",
         context: dict[str, Any] | None = None,
         async_api_extra: dict[str, Any] | None = None,
     ):
 
         if broker:
-            self._brokers = {default_broker_name: broker}
+            self._brokers = {"default": broker}
         elif brokers:
             self._brokers = brokers
         else:
             raise ValueError("brokers missing")
-        self._default_broker_name = default_broker_name
         self.name = name
         self.title = title or name.title()
         self.version = version
@@ -75,14 +73,13 @@ class Service(AbstractService, LoggerMixin):
 
     @property
     def default_broker(self) -> Broker:
-        return self._brokers[self._default_broker_name]
+        return self._brokers["default"]
 
     @property
     def brokers(self):
         return self._brokers.values()
 
     def get_brokers(self):
-        # TODO: replace with property
         return self._brokers.items()
 
     def subscribe(
@@ -156,11 +153,11 @@ class Service(AbstractService, LoggerMixin):
         if not message.source:
             message.source = self.name
         broker_ = self._brokers[broker]
-        return await broker_.publish(message, **kwargs)
+        await broker_.publish(message, **kwargs)
 
     async def publish_to_multiple(
         self, message: CloudEvent, brokers: tuple[str], **kwargs
-    ):
+    ) -> None:
         for broker in brokers:
             await self.publish(message, broker, **kwargs)
 
@@ -168,18 +165,18 @@ class Service(AbstractService, LoggerMixin):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.publish(message, **kwargs))
 
-    async def connect_all(self):
+    async def connect_all(self) -> None:
         for broker in self._brokers.values():
             await broker.connect()
             await broker.dispatch_before("service_start", self)
 
-    async def disconnect_all(self):
+    async def disconnect_all(self) -> None:
         for broker in self._brokers.values():
             await broker.dispatch_before("service_stop", self)
             await broker.disconnect()
             await broker.dispatch_after("service_stop", self)
 
-    async def start(self):
+    async def start(self) -> None:
         self.logger.info(f"Starting service {self.name}...")
         await self.connect_all()
 

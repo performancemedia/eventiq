@@ -73,9 +73,9 @@ class CloudEvent(BaseModel, Generic[D]):
 
     def __str__(self) -> str:
         if self.type == type(self).__name__:
-            return f"{self.type}(id={self.id}, topic={self.topic})"
+            return f"{self.type}(topic={self.topic}, id={self.id})"
         return (
-            f"{type(self).__name__}(type={self.type}, id={self.id}, topic={self.topic})"
+            f"{type(self).__name__}(type={self.type}, topic={self.topic}, id={self.id})"
         )
 
     def __repr__(self) -> str:

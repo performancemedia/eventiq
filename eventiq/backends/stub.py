@@ -37,16 +37,15 @@ class StubBroker(Broker[StubMessage]):
         **options: Any,
     ) -> None:
         super().__init__(encoder=encoder, middlewares=middlewares, **options)
-        self.topics: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
+        self.topics: dict[str, asyncio.Queue[StubMessage]] = defaultdict(
+            lambda: asyncio.Queue(maxsize=100)
+        )
         self._stopped = False
 
     def get_info(self) -> ServerInfo:
         return {"host": "localhost", "protocol": "memory"}
 
-    def parse_incoming_message(
-        self, message: StubMessage, encoder: Encoder | None = None
-    ) -> Any:
-        encoder = encoder or self.encoder
+    def parse_incoming_message(self, message: StubMessage, encoder: Encoder) -> Any:
         return encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer):

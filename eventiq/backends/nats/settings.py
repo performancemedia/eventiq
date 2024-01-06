@@ -1,21 +1,13 @@
-from typing import Any, Optional
+from typing import Any
 
-from pydantic import Field
-
-from eventiq.settings import BrokerSettings
+from eventiq.settings import UrlBrokerSettings
 
 
-class NatsSettings(BrokerSettings):
-    url: str = Field(..., validation_alias="BROKER_URL")
-    auto_flush: bool = Field(True, validation_alias="BROKER_AUTO_FLUSH")
-    connection_options: Optional[dict[str, Any]] = Field(
-        None, validation_alias="BROKER_CONNECTION_OPTIONS"
-    )
+class NatsSettings(UrlBrokerSettings):
+    auto_flush: bool = True
 
 
 class JetStreamSettings(NatsSettings):
-    prefetch_count: int = Field(10, validation_alias="BROKER_PREFETCH_COUNT")
-    fetch_timeout: int = Field(10, validation_alias="BROKER_FETCH_TIMEOUT")
-    jetstream_options: Optional[dict[str, Any]] = Field(
-        None, validation_alias="BROKER_OPTIONS"
-    )
+    prefetch_count: int = 10
+    fetch_timeout: int = 10
+    jetstream_options: dict[str, Any] = {}
