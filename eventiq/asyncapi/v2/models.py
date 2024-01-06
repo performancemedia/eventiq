@@ -1,10 +1,8 @@
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from pydantic import AnyUrl
 from pydantic import BaseModel as _BaseModel
-from pydantic import ConfigDict, Field, model_validator
-
-from eventiq.models import CloudEvent
+from pydantic import ConfigDict, Field
 
 
 class BaseModel(_BaseModel):
@@ -30,22 +28,6 @@ class Tag(ExtendableBaseModel):
     description: Optional[str] = None
     externalDocs: Optional[ExternalDocumentation] = None
     model_config = ConfigDict(extra="allow")
-
-
-class PublishInfo(BaseModel):
-    event_type: Type[CloudEvent]
-    topic: str = ""
-    kwargs: Dict[str, Any] = {}
-
-    @model_validator(mode="after")
-    def set_default_topic(self):
-        if not self.topic:
-            self.topic = self.event_type.model_fields["event_type"].get_default()
-        return self
-
-    @classmethod
-    def s(cls, even_type: Type[CloudEvent], topic: Optional[str] = None, **kwargs: Any):
-        return cls(event_type=even_type, topic=topic, kwargs=kwargs)
 
 
 class Ref(BaseModel):
@@ -81,7 +63,7 @@ class ChannelItem(BaseModel):
 class Server(BaseModel):
     protocol: str
     url: Optional[str] = None
-    protocol_version: Optional[str] = Field(None, alias="protocolVersion")
+    protocol_version: str = Field("1.0", alias="protocolVersion")
     description: Optional[str] = None
 
 
@@ -97,4 +79,4 @@ class AsyncAPI(BaseModel):
     channels: Dict[str, ChannelItem] = {}
     default_content_type: str = Field("application/json", alias="defaultContentType")
     components: Components
-    tags: Optional[List[Tag]] = None
+    tags: List[Tag] = []

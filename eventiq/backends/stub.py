@@ -12,7 +12,7 @@ from eventiq.middleware import Middleware
 if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Service
     from eventiq.message import Message
-    from eventiq.types import Encoder
+    from eventiq.types import Encoder, ServerInfo
 
 
 @dataclass
@@ -40,8 +40,14 @@ class StubBroker(Broker[StubMessage]):
         self.topics: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
         self._stopped = False
 
-    def parse_incoming_message(self, message: StubMessage) -> Any:
-        return self.encoder.decode(message.data)
+    def get_info(self) -> ServerInfo:
+        return {"host": "localhost", "protocol": "memory"}
+
+    def parse_incoming_message(
+        self, message: StubMessage, encoder: Encoder | None = None
+    ) -> Any:
+        encoder = encoder or self.encoder
+        return encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer):
         queue = self.topics[self.format_topic(consumer.topic)]

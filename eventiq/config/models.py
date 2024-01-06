@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -40,14 +40,14 @@ class TypedModel(BaseModel, Generic[T]):
 class BrokerConfig(TypedModel[Broker]):
     encoder: TypedModel[Encoder]
     middlewares: List[TypedModel]
-    context: Dict[str, Union[TypedModel, Any]] = {}
 
 
 class ConsumerConfig(TypedModel[MessageHandlerT]):
-    topic: str
+    topic: Optional[str] = None
     name: Optional[str] = None
     timeout: int = 120
     dynamic: bool = False
+    encoder: Optional[TypedModel[Encoder]] = None
 
     def build(self):
         if callable(self.type) and not (
@@ -60,7 +60,7 @@ class ConsumerConfig(TypedModel[MessageHandlerT]):
 
 class ServiceConfig(BaseModel):
     name: str
-    broker: str = "default"
+    brokers: List[str]
     title: Optional[str] = None
     version: str = "0.1.0"
     description: str = ""

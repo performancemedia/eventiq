@@ -19,12 +19,15 @@ def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
     _brokers = {}
     services = []
     for service_config in parsed.services:
-        if service_config.broker not in _brokers:
-            _brokers[service_config.broker] = parsed.brokers[
-                service_config.broker
-            ].build()
+        service_brokers = {}
+        for broker_name in service_config.brokers:
+            if broker_name not in _brokers:
+                _brokers[broker_name] = parsed.brokers[broker_name].build()
+
+            service_brokers[broker_name] = _brokers[broker_name]
+
         service = Service(
-            broker=_brokers[service_config.broker],
+            brokers=service_brokers,
             **service_config.model_dump(exclude={"consumers", "broker"}),
         )
         for consumer_config in service_config.consumers:
@@ -32,7 +35,7 @@ def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
             service.add_consumer(consumer)
         services.append(service)
 
-    return ServiceRunner(services)
+    return ServiceRunner(*services)
 
 
 def create_app_from_env():

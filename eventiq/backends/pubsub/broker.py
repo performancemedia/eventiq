@@ -13,6 +13,7 @@ from gcloud.aio.pubsub import (
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
 
+from ...types import Encoder, ServerInfo
 from ...utils import retry
 from .settings import PubSubSettings
 
@@ -47,8 +48,19 @@ class PubSubBroker(Broker[SubscriberMessage]):
     def safe_url(self) -> str:
         return "https://pubsub.googleapis.com/v1"
 
-    def parse_incoming_message(self, message: SubscriberMessage) -> Any:
-        return self.encoder.decode(message.data)
+    def get_info(self) -> ServerInfo:
+        return {
+            "host": "pubsub.googleapis.com",
+            "protocol": "http",
+            "protocolVersion": "1.1",
+            "pathname": "/v1",
+        }
+
+    def parse_incoming_message(
+        self, message: SubscriberMessage, encoder: Encoder | None = None
+    ) -> Any:
+        encoder = encoder or self.encoder
+        return encoder.decode(message.data)
 
     async def _disconnect(self) -> None:
         await self.client.close()

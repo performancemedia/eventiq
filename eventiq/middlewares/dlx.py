@@ -10,9 +10,10 @@ if TYPE_CHECKING:
 
 
 class DeadLetterQueueMiddleware(Middleware):
-    def __init__(self, topic: str = "dlx", type_: str = "MessageFailedEvent"):
+    def __init__(self, topic: str = "dlx", type_: str = "MessageFailedEvent", **kwargs):
         self.topic = topic
         self._type = type_
+        self.kwargs = kwargs
 
     async def after_process_message(
         self,
@@ -24,4 +25,4 @@ class DeadLetterQueueMiddleware(Middleware):
         exc: Exception | None = None,
     ) -> None:
         if exc and isinstance(exc, Fail) or message.raw.failed:
-            await service.send(self.topic, self._type, message)
+            await service.send(self.topic, self._type, message, **self.kwargs)

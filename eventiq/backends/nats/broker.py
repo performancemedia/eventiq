@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import anyio
 import nats
@@ -15,6 +16,7 @@ from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError, PublishError
 
 from ...message import Message
+from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url, retry
 from .settings import JetStreamSettings, NatsSettings
 
@@ -51,14 +53,14 @@ class NatsBroker(Broker[NatsMsg]):
         *,
         url: str = "nats://localhost:4444",
         connection_options: dict[str, Any] | None = None,
-        auto_flush: bool = True,
+        auto_flush: bool = False,
         **kwargs: Any,
     ) -> None:
 
         super().__init__(**kwargs)
         self.url = url
         self.connection_options = connection_options or {}
-        self.connection_options.setdefault("pending_size", 0)
+        # self.connection_options.setdefault("pending_size", 0)
         self._auto_flush = auto_flush
         self.client = Client()
 
@@ -66,12 +68,27 @@ class NatsBroker(Broker[NatsMsg]):
     def safe_url(self) -> str:
         return get_safe_url(self.url)
 
+    def get_info(self) -> ServerInfo:
+        parsed = urlparse(self.url)
+        return {
+            "host": parsed.hostname,
+            "protocol": parsed.scheme,
+            "protocolVersion": "1.0",
+            "pathname": parsed.path,
+        }
+
     @staticmethod
     def extra_message_span_attributes(message: NatsMsg) -> dict[str, str]:
-        return {"messaging.nats.sequence": message.metadata.sequence}
+        try:
+            return {"messaging.nats.sequence": message.metadata.sequence}
+        except Exception:
+            return {}
 
-    def parse_incoming_message(self, message: NatsMsg) -> Any:
-        return self.encoder.decode(message.data)
+    def parse_incoming_message(
+        self, message: NatsMsg, encoder: Encoder | None = None
+    ) -> Any:
+        encoder = encoder or self.encoder
+        return encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         await self.client.subscribe(
@@ -94,7 +111,7 @@ class NatsBroker(Broker[NatsMsg]):
         data = self.encoder.encode(message.model_dump())
         await self.client.publish(message.topic, data, **kwargs)
         if self._auto_flush:
-            await self.client.flush()
+            await self.flush()
 
     @property
     def is_connected(self) -> bool:
@@ -185,10 +202,11 @@ class JetStreamBroker(NatsBroker):
                     async with anyio.create_task_group() as tg:
                         for msg in messages:
                             tg.start_soon(handler, msg)
+                    await self.flush()
                 except nats.errors.TimeoutError:
                     await asyncio.sleep(5)
-        except Exception:
-            self.logger.exception("Cancelling consumer")
+        except Exception as e:
+            self.logger.exception("Cancelling consumer", exc_info=e)
         finally:
             if consumer.dynamic:
                 await subscription.unsubscribe()

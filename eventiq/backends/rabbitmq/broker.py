@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import aio_pika
 
 from eventiq.broker import Broker
 
+from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 from .settings import RabbitMQSettings
 
@@ -49,6 +51,14 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         self._connection = None
         self._exchange = None
         self._channels: list[aio_pika.abc.AbstractRobustChannel] = []
+
+    def get_info(self) -> ServerInfo:
+        parsed = urlparse(self.url)
+        return {
+            "host": parsed.hostname,
+            "protocol": parsed.scheme,
+            "pathname": parsed.path,
+        }
 
     @property
     def safe_url(self) -> str:
@@ -143,9 +153,12 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         return not self.connection.is_closed
 
     def parse_incoming_message(
-        self, message: aio_pika.abc.AbstractIncomingMessage
+        self,
+        message: aio_pika.abc.AbstractIncomingMessage,
+        encoder: Encoder | None = None,
     ) -> Any:
-        msg = self.encoder.decode(message.body)
+        encoder = encoder or self.encoder
+        msg = encoder.decode(message.body)
         if not isinstance(msg, dict):
             raise TypeError(f"Expected dict, got {type(msg)}")
         msg.update(
@@ -154,7 +167,7 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
                 "type": message.type,
                 "source": message.app_id,
                 "content_type": message.content_type,
-                "version": message.headers.get("specversion"),
+                "specversion": message.headers.get("specversion"),
                 "time": message.timestamp,
                 "topic": message.routing_key,
             }

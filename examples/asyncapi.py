@@ -1,13 +1,12 @@
 import asyncio
-from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from eventiq import CloudEvent, Middleware, Service
-from eventiq.asyncapi.models import PublishInfo
+from eventiq.asyncapi import PublishInfo
 from eventiq.backends.nats.broker import JetStreamBroker
 
-broker = JetStreamBroker(url="nats://nats:password@service.nats:4222")
+broker = JetStreamBroker(url="nats://nats:password@localhost:4222")
 
 
 class MyData(BaseModel):
@@ -26,12 +25,8 @@ class MyEvent(CloudEvent[MyData]):
         return self.topic_split[2]
 
 
-class MyCommand(CloudEvent[int]):
+class MyCommand(CloudEvent[int], topic="commands.run"):
     """Command representing current number of items"""
-
-    topic: Literal["commands.run"] = Field(
-        "commands.run", alias="subject", description="Message topic"
-    )
 
 
 service = Service(
@@ -72,7 +67,7 @@ async def example_handler(message: MyEvent):
     print(f"Received Message {message.id} with data: {message.data}")
 
 
-@service.subscribe(MyCommand.model_fields["topic"].get_default())
-async def example_run_(message: MyCommand):
+@service.subscribe()
+async def example_run(message: MyCommand):
     """Consumer for processing MyCommands(s)"""
     print(f"Received Message {message.id} with data: {message.data}")

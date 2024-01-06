@@ -7,51 +7,58 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Generic, get_type_hints
 
 from .logger import get_logger
-from .types import FT, MessageHandlerT, T, Tags
+from .models import CloudEvent
+from .types import CE, FT, Encoder, MessageHandlerT, Tags
 from .utils import to_async
 
 if TYPE_CHECKING:
     from .middlewares.retries import RetryStrategy
 
 
-@dataclass(frozen=True)
-class ForwardResponse:
-    topic: str
-    as_type: str = "CloudEvent"
+@dataclass
+class ReplyTo:
+    brokers: tuple[str] = ("default",)
 
 
-class Consumer(ABC, Generic[T]):
+class Consumer(ABC, Generic[CE]):
     """Base consumer class"""
 
-    event_type: T
+    event_type: CE
 
     def __init__(
         self,
         *,
-        topic: str,
         name: str,
+        topic: str | None = None,
+        brokers: tuple[str] = ("default",),
         timeout: int | None = None,
         dynamic: bool = False,
-        forward_response: ForwardResponse | None = None,
+        reply_to: ReplyTo | None = None,
         tags: Tags = None,
         retry_strategy: RetryStrategy | None = None,
         store_results: bool = False,
+        encoder: Encoder | None = None,
         parameters: dict[str, Any] | None = None,
         **options: Any,
     ):
         self._name = name
+        topic = topic or self.event_type.get_default_topic()
+        if not topic:
+            raise ValueError("Topic expected")
+        self.brokers = brokers
         self.topic = topic
         self.timeout = timeout
         self.dynamic = dynamic
-        self.forward_response = forward_response
+        self.reply_to = reply_to
         self.tags = tags or []
         self.retry_strategy = retry_strategy
         self.store_results = store_results
+        self.encoder = encoder
         self.parameters = parameters or {}
         self.options: dict[str, Any] = options
         self.logger = get_logger(__name__, name)
 
-    def validate_message(self, message: Any) -> T:
+    def validate_message(self, message: Any) -> CloudEvent:
         return self.event_type.model_validate(message)
 
     @property
@@ -64,11 +71,11 @@ class Consumer(ABC, Generic[T]):
         raise NotImplementedError
 
     @abstractmethod
-    async def process(self, message: T) -> Any | None:
+    async def process(self, message: CE) -> CloudEvent | None:
         raise NotImplementedError
 
 
-class FnConsumer(Consumer[T]):
+class FnConsumer(Consumer[CE]):
     def __init__(
         self,
         *,
@@ -77,15 +84,15 @@ class FnConsumer(Consumer[T]):
         name: str,
         **extra: Any,
     ) -> None:
-        super().__init__(name=name, topic=topic, **extra)
         event_type = get_type_hints(fn).get("message")
         assert event_type, f"Unable to resolve type hint for 'message' in {fn.__name__}"
         self.event_type = event_type
         if not asyncio.iscoroutinefunction(fn):
             fn = to_async(fn)
         self.fn = fn
+        super().__init__(name=name, topic=topic, **extra)
 
-    async def process(self, message: T) -> Any | None:
+    async def process(self, message: CE) -> CloudEvent | None:
         return await self.fn(message)
 
     @property
@@ -93,7 +100,7 @@ class FnConsumer(Consumer[T]):
         return self.fn.__doc__ or ""
 
 
-class GenericConsumer(Consumer[T], ABC):
+class GenericConsumer(Consumer[CE], ABC):
     def __init_subclass__(cls, **kwargs):
         if not inspect.isabstract(cls):
             cls.event_type = cls.__orig_bases__[0].__args__[0]
@@ -121,15 +128,17 @@ class ConsumerGroup:
 
     def subscribe(
         self,
-        topic: str,
+        topic: str | None = None,
         *,
         name: str | None = None,
+        brokers: tuple[str] = ("default",),
         timeout: int | None = None,
         dynamic: bool = False,
-        forward_response: ForwardResponse | None = None,
+        reply_to: ReplyTo | None = None,
         tags: Tags = None,
         retry_strategy: RetryStrategy | None = None,
         store_results: bool = False,
+        encoder: Encoder | None = None,
         parameters: dict[str, Any] | None = None,
         **options,
     ) -> Callable[[MessageHandlerT], MessageHandlerT]:
@@ -151,13 +160,15 @@ class ConsumerGroup:
             consumer = cls(
                 topic=topic,
                 name=name_,
-                forward_response=forward_response,
+                brokers=brokers,
+                reply_to=reply_to,
                 timeout=timeout,
+                dynamic=dynamic,
                 tags=self.tags + (tags or []),
                 retry_strategy=retry_strategy,
                 store_results=store_results,
+                encoder=encoder,
                 parameters=parameters,
-                dynamic=dynamic,
                 **options,
             )
 

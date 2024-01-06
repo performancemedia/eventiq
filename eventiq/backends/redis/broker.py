@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict
+from urllib.parse import urlparse
 
 import aioredis
 
 from eventiq.broker import Broker
 
+from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 from .settings import RedisSettings
 
@@ -42,8 +44,19 @@ class RedisBroker(Broker[Dict[str, str]]):
     def safe_url(self) -> str:
         return get_safe_url(self.url)
 
-    def parse_incoming_message(self, message: RawMessage) -> Any:
+    def get_info(self) -> ServerInfo:
+        parsed = urlparse(self.url)
+        return {
+            "host": parsed.hostname,
+            "protocol": parsed.scheme,
+            "pathname": parsed.path,
+        }
+
+    def parse_incoming_message(
+        self, message: RawMessage, encoder: Encoder | None = None
+    ) -> Any:
         return message
+        # return encoder.decode(message)
 
     @property
     def is_connected(self) -> bool:

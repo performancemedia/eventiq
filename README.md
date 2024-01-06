@@ -117,7 +117,6 @@ or web server like gunicorn.
     all messages are load balanced between all instances by default
 - Resilient - at least once delivery for all messages by default 
 - Customizable & pluggable message encoders (json, msgpack, custom)
-- Json formatted logger
 - Multiple broker support (Nats, Kafka, Rabbitmq, Redis, PubSub, and more coming)
 - Easily extensible via Middlewares and Plugins
 - Cloud Events standard as base message structure (no more python specific `*args` and `**kwargs` in messages)
@@ -125,3 +124,8 @@ or web server like gunicorn.
 - Twelve factor app approach - stdout logging, configuration through environment variables
 - Out-of-the-box integration with Prometheus (metrics) and OpenTelemetry (tracing)
 - Application bootstrap via `.yaml` file (see examples/configuration)
+
+
+## TODOS:
+- runtime dynamic/ephemeral consumers
+- refactor task_group() consumers to channel like style processing

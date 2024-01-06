@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generic
 import anyio
 from pydantic import ValidationError
 
-from .context import _current_message, _current_service
 from .exceptions import DecodeError, Fail, Skip
 from .imports import import_from_string
 from .logger import LoggerMixin
@@ -17,7 +16,8 @@ from .message import Message
 from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
-from .types import Encoder, RawMessage
+from .types import Encoder, RawMessage, ServerInfo
+from .utils import retry
 
 if TYPE_CHECKING:
     from eventiq import Consumer, Service
@@ -33,7 +33,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
     """
 
     protocol: str
-    protocol_version: str | None = None
+    protocol_version: str = "unknown"
 
     Settings = BrokerSettings
 
@@ -47,6 +47,8 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         encoder: Encoder | type[Encoder] | None = None,
         middlewares: list[Middleware] | None = None,
         default_consumer_timeout: int = 300,
+        tags: list[str] | None = None,
+        asyncapi_extra: dict[str, Any] | None = None,
     ) -> None:
 
         if encoder is None:
@@ -60,6 +62,8 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         self.description = description or type(self).__name__
         self.middlewares: list[Middleware] = middlewares or []
         self.default_consumer_timeout = default_consumer_timeout
+        self.tags = tags
+        self.async_api_extra = asyncapi_extra or {}
         self._lock = anyio.Lock()
         self._running = False
 
@@ -77,17 +81,16 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
             exc: Exception | None = None
             result: Any = None
             msg = self.message_proxy_class(raw_message)
-            s_token = _current_service.set(service)
             try:
-                parsed = self.parse_incoming_message(raw_message)
+                parsed = self.parse_incoming_message(raw_message, consumer.encoder)
                 message = consumer.validate_message(parsed)
-                message.set_raw(msg)
+                message.raw = msg
+                message.service = service
             except (DecodeError, ValidationError) as e:
                 self.logger.exception("Message parsing error", exc_info=e)
                 msg.fail()
                 await self.ack(service, consumer, msg)
                 return
-            m_token = _current_message.set(message)
             try:
                 await self.dispatch_before(
                     "process_message", service, consumer, message
@@ -104,18 +107,15 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 timeout = consumer.timeout or self.default_consumer_timeout
                 async with anyio.move_on_after(timeout) as scope:
                     result = await consumer.process(message)
-
-                    if consumer.forward_response and result is not None:
-                        await self.publish(
-                            CloudEvent(
-                                type=consumer.forward_response.as_type,
-                                topic=consumer.forward_response.topic,
-                                data=result,
-                                source=service.name,
-                            )
+                    if consumer.reply_to and result:
+                        await service.publish_to_multiple(
+                            result, consumer.reply_to.brokers
                         )
                 if scope.cancel_called:
                     exc = asyncio.TimeoutError()
+                await self.dispatch_after(
+                    "process_message", service, consumer, message, result, exc
+                )
             except Exception as e:
                 self.logger.warning(
                     f"Exception in {consumer.name} <{type(e).__name__}> {e}"
@@ -123,16 +123,10 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 exc = e
             finally:
                 self.logger.info(f"Finished running consumer {consumer.name}")
-                async with anyio.move_on_after(10, shield=True):
-                    await self.dispatch_after(
-                        "process_message", service, consumer, message, result, exc
-                    )
-                    if exc is None or isinstance(exc, Fail) or msg.failed:
-                        await self.ack(service, consumer, msg)
-                    else:
-                        await self.nack(service, consumer, msg)
-                _current_service.reset(s_token)
-                _current_message.reset(m_token)
+                if exc is None or isinstance(exc, Fail) or msg.failed:
+                    await self.ack(service, consumer, msg)
+                else:
+                    await self.nack(service, consumer, msg)
 
         return handler
 
@@ -201,14 +195,16 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         for m in middlewares:
             self.add_middleware(m)
 
+    @retry(max_retries=3)
+    async def _dispatch_middleware(self, coro, *args, **kwargs):
+        await coro(self, *args, **kwargs)
+
     async def _dispatch(self, full_event: str, *args, **kwargs) -> None:
-        for m in self.middlewares:
+        for middleware in self.middlewares:
             try:
-                await getattr(m, full_event)(self, *args, **kwargs)
-            except Skip:
-                raise
-            except Exception as e:
-                self.logger.exception("Unhandled middleware exception", exc_info=e)
+                await getattr(middleware, full_event)(self, *args, **kwargs)
+            except middleware.throws as e:
+                self.logger.warning("Unhandled middleware exception", exc_info=e)
 
     async def dispatch_before(self, event: str, *args, **kwargs) -> None:
         await self._dispatch(f"before_{event}", *args, **kwargs)
@@ -245,7 +241,13 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         return {}
 
     @abstractmethod
-    def parse_incoming_message(self, message: RawMessage) -> Any:
+    def get_info(self) -> ServerInfo:
+        raise NotImplementedError
+
+    @abstractmethod
+    def parse_incoming_message(
+        self, message: RawMessage, encoder: Encoder | None = None
+    ) -> Any:
         raise NotImplementedError
 
     @property

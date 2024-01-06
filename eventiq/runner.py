@@ -1,10 +1,9 @@
 import signal
-from typing import Sequence
 
 import anyio
 
 from .logger import LoggerMixin
-from .service import Service
+from .service import AbstractService
 
 
 class ServiceRunner(LoggerMixin):
@@ -13,10 +12,10 @@ class ServiceRunner(LoggerMixin):
     :param services: Sequence of services to run
     """
 
-    def __init__(self, services: Sequence[Service]) -> None:
+    def __init__(self, *services: AbstractService) -> None:
         self.services = services
 
-    async def run(self):
+    async def run(self) -> None:
 
         async with anyio.open_signal_receiver(signal.SIGINT, signal.SIGTERM) as signals:
             async with anyio.create_task_group() as tg:

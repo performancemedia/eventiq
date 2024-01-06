@@ -1,54 +1,93 @@
+import inspect
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generic, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Literal, Optional, Type
 from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from pydantic.fields import FieldInfo
 
-from .context import get_current_service
 from .message import Message
-from .types import D
+from .types import CE, D
 from .utils import utc_now
+
+if TYPE_CHECKING:
+    from .service import Service
 
 
 class CloudEvent(BaseModel, Generic[D]):
+    """Base Schema for all messages"""
+
     specversion: str = "1.0"
     content_type: str = Field(
         "application/json", alias="datacontenttype", description="Message content type"
     )
     id: UUID = Field(default_factory=uuid4, description="Event ID", repr=True)
     time: datetime = Field(default_factory=utc_now, description="Event created time")
-    topic: str = Field(..., alias="subject", description="Message subject (topic)")
+    topic: str = Field(
+        None,
+        alias="subject",
+        description="Message subject (topic)",
+        validate_default=True,
+    )
     type: str = Field("CloudEvent", description="Event type")
     source: Optional[str] = Field(None, description="Event source (app)")
     data: D = Field(..., description="Event payload")
     dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
     tracecontext: Dict[str, str] = Field({}, description="Distributed tracing context")
+    dataref: Optional[str] = Field(
+        None, description="Optional reference (URI) to event payload"
+    )
 
     _topic_parts: List[str] = PrivateAttr(None)
     _raw: Optional[Any] = PrivateAttr(None)
+    _service: Optional["Service"] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
-        type_name = kwargs.get("type", cls.__name__)
-        cls.model_fields["type"].default = type_name
-        cls.model_fields["type"].annotation = Literal[type_name]
+        if not inspect.isabstract(cls):
+            if kwargs.get("typed", True):
+                type_name = kwargs.get("type", cls.__name__)
+                cls.model_fields["type"].default = type_name
+                cls.model_fields["type"].annotation = Literal[type_name]
 
-        if topic := kwargs.get("topic"):
-            cls.model_fields["topic"] = FieldInfo(
-                default=topic,
-                annotation=Literal[topic],
-                alias="subject",
-                description="Command subject",
-                **kwargs.get("extra", {}),
-            )
+            if topic := kwargs.get("topic"):
+                # TODO: use re.match()
+                if any(k in topic for k in ("{", "}", "*", ">")):
+                    annotation, default = str, topic
+                else:
+                    annotation, default = Literal[topic], topic
+                cls.model_fields["topic"] = FieldInfo(
+                    default=default,
+                    annotation=annotation,
+                    alias="subject",
+                    description="Message subject",
+                    validate_default=True,
+                )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, CloudEvent):
             return False
         return self.id == other.id
 
-    def __repr__(self):
-        return f"{self.type}(id={self.id})"
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def __str__(self) -> str:
+        if self.type == type(self).__name__:
+            return f"{self.type}(id={self.id}, topic={self.topic})"
+        return (
+            f"{type(self).__name__}(type={self.type}, id={self.id}, topic={self.topic})"
+        )
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    @classmethod
+    def get_default_topic(cls) -> Optional[str]:
+        return cls.model_fields["topic"].get_default()
+
+    @classmethod
+    def get_default_content_type(cls) -> Optional[str]:
+        return cls.model_fields["content_type"].get_default()
 
     @property
     def topic_split(self) -> List[str]:
@@ -69,29 +108,31 @@ class CloudEvent(BaseModel, Generic[D]):
             raise AttributeError("raw property accessible only for incoming messages")
         return self._raw
 
-    @property
-    def service(self):
-        return get_current_service()
+    @raw.setter
+    def raw(self, value: Message) -> None:
+        self._raw = value
 
     @property
-    def log_context(self) -> Dict[str, Any]:
-        return {"message_id": str(self.id)}
+    def service(self) -> "Service":
+        if self._service is None:
+            raise ValueError("Not in the service context")
+        return self._service
 
-    def _set(self, name: str, value: Any):
-        object.__setattr__(self, name, value)
+    @service.setter
+    def service(self, value: "Service") -> None:
+        self._service = value
 
-    def set_source(self, value: str) -> None:
-        self._set("source", value)
-
-    def set_raw(self, value: Message):
-        self._set("_raw", value)
+    @property
+    def context(self) -> Dict[str, Any]:
+        return self.service.context
 
     def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
         kwargs.setdefault("by_alias", True)
+        kwargs.setdefault("exclude_none", True)
         return super().model_dump(**kwargs)
 
     @classmethod
-    def new(cls, obj: D, **kwargs: Any):
+    def new(cls: Type[CE], obj: D, **kwargs: Any) -> CE:
         return cls(data=obj, **kwargs)
 
     @property
@@ -102,7 +143,7 @@ class CloudEvent(BaseModel, Generic[D]):
     def age(self) -> timedelta:
         return utc_now() - self.time
 
-    def fail(self):
+    def fail(self) -> None:
         self.raw.fail()
 
     model_config = ConfigDict(
@@ -110,5 +151,4 @@ class CloudEvent(BaseModel, Generic[D]):
         populate_by_name=True,
         extra="allow",
         arbitrary_types_allowed=True,
-        frozen=False,
     )

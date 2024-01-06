@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import aiokafka
 import anyio
@@ -8,6 +9,7 @@ import anyio
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
 
+from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 from .settings import KafkaSettings
 
@@ -45,8 +47,11 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         self._consumer_options = consumer_options or {}
         self._publisher = None
 
-    def parse_incoming_message(self, message: aiokafka.ConsumerRecord) -> Any:
-        return self.encoder.decode(message.value)
+    def parse_incoming_message(
+        self, message: aiokafka.ConsumerRecord, encoder: Encoder | None = None
+    ) -> Any:
+        encoder = encoder or self.encoder
+        return encoder.decode(message.value)
 
     @property
     def is_connected(self) -> bool:
@@ -116,6 +121,22 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
             headers=headers,
             timestamp_ms=timestamp_ms,
         )
+
+    def get_info(self) -> ServerInfo:
+        if isinstance(self.bootstrap_servers, str):
+            parsed = urlparse(self.bootstrap_servers)
+            return {
+                "host": parsed.hostname,
+                "protocol": parsed.scheme,
+                "pathname": parsed.path,
+            }
+        return {
+            "host": ",".join(
+                urlparse(server).hostname or "" for server in self.bootstrap_servers
+            ),
+            "protocol": "kafka",
+            "pathname": "",
+        }
 
     @property
     def safe_url(self) -> str:

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import functools
-import json
-import re
 from collections import defaultdict
 from itertools import chain
-from pathlib import Path
 from typing import Iterable
 
+from pydantic.alias_generators import to_snake
 from pydantic.json_schema import models_json_schema
 
-from eventiq.asyncapi.models import (
+from eventiq.asyncapi.v2.models import (
     AsyncAPI,
     ChannelItem,
     Components,
@@ -22,24 +20,16 @@ from eventiq.asyncapi.models import (
     Server,
     Tag,
 )
+from eventiq.broker import TOPIC_PATTERN
+from eventiq.service import Service
 
-from ..broker import TOPIC_PATTERN
-from ..service import Service
-from .registry import PUBLISH_REGISTRY
+from .. import PUBLISH_REGISTRY
 
 PREFIX = "#/components/schemas/"
 
 
-def camel2snake(camel: str) -> str:
-    """
-    Converts a camelCase string to snake_case.
-    """
-    snake = re.sub(r"([a-zA-Z])([0-9])", lambda m: f"{m.group(1)}_{m.group(2)}", camel)
-    snake = re.sub(r"([a-z0-9])([A-Z])", lambda m: f"{m.group(1)}_{m.group(2)}", snake)
-    return snake.lower()
-
-
 def get_all_models_schema(service: Service):
+
     all_models = [
         (m.event_type, "validation")
         for m in chain(service.consumers.values(), PUBLISH_REGISTRY.values())
@@ -80,11 +70,11 @@ def populate_spec(service: Service):
             channels[publishes.topic].parameters.setdefault(k, v)
         if event_type not in messages:
             messages[event_type] = Message(
-                content_type=service.broker.encoder.CONTENT_TYPE,
+                content_type=service.default_broker.encoder.CONTENT_TYPE,
                 payload=Ref(ref=f"{PREFIX}{event_type}"),
             )
         channels[publishes.topic].publish = Operation(
-            operation_id=f"publish_{camel2snake(event_type)}",
+            operation_id=f"publish_{to_snake(event_type)}",
             message=Ref(ref=f"#/components/messages/{event_type}"),
             tags=get_tag_list(tags, publishes.kwargs.get("tags", [])),
             summary=publishes.kwargs.get("description"),
@@ -94,11 +84,11 @@ def populate_spec(service: Service):
         # message_id = camel2snake(f"{consumer.name}_{event_type}")
         if event_type not in messages:
             messages[event_type] = Message(
-                content_type=service.broker.encoder.CONTENT_TYPE,
+                content_type=service.default_broker.encoder.CONTENT_TYPE,
                 payload=Ref(ref=f"{PREFIX}{event_type}"),
             )
         subscribe = Operation(
-            operation_id=camel2snake(consumer.name),
+            operation_id=to_snake(consumer.name),
             message=Ref(ref=f"#/components/messages/{event_type}"),
             tags=get_tag_list(tags, consumer.tags) or None,
             summary=consumer.description,
@@ -118,24 +108,14 @@ def get_async_api_spec(service: Service) -> AsyncAPI:
         info=Info(title=service.title, version=service.version),
         servers={
             "default": Server(
-                protocol=service.broker.protocol,
-                description=service.broker.description,
-                url=service.broker.safe_url,
-                protocol_version=service.broker.protocol_version,
+                protocol=service.default_broker.protocol,
+                description=service.default_broker.description,
+                url=service.default_broker.safe_url,
+                protocol_version=service.default_broker.protocol_version or "1.0",
             )
         },
         channels=channels,
         components=Components(schemas=definitions, messages=messages),
-        default_content_type=service.broker.encoder.CONTENT_TYPE,
+        default_content_type=service.default_broker.encoder.CONTENT_TYPE,
     )
     return doc_model
-
-
-def save_async_api_to_file(spec: AsyncAPI, path: Path, fmt: str) -> None:
-    dump = json.dump
-    if fmt == "yaml":
-        import yaml
-
-        dump = yaml.dump
-    with open(path, "w") as f:
-        dump(spec.model_dump(by_alias=True, exclude_none=True), f)

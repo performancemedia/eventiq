@@ -30,6 +30,8 @@ def generate_instance_id() -> str:
 def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Awaitable[R]:
+        if not kwargs:
+            return anyio.to_thread.run_sync(func, *args)
         return anyio.to_thread.run_sync(functools.partial(func, *args, **kwargs))
 
     return wrapper

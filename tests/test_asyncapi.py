@@ -1,4 +1,4 @@
-from eventiq.asyncapi.generator import get_async_api_spec
+from eventiq.asyncapi.v2.generator import get_async_api_spec
 
 
 def test_asyncapi_generation(service):

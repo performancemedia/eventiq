@@ -33,6 +33,7 @@ nav:
   - "Middlewares": middlewares.md
   - "HTTP": http.md
   - "AsyncAPI": async_api.md
+  - "Changelog": changelog.md
   - "Examples":
       - "Basic": examples/base.md
       - "AsyncAPI": examples/asyncapi.md

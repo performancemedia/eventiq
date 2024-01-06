@@ -25,19 +25,31 @@ class DecodeError(EncoderError):
     """Error decoding message"""
 
 
-class Skip(Exception):
+class MessageError(Exception):
+    """Base message processing error"""
+
+
+class Skip(MessageError):
     """Raise exception to skip message without processing and/or retrying"""
 
 
-class Fail(Exception):
+class Fail(MessageError):
     """Fail message without retrying"""
 
 
-class Retry(Exception):
+class Retry(MessageError):
     """
     Utility exception for retrying message.
     RetryMiddleware must be added
     """
 
-    def __init__(self, delay: int | None = None):
+    def __init__(self, reason: str | None = None, *, delay: int | None = None):
+        self.reason = reason or "unknown"
         self.delay = delay
+
+    def __str__(self) -> str:
+        # TODO: make prettier
+        return f"Retry: {self.reason=} {self.delay=}"
+
+    def __repr__(self) -> str:
+        return str(self)

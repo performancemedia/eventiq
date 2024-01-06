@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 class Middleware(LoggerMixin):
     """Base class for middlewares"""
 
+    throws: type[Exception] | tuple[type[Exception], ...] = Exception
+
     async def before_broker_connect(self, broker: Broker) -> None:
         """Called before broker connects"""
 

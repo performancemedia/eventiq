@@ -24,7 +24,7 @@ def test_encoders_simple_data(encoder, data):
 @pytest.mark.parametrize("data", (1, "2", 3.0, [None], {"key": "value", "1": 2}))
 def test_encoder_cloud_events(encoder, data):
     ce = CloudEvent(topic="test.topic", data=data, type="TestEvent")
-    ce_dict = ce.dict()
+    ce_dict = ce.model_dump()
     assert data == ce_dict["data"]
     encoded = encoder.encode(ce_dict)
     assert isinstance(encoded, bytes)
@@ -38,7 +38,7 @@ def test_encoders_numpy_data(encoder):
         model_config = ConfigDict(arbitrary_types_allowed=True)
 
     ce = NumpyCe(topic="test.topic", data=np.ones(1280).astype(np.float32))
-    encoded = encoder.encode(ce.dict())
+    encoded = encoder.encode(ce.model_dump())
     assert isinstance(encoded, bytes)
     decoded = encoder.decode(encoded)
     assert np.array_equal(ce.data, decoded["data"])

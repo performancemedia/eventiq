@@ -26,10 +26,17 @@ ID = Union[UUID, str]
 
 RawMessage = TypeVar("RawMessage")
 
-T = TypeVar("T", bound="CloudEvent")
+CE = TypeVar("CE", bound="CloudEvent")
 D = TypeVar("D")
 
 Tags = Optional[List[Union[str, Enum]]]
+
+
+class ServerInfo(TypedDict, total=False):
+    host: str | None
+    protocol: str
+    protocolVersion: str | None
+    pathname: str | None
 
 
 class TagMeta(TypedDict):
@@ -60,7 +67,7 @@ class Encoder(Protocol):
         """
 
 
-FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional[Any]]]
+FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional["CloudEvent"]]]
 MessageHandlerT = Union[Type["GenericConsumer"], FT]
 
 ExcHandler = Callable[["CloudEvent", Exception], Awaitable]

@@ -55,8 +55,3 @@ class HealthCheckMiddleware(Middleware):
                 p.rename(os.path.join(self.BASE_DIR, "unhealthy"))
                 break
             await asyncio.sleep(self.interval)
-
-    def get_health_status(self) -> bool:
-        if self._broker:
-            return self._broker.is_connected
-        return False
