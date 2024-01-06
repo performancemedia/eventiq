@@ -98,7 +98,7 @@ python-json-logger = "^2.0.7"
 mkdocs-material = "^8.2.1"
 mkdocs = "^1.4.2"
 mkdocs-autorefs = "^0.4.1"
-mkdocs-gen-files = "^0.4.0"
+mkdocs-gen-files = ">=0.4,<0.6"
 mkdocstrings = {version = ">=0.18", extras = ["python"]}
 
 
