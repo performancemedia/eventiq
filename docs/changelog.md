@@ -6,7 +6,7 @@ New features:
 - AsyncAPI v3.0.0 spec
 - Pydantic V2
 - Dataref Middleware
-- `watch` is now an option (`--watch`) to `run` command
+- `watch` is now an option (`--reload`) to `run` command
 - Cloudpickle encoder
 - Error raising in middlewares support
 - `CloudEvent.context` propagation from `Service`

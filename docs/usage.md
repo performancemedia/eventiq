@@ -38,7 +38,7 @@ eventiq run app:service --log-level=info
 ## Watching for changes
 
 ```shell
-eventiq watch app:service --log-level=info --directory=.
+eventiq run app:service --log-level=info --reload=.
 ```
 
 ## Testing
@@ -106,6 +106,4 @@ eventiq --install-completion [bash|zsh|fish|powershell|pwsh]
 ### Basic commands
 
 - `run` - run service or group of services
-- `watch` - run with hot-reload on code changes
-- `verify` - verify service importing
-- `generate-docs` - generate AsyncAPI docs
+- `docs` - generate AsyncAPI docs

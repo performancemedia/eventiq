@@ -49,14 +49,14 @@ def run(
     ),
     use_uvloop: bool = typer.Option(False, help="Enable uvloop"),
     debug: bool = typer.Option(False, help="Enable debug"),
-    watch: Optional[str] = typer.Option(None, help="Hot-reload on provided path"),
+    reload: Optional[str] = typer.Option(None, help="Hot-reload on provided path"),
 ) -> None:
-    if watch:
+    if reload:
         try:
             from watchfiles import run_process
         except ImportError:
             logger.error(
-                "--watch option requires 'watchfiles' installed. Please run 'pip install watchfiles'."
+                "--reload option requires 'watchfiles' installed. Please run 'pip install watchfiles'."
             )
             return
 
@@ -65,7 +65,7 @@ def run(
             service_or_runner, log_level, log_config, use_uvloop, debug
         )
         run_process(
-            watch,
+            reload,
             target=target,
             target_type="command",
             callback=logger.info,
