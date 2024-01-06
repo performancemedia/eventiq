@@ -40,9 +40,7 @@ class _RedisResultMiddleware(Middleware):
             )
         else:
             return
-        await broker.redis.set(
-            f"{service.name}:{consumer.name}:{message.id}", data, ex=self.ttl
-        )
+        await broker.redis.set(f"{service.name}:{message.id}", data, ex=self.ttl)
 
 
 class RedisResultBackend(BrokerPlugin[RedisBroker], ResultBackend):
