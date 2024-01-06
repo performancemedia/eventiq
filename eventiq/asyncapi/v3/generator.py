@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import functools
 from collections import defaultdict
+from collections.abc import Iterable
 from itertools import chain
-from typing import Any, Iterable
+from typing import Any
 
 from pydantic.alias_generators import to_camel
 from pydantic.json_schema import models_json_schema

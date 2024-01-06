@@ -1,13 +1,13 @@
 import inspect
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, Literal, Optional, Type
+from typing import TYPE_CHECKING, Any, Generic, Literal, Optional
 from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from pydantic.fields import FieldInfo
 
 from .message import Message
-from .types import CE, D
+from .types import D
 from .utils import utc_now
 
 if TYPE_CHECKING:
@@ -33,12 +33,12 @@ class CloudEvent(BaseModel, Generic[D]):
     source: Optional[str] = Field(None, description="Event source (app)")
     data: D = Field(..., description="Event payload")
     dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
-    tracecontext: Dict[str, str] = Field({}, description="Distributed tracing context")
+    tracecontext: dict[str, str] = Field({}, description="Distributed tracing context")
     dataref: Optional[str] = Field(
         None, description="Optional reference (URI) to event payload"
     )
 
-    _topic_parts: List[str] = PrivateAttr(None)
+    _topic_parts: list[str] = PrivateAttr(None)
     _raw: Optional[Any] = PrivateAttr(None)
     _service: Optional["Service"] = PrivateAttr(None)
 
@@ -90,7 +90,7 @@ class CloudEvent(BaseModel, Generic[D]):
         return cls.model_fields["content_type"].get_default()
 
     @property
-    def topic_split(self) -> List[str]:
+    def topic_split(self) -> list[str]:
         if self._topic_parts is None:
             self._topic_parts = self.topic.split(".")
         return self._topic_parts
@@ -123,20 +123,20 @@ class CloudEvent(BaseModel, Generic[D]):
         self._service = value
 
     @property
-    def context(self) -> Dict[str, Any]:
+    def context(self) -> dict[str, Any]:
         return self.service.context
 
-    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         kwargs.setdefault("exclude_none", True)
         return super().model_dump(**kwargs)
 
     @classmethod
-    def new(cls: Type[CE], obj: D, **kwargs: Any) -> CE:
+    def new(cls, obj: D, **kwargs: Any):
         return cls(data=obj, **kwargs)
 
     @property
-    def extra_span_attributes(self) -> Dict[str, str]:
+    def extra_span_attributes(self) -> dict[str, str]:
         return {}
 
     @property

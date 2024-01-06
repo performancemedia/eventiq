@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import functools
 from collections import defaultdict
+from collections.abc import Iterable
 from itertools import chain
-from typing import Iterable
 
 from pydantic.alias_generators import to_snake
 from pydantic.json_schema import models_json_schema

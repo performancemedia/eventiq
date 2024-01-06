@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import aioredis
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, RawMessage, Service
 
 
-class RedisBroker(Broker[Dict[str, str]]):
+class RedisBroker(Broker[dict[str, str]]):
     """
     Broker implementation based on redis PUB/SUB and aioredis package
     :param url: connection string to redis

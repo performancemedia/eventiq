@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import AnyUrl
 from pydantic import BaseModel as _BaseModel
@@ -38,26 +38,26 @@ class Message(BaseModel):
     payload: Ref
     content_type: str = Field(..., alias="contentType")
     description: Optional[str] = None
-    tags: Optional[List[Tag]] = None
+    tags: Optional[list[Tag]] = None
 
 
 class Operation(BaseModel):
     operation_id: str = Field(..., alias="operationId")
     summary: Optional[str] = None
     message: Ref
-    tags: Optional[List[Tag]] = None
+    tags: Optional[list[Tag]] = None
 
 
 class Parameter(BaseModel):
     description: Optional[str] = None
-    param_schema: Dict[str, Any] = Field({"type": "string"}, alias="schema")
+    param_schema: dict[str, Any] = Field({"type": "string"}, alias="schema")
     location: Optional[str] = None
 
 
 class ChannelItem(BaseModel):
     publish: Optional[Operation] = None
     subscribe: Optional[Operation] = None
-    parameters: Dict[str, Parameter] = {}
+    parameters: dict[str, Parameter] = {}
 
 
 class Server(BaseModel):
@@ -68,15 +68,15 @@ class Server(BaseModel):
 
 
 class Components(BaseModel):
-    schemas: Dict[str, Any] = {}
-    messages: Dict[str, Any] = {}
+    schemas: dict[str, Any] = {}
+    messages: dict[str, Any] = {}
 
 
 class AsyncAPI(BaseModel):
     asyncapi: str = "2.5.0"
     info: Info
-    servers: Dict[str, Server] = {}
-    channels: Dict[str, ChannelItem] = {}
+    servers: dict[str, Server] = {}
+    channels: dict[str, ChannelItem] = {}
     default_content_type: str = Field("application/json", alias="defaultContentType")
     components: Components
-    tags: List[Tag] = []
+    tags: list[Tag] = []

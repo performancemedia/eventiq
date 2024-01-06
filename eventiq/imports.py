@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import importlib
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, TypeVar
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import PydanticCustomError, core_schema
-from typing_extensions import Annotated
 
 AnyType = TypeVar("AnyType")
 

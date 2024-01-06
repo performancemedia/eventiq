@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
-    List,
     Optional,
     Protocol,
-    Type,
     TypedDict,
     TypeVar,
     Union,
@@ -29,7 +27,7 @@ RawMessage = TypeVar("RawMessage")
 CE = TypeVar("CE", bound="CloudEvent")
 D = TypeVar("D")
 
-Tags = Optional[List[Union[str, Enum]]]
+Tags = Optional[list[Union[str, Enum]]]
 
 
 class ServerInfo(TypedDict, total=False):
@@ -68,7 +66,7 @@ class Encoder(Protocol):
 
 
 FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional["CloudEvent"]]]
-MessageHandlerT = Union[Type["GenericConsumer"], FT]
+MessageHandlerT = Union[type["GenericConsumer"], FT]
 
 ExcHandler = Callable[["CloudEvent", Exception], Awaitable]
 

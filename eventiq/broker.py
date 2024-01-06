@@ -4,7 +4,8 @@ import asyncio
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Generic
+from collections.abc import Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Generic
 
 import anyio
 from pydantic import ValidationError

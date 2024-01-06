@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from pydantic import Field
 
@@ -11,6 +11,6 @@ class RabbitMQSettings(BrokerSettings):
         10, validation_alias="BROKER_DEFAULT_PREFETCH_COUNT"
     )
     exchange_name: str = Field("events", validation_alias="BROKER_EXCHANGE_NAME")
-    connection_options: Optional[Dict[str, Any]] = Field(
+    connection_options: Optional[dict[str, Any]] = Field(
         None, validation_alias="CONNECTION_OPTIONS"
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ContextManager, Iterable
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, ContextManager
 
 from opentelemetry import trace
 from opentelemetry.propagate import extract, inject

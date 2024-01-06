@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -13,7 +13,7 @@ class BrokerSettings(BaseSettings):
         300, validation_alias="DEFAULT_CONSUMER_TIMEOUT"
     )
     description: Optional[str] = None
-    middlewares: Optional[List[Middleware]] = None
+    middlewares: Optional[list[Middleware]] = None
     encoder: Optional[ImportedType[Encoder]] = Field(
         None, validation_alias="BROKER_ENCODER_CLASS"
     )

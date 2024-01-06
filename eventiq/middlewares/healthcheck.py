@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import Awaitable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from eventiq.middleware import Middleware
 

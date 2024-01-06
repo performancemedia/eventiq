@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Callable, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -39,7 +39,7 @@ class TypedModel(BaseModel, Generic[T]):
 
 class BrokerConfig(TypedModel[Broker]):
     encoder: TypedModel[Encoder]
-    middlewares: List[TypedModel]
+    middlewares: list[TypedModel]
 
 
 class ConsumerConfig(TypedModel[MessageHandlerT]):
@@ -60,15 +60,15 @@ class ConsumerConfig(TypedModel[MessageHandlerT]):
 
 class ServiceConfig(BaseModel):
     name: str
-    brokers: List[str]
+    brokers: list[str]
     title: Optional[str] = None
     version: str = "0.1.0"
     description: str = ""
-    tags_metadata: List[TagMeta] = []
+    tags_metadata: list[TagMeta] = []
     instance_id_generator: Optional[ImportedType[Callable[[], str]]] = None
-    consumers: List[ConsumerConfig]
+    consumers: list[ConsumerConfig]
 
 
 class AppConfig(BaseModel):
-    brokers: Dict[str, BrokerConfig]
-    services: List[ServiceConfig]
+    brokers: dict[str, BrokerConfig]
+    services: list[ServiceConfig]

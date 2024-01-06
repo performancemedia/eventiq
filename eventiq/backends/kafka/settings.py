@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import Field
 
@@ -6,12 +6,12 @@ from eventiq.settings import BrokerSettings
 
 
 class KafkaSettings(BrokerSettings):
-    bootstrap_servers: Union[str, List[str]] = Field(
+    bootstrap_servers: Union[str, list[str]] = Field(
         ..., validation_alias="BROKER_BOOTSTRAP_SERVERS"
     )
-    publisher_options: Optional[Dict[str, Any]] = Field(
+    publisher_options: Optional[dict[str, Any]] = Field(
         None, validation_alias="BROKER_PUBLISHER_OPTIONS"
     )
-    consumer_options: Optional[Dict[str, Any]] = Field(
+    consumer_options: Optional[dict[str, Any]] = Field(
         None, validation_alias="BROKER_CONSUMER_OPTIONS"
     )

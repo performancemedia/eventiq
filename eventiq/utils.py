@@ -4,8 +4,9 @@ import asyncio
 import functools
 import socket
 import time
+from collections.abc import Awaitable
 from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, Callable, TypeVar
 from urllib.parse import urlparse
 
 import anyio
