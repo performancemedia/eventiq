@@ -166,25 +166,6 @@ snappy = ["cramjam"]
 zstd = ["cramjam"]
 
 [[package]]
-name = "aioredis"
-version = "2.0.1"
-description = "asyncio (PEP 3156) Redis support"
-category = "main"
-optional = true
-python-versions = ">=3.6"
-files = [
-    {file = "aioredis-2.0.1-py3-none-any.whl", hash = "sha256:9ac0d0b3b485d293b8ca1987e6de8658d7dafcca1cddfcd1d506cae8cdebfdd6"},
-    {file = "aioredis-2.0.1.tar.gz", hash = "sha256:eaa51aaf993f2d71f54b70527c440437ba65340588afeb786cd87c55c89cd98e"},
-]
-
-[package.dependencies]
-async-timeout = "*"
-typing-extensions = "*"
-
-[package.extras]
-hiredis = ["hiredis (>=1.0)"]
-
-[[package]]
 name = "aiormq"
 version = "6.7.7"
 description = "Pure python AMQP asynchronous client library"
@@ -2811,6 +2792,25 @@ Pygments = ">=2.5.1"
 md = ["cmarkgfm (>=0.8.0)"]
 
 [[package]]
+name = "redis"
+version = "5.0.1"
+description = "Python client for Redis database and key-value store"
+category = "main"
+optional = true
+python-versions = ">=3.7"
+files = [
+    {file = "redis-5.0.1-py3-none-any.whl", hash = "sha256:ed4802971884ae19d640775ba3b03aa2e7bd5e8fb8dfaed2decce4d0fc48391f"},
+    {file = "redis-5.0.1.tar.gz", hash = "sha256:0dab495cd5753069d3bc650a0dde8a8f9edde16fc5691b689a566eda58100d0f"},
+]
+
+[package.dependencies]
+async-timeout = {version = ">=4.0.2", markers = "python_full_version <= \"3.11.2\""}
+
+[package.extras]
+hiredis = ["hiredis (>=1.0.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
+
+[[package]]
 name = "requests"
 version = "2.31.0"
 description = "Python HTTP for Humans."
@@ -3512,7 +3512,7 @@ docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.link
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
 [extras]
-all = ["aio-pika", "aiokafka", "aioredis", "cloudpickle", "gcloud-aio-pubsub", "nats-py", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "orjson", "ormsgpack", "prometheus-client", "typer"]
+all = ["aio-pika", "aiokafka", "cloudpickle", "gcloud-aio-pubsub", "nats-py", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions", "orjson", "ormsgpack", "prometheus-client", "redis", "typer"]
 cli = ["typer"]
 cloudpickle = ["cloudpickle"]
 common = ["orjson", "prometheus-client", "typer"]
@@ -3526,9 +3526,9 @@ ormsgpack = ["ormsgpack"]
 prometheus = ["prometheus-client"]
 pubsub = ["gcloud-aio-pubsub"]
 rabbitmq = ["aio-pika"]
-redis = ["aioredis"]
+redis = ["redis"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "d1b1ee217087fb3b307af823e18f8c9eca1e83a0a2916e6df63feab26d45d190"
+content-hash = "9db6bf782678215c23225a9a75854bd075cdf89143c6a026482d13608bc62883"

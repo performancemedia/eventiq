@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-import aioredis
+from redis import asyncio as aioredis
 
 from eventiq.broker import Broker
 

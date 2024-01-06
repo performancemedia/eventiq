@@ -53,13 +53,12 @@ cloudpickle = {version = "^3.0.0", optional = true}
 aio-pika = {version = ">=9.0.4", optional = true}
 nats-py = {version = ">=2.2,<3.0", optional = true}
 aiokafka = {version = ">=0.8,<1.0", optional = true}
-aioredis = {version = ">=2.0,<3.0", optional = true}
 gcloud-aio-pubsub = {version = ">=6.0,<7.0", optional = true}
-
+redis = {version = ">=5.0,<6.0", optional = true}
 
 
 [tool.poetry.extras]
-all = ["typer", "prometheus-client", "orjson", "ormsgpack", "cloudpickle", "nats-py", "aioredis", "aiokafka", "aio-pika",
+all = ["typer", "prometheus-client", "orjson", "ormsgpack", "cloudpickle", "nats-py", "redis", "aiokafka", "aio-pika",
     "gcloud-aio-pubsub", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"
 ]
 common = ["typer", "prometheus-client", "orjson"]
@@ -78,7 +77,7 @@ opentelemetry = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semant
 nats = ["nats-py"]
 kafka = ["aiokafka"]
 rabbitmq = ["aio-pika"]
-redis = ["aioredis"]
+redis = ["redis"]
 pubsub = ["gcloud-aio-pubsub"]
 
 [tool.poetry.group.dev.dependencies]
