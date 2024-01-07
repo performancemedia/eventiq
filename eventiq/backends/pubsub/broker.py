@@ -11,7 +11,6 @@ from gcloud.aio.pubsub import (
 )
 
 from eventiq.broker import Broker
-from eventiq.exceptions import BrokerError
 
 from ...types import Encoder, ServerInfo
 from ...utils import retry
@@ -42,7 +41,7 @@ class PubSubBroker(Broker[SubscriberMessage]):
 
         super().__init__(**kwargs)
         self.service_file = service_file
-        self._client = None
+        self._client = PublisherClient(service_file=self.service_file)
 
     @property
     def safe_url(self) -> str:
@@ -61,9 +60,6 @@ class PubSubBroker(Broker[SubscriberMessage]):
     ) -> Any:
         return encoder.decode(message.data)
 
-    async def _disconnect(self) -> None:
-        await self.client.close()
-
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         consumer_client = SubscriberClient(service_file=self.service_file)
         handler = self.get_handler(service, consumer)
@@ -76,8 +72,7 @@ class PubSubBroker(Broker[SubscriberMessage]):
 
     @property
     def client(self) -> PublisherClient:
-        if self._client is None:
-            raise BrokerError("Broker not connected")
+        self._client.create_topic()
         return self._client
 
     @retry(max_retries=3)
@@ -92,12 +87,14 @@ class PubSubBroker(Broker[SubscriberMessage]):
             data=self.encoder.encode(message.model_dump()),
             ordering_key=ordering_key,
             content_type=self.encoder.CONTENT_TYPE,
-            **kwargs.get("headers", {}),
         )
         await self.client.publish(topic=message.topic, messages=[msg], timeout=timeout)
 
     async def _connect(self) -> None:
-        self._client = PublisherClient(service_file=self.service_file)
+        pass
+
+    async def _disconnect(self) -> None:
+        await self.client.close()
 
     @property
     def is_connected(self) -> bool:

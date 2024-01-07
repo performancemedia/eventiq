@@ -55,16 +55,17 @@ class OpenTelemetryMiddleware(Middleware):
 
     @staticmethod
     def _get_span_attributes(message: CloudEvent, broker: Broker | None = None):
-        broker_extra = (
-            broker.extra_message_span_attributes(message.raw) if broker else {}
-        )
+        if broker:
+            extra = broker.extra_message_span_attributes(message.raw) if broker else {}
+        else:
+            extra = {}
         return {
             SpanAttributes.CLOUDEVENTS_EVENT_ID: str(message.id),
             SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source or "(anonymous)",
             SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type or "CloudEvent",
             SpanAttributes.CLOUDEVENTS_EVENT_SUBJECT: message.topic,
             **message.extra_span_attributes,
-            **broker_extra,
+            **extra,
         }
 
     async def before_process_message(

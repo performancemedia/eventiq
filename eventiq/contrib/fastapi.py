@@ -1,14 +1,31 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Literal, Union
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from pydantic import BaseModel
 
+from ..logger import LoggerMixin
 from ..plugins import Service, ServicePlugin
 
 
-class FastAPIServicePlugin(ServicePlugin):
+class StatusOk(BaseModel):
+    status: Literal[200] = 200
+    detail: Literal["ok"] = "ok"
+
+
+class HealthCheckError(BaseModel):
+    title: Literal["Service Unavailable"] = "Service Unavailable"
+    status: Literal[503] = 503
+    detail: Literal["Connection Error"] = "Connection Error"
+
+
+HealthCheckResponseModel = Union[StatusOk, HealthCheckError]
+
+
+class FastAPIServicePlugin(ServicePlugin, LoggerMixin):
     """Integration with fastapi, allows running service alongside fastapi app"""
 
     def __init__(
@@ -96,18 +113,22 @@ class FastAPIServicePlugin(ServicePlugin):
             )
 
     def _add_healthcheck(self, app, healthcheck_url):
-        @app.get(healthcheck_url, response_class=JSONResponse, include_in_schema=False)
+        @app.get(
+            healthcheck_url,
+            response_model=HealthCheckResponseModel,
+            include_in_schema=False,
+        )
         def get_broker_connection_status():
             try:
-                for broker in self.service.brokers:
+                for broker_name, broker in self.service.get_brokers():
                     if not broker.is_connected:
-                        raise ConnectionError(f"Broker {broker} disconnected")
-                return JSONResponse({"status": "ok"})
+                        raise ConnectionError(
+                            f"Broker {broker}: {broker_name} disconnected"
+                        )
+                return StatusOk()
             except Exception as e:
-                return JSONResponse(
-                    {"title": "Service Unavailable", "status": 503, "detail": str(e)},
-                    status_code=503,
-                )
+                self.logger.warning("Exception in healthcheck", exc_info=e)
+                return HealthCheckError()
 
 
 def get_service(request: Request) -> Service:

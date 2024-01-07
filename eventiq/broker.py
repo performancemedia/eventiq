@@ -275,7 +275,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         """Empty default implementation for backends that do not support explicit ack"""
 
     async def _nack(self, message: Message) -> None:
-        """Same as for ._ack()"""
+        """Reject (requeue) message. Defaults to no-op like ._ack()"""
 
     def format_topic(self, topic: str) -> str:
         result = []

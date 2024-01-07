@@ -81,7 +81,8 @@ class NatsBroker(Broker[NatsMsg]):
     def extra_message_span_attributes(message: NatsMsg) -> dict[str, str]:
         try:
             return {
-                "messaging.nats.consumer_sequence": message.metadata.sequence.consumer
+                "messaging.nats.sequence.consumer": message.metadata.sequence.consumer,
+                "messaging.nats.sequence.stream": message.metadata.sequence.stream,
             }
         except Exception:
             return {}
