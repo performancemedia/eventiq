@@ -90,7 +90,7 @@ flake8 = "^6.0.0"
 pyyaml = "^6.0"
 ruff = "^0.0.264"
 opentelemetry-exporter-otlp = "^1.17.0"
-opentelemetry-instrumentation-logging = "^0.38b0"
+opentelemetry-instrumentation-logging = ">=0.38,<0.44"
 numpy = "^1.26.3"
 python-json-logger = "^2.0.7"
 

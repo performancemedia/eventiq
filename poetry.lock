@@ -1791,13 +1791,13 @@ test = ["responses (==0.22.0)"]
 
 [[package]]
 name = "opentelemetry-instrumentation"
-version = "0.38b0"
+version = "0.43b0"
 description = "Instrumentation Tools & Auto Instrumentation for OpenTelemetry Python"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "opentelemetry_instrumentation-0.38b0-py3-none-any.whl", hash = "sha256:48eed87e5db9d2cddd57a8ea359bd15318560c0ffdd80d90a5fc65816e15b7f4"},
-    {file = "opentelemetry_instrumentation-0.38b0.tar.gz", hash = "sha256:3dbe93248eec7652d5725d3c6d2f9dd048bb8fda6b0505aadbc99e51638d833c"},
+    {file = "opentelemetry_instrumentation-0.43b0-py3-none-any.whl", hash = "sha256:0ff1334d7e359e27640e9d420024efeb73eacae464309c2e14ede7ba6c93967e"},
+    {file = "opentelemetry_instrumentation-0.43b0.tar.gz", hash = "sha256:c3755da6c4be8033be0216d0501e11f4832690f4e2eca5a3576fbf113498f0f6"},
 ]
 
 [package.dependencies]
@@ -1807,21 +1807,21 @@ wrapt = ">=1.0.0,<2.0.0"
 
 [[package]]
 name = "opentelemetry-instrumentation-logging"
-version = "0.38b0"
+version = "0.43b0"
 description = "OpenTelemetry Logging instrumentation"
 optional = false
 python-versions = "*"
 files = [
-    {file = "opentelemetry_instrumentation_logging-0.38b0-py2.py3-none-any.whl", hash = "sha256:84df6bb906a5fabb89fd5bd743b8efbab73921efe6aaeb0fa469bbfe94a43fe3"},
-    {file = "opentelemetry_instrumentation_logging-0.38b0.tar.gz", hash = "sha256:ab3c3fb671336dd11c182a73d245c8bfb1b249af5a009ae88e582453c2336009"},
+    {file = "opentelemetry_instrumentation_logging-0.43b0-py2.py3-none-any.whl", hash = "sha256:a0e4ecc0562bdca3b4aeca904fd73ae046641d485fab28c0557129e5a685aeb6"},
+    {file = "opentelemetry_instrumentation_logging-0.43b0.tar.gz", hash = "sha256:306456ba13a032efc9f21461427087b11161e04e9fbedbc3a1f5b091782bd4fe"},
 ]
 
 [package.dependencies]
 opentelemetry-api = ">=1.12,<2.0"
-opentelemetry-instrumentation = "0.38b0"
+opentelemetry-instrumentation = "0.43b0"
 
 [package.extras]
-test = ["opentelemetry-test-utils (==0.38b0)"]
+test = ["opentelemetry-test-utils (==0.43b0)"]
 
 [[package]]
 name = "opentelemetry-proto"
@@ -3152,4 +3152,4 @@ redis = ["redis"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "fab3291cf253661f8052e27ed29e7336599a5d04a95b944c4ac501ae08deb7b4"
+content-hash = "237cb253ad5231473d03d07ab70fffad07df2be182708083be8e9572e0bcb532"
