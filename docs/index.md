@@ -21,7 +21,7 @@
 *Note: This package is under active development and is not recommended for production usage*
 
 ---
-Version: 0.1.24
+Version: 0.1.25
 
 Documentation: [https://performancemedia.github.io/eventiq/](https://performancemedia.github.io/eventiq/)
 
