@@ -105,7 +105,7 @@ class Server(BaseModel):
     host: str
     protocol: str
     protocolVersion: Optional[str] = None
-    pathname: str = ""  # TODO: maybe optional
+    pathname: str = ""
     description: Optional[str] = None
     title: Optional[str] = None
     summary: Optional[str] = None
@@ -116,9 +116,10 @@ class Server(BaseModel):
     # bindings: Optional[Reference]
 
 
-class Schema(BaseModel):
-    schemaFormat: str = "application/schema+json;version=draft-07"
-    spec: Any = Field(..., alias="schema")
+#
+# class Schema(BaseModel):
+#     schemaFormat: str = "application/schema+json;version=draft-07"
+#     spec: Any = Field(..., alias="schema")
 
 
 class Message(BaseModel):

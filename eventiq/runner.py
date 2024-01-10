@@ -16,7 +16,6 @@ class ServiceRunner(LoggerMixin):
         self.services = services
 
     async def run(self) -> None:
-
         async with anyio.open_signal_receiver(signal.SIGINT, signal.SIGTERM) as signals:
             async with anyio.create_task_group() as tg:
                 try:

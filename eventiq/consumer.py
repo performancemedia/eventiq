@@ -85,7 +85,10 @@ class FnConsumer(Consumer[CE]):
         **extra: Any,
     ) -> None:
         event_type = get_type_hints(fn).get("message")
-        assert event_type, f"Unable to resolve type hint for 'message' in {fn.__name__}"
+        if not event_type:
+            raise TypeError(
+                "Unable to resolve type hint for 'message' in %s", fn.__name__
+            )
         self.event_type = event_type
         if not asyncio.iscoroutinefunction(fn):
             fn = to_async(fn)

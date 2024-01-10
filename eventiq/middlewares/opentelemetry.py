@@ -43,10 +43,12 @@ eventiq_setter = EventiqSetter()
 
 
 class OpenTelemetryMiddleware(Middleware):
-    def __init__(self, provider: TracerProvider | None = None):
+    def __init__(
+        self, provider: TracerProvider | None = None, record_exceptions: bool = True
+    ):
         if provider is None:
             provider = trace.get_tracer_provider()
-
+        self.record_exceptions = record_exceptions
         self.tracer = provider.get_tracer("eventiq", __version__)
         self.process_span_registry: dict[
             tuple[str, str, ID], tuple[Span, ContextManager[Span]]
@@ -102,12 +104,13 @@ class OpenTelemetryMiddleware(Middleware):
             return
 
         if span.is_recording():
-            if exc:
-                span.set_status(
-                    status=StatusCode.ERROR, description=str(exc) or type(exc).__name__
-                )
-            else:
+            if exc is None:
                 span.set_status(StatusCode.OK)
+            else:
+                if self.record_exceptions:
+                    span.record_exception(exc)
+                span.set_status(status=StatusCode.ERROR, description=str(exc))
+
         activation.__exit__(None, None, None)
 
     async def before_publish(

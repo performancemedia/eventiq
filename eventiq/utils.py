@@ -40,7 +40,7 @@ def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
 
 def retry(max_retries: int = 5, backoff: int = 2):
     def _wrapper(
-        func: Callable[P, R] | Callable[P, Awaitable[R]]
+        func: Callable[P, R] | Callable[P, Awaitable[R]],
     ) -> Callable[P, R] | Callable[P, Awaitable[R]]:
         if asyncio.iscoroutinefunction(func):
             return _retry_async(func, max_retries, backoff)

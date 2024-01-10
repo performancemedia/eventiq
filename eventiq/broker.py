@@ -51,7 +51,6 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         tags: list[str] | None = None,
         asyncapi_extra: dict[str, Any] | None = None,
     ) -> None:
-
         if encoder is None:
             from .encoders import get_default_encoder
 

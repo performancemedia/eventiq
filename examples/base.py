@@ -1,7 +1,5 @@
 import asyncio
 
-import anyio
-
 from eventiq import CloudEvent, Middleware, Service
 from eventiq.backends.stub import StubBroker
 
@@ -25,5 +23,7 @@ async def example_run(message: CloudEvent):
     print(f"Received Message {message.id} with data: {message.data}")
 
 
-if __name__ == "__main__":
-    anyio.run(service.run)
+@service.subscribe("test.topic")
+async def some_handler(message: CloudEvent):
+    print("received message")
+    await service.publish(CloudEvent(topic="test.topic", data={"some": "data"}))

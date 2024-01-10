@@ -113,15 +113,14 @@ class RetryMiddleware(Middleware):
         result: Any | None = None,
         exc: Exception | None = None,
     ):
-
         if exc is None:
             return
 
         if isinstance(exc, Retry):
             message.raw.delay = exc.delay
             return
-        retry_strategy = consumer.retry_strategy or self.default_retry_strategy
 
+        retry_strategy = consumer.retry_strategy or self.default_retry_strategy
         if retry_strategy is None:
             return
 

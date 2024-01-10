@@ -13,12 +13,12 @@ jobs:
       - run: curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.4.1 python3 -
       - run: poetry install --all-extras
       - run: poetry check
-      - run: poetry run ruff ./eventiq
+      - run: poetry run ruff check ./eventiq
       - run: poetry run black ./eventiq --check
       - run: poetry run isort ./eventiq --check
       - run: poetry run mypy ./eventiq
       - run: poetry run deptry ./eventiq
-      - run: poetry run bandit ./eventiq
+      - run: poetry run bandit -r ./eventiq
 
   build-unix:
     timeout-minutes: 30

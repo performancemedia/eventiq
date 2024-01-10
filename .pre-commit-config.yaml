@@ -20,8 +20,7 @@ repos:
         args: [--allow-multiple-documents]
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    # Ruff version.
-    rev: 'v0.0.264'
+    rev: 'v0.1.11'
     hooks:
       - id: ruff
         args: ["--fix"]

@@ -7,6 +7,7 @@ import aio_pika
 
 from eventiq.broker import Broker
 
+from ...exceptions import BrokerError
 from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 from .settings import RabbitMQSettings
@@ -41,7 +42,6 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         connection_options: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.url = url
         self.default_prefetch_count = default_prefetch_count
@@ -66,6 +66,8 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
 
     @property
     def connection(self) -> aio_pika.RobustConnection:
+        if self._connection is None:
+            raise BrokerError("Not connected")
         return self._connection
 
     @property

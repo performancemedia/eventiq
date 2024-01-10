@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from eventiq.broker import Broker
 
+from ...exceptions import BrokerError
 from ...settings import UrlBrokerSettings
 from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
@@ -44,7 +45,6 @@ class RedisBroker(Broker[RedisRawMessage]):
         connect_options: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.url = url
         self.connect_options = connect_options or {}
@@ -71,7 +71,8 @@ class RedisBroker(Broker[RedisRawMessage]):
 
     @property
     def redis(self) -> Redis:
-        assert self._redis is not None, "Not connected"
+        if self._redis is None:
+            raise BrokerError("Not connected")
         return self._redis
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:

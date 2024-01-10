@@ -29,13 +29,13 @@ PREFIX = "#/components/schemas/"
 
 
 def get_all_models_schema(service: Service):
-
     all_models = [
         (m.event_type, "validation")
         for m in chain(service.consumers.values(), PUBLISH_REGISTRY.values())
     ]
     _, top_level_schema = models_json_schema(
-        all_models, ref_template="#/components/schemas/{model}"  # type: ignore
+        all_models,
+        ref_template="#/components/schemas/{model}",  # type: ignore
     )
     return top_level_schema.get("$defs", {})
 

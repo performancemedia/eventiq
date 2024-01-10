@@ -25,4 +25,7 @@ class DeadLetterQueueMiddleware(Middleware):
         exc: Exception | None = None,
     ) -> None:
         if exc and isinstance(exc, Fail) or message.raw.failed:
-            await service.send(self.topic, self._type, message, **self.kwargs)
+            topic = self.topic.format(
+                message=message, consumer=consumer, service=service, broker=broker
+            )
+            await service.send(topic, self._type, message, **self.kwargs)

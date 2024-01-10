@@ -12,10 +12,10 @@ class DeadLetterQueueMiddleware(Middleware):
         self._dlx_exchange = None
 
     async def after_broker_connect(self, broker: RabbitmqBroker) -> None:  # type: ignore[override]
-        # FIXME: implement properly
-        assert isinstance(
-            broker, RabbitmqBroker
-        ), f"RabbitmqBroker instance expected, got {type(broker).__name__}"
+        if not isinstance(broker, RabbitmqBroker):
+            raise TypeError(
+                f"RabbitmqBroker instance expected, got {type(broker).__name__}"
+            )
         channel = await broker.connection.channel()
         self._dlx_exchange = await channel.declare_exchange(
             name=self.dlx_name, type=ExchangeType.HEADERS, auto_delete=True

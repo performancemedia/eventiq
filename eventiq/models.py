@@ -1,4 +1,3 @@
-import inspect
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Generic, Literal, Optional
 from uuid import UUID, uuid4
@@ -43,14 +42,13 @@ class CloudEvent(BaseModel, Generic[D]):
     _service: Optional["Service"] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
-        if not inspect.isabstract(cls):
+        if not kwargs.get("abstract"):
             if kwargs.get("typed", True):
                 type_name = kwargs.get("type", cls.__name__)
                 cls.model_fields["type"].default = type_name
                 cls.model_fields["type"].annotation = Literal[type_name]
 
             if topic := kwargs.get("topic"):
-                # TODO: use re.match()
                 if any(k in topic for k in ("{", "}", "*", ">")):
                     annotation, default = str, topic
                 else:
@@ -152,3 +150,15 @@ class CloudEvent(BaseModel, Generic[D]):
         extra="allow",
         arbitrary_types_allowed=True,
     )
+
+
+class Event(CloudEvent[D], abstract=True):
+    pass
+
+
+class Command(CloudEvent[D], abstract=True):
+    pass
+
+
+class Query(CloudEvent[D], abstract=True):
+    pass

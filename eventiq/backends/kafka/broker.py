@@ -40,7 +40,6 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         consumer_options: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.bootstrap_servers = bootstrap_servers
         self._publisher_options = publisher_options or {}

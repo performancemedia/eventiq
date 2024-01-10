@@ -48,8 +48,8 @@ class Retry(MessageError):
         self.delay = delay
 
     def __str__(self) -> str:
-        # TODO: make prettier
-        return f"Retry: {self.reason=} {self.delay=}"
+        delay_info = f" delay: {self.delay}" if self.delay else ""
+        return f"Retry(reason: {self.reason}{delay_info})"
 
     def __repr__(self) -> str:
         return str(self)

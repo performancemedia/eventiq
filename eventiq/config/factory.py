@@ -10,7 +10,6 @@ from .models import AppConfig
 
 
 def create_app(config_file: str, section: str | None = None) -> ServiceRunner:
-
     with open(config_file) as f:
         data = f.read()
     formatted = data.format(**os.environ)

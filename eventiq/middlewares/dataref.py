@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Protocol
 from eventiq import Middleware
 
 if TYPE_CHECKING:
-
     from eventiq import Broker, CloudEvent, Consumer, Service
 
 
@@ -24,7 +23,6 @@ class DataRefResolverMiddleware(Middleware):
     async def before_process_message(
         self, broker: Broker, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
-
         if message.dataref and not message.data:
             message.data = await self.storage.load(message.dataref)
 

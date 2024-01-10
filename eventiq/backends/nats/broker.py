@@ -56,7 +56,6 @@ class NatsBroker(Broker[NatsMsg]):
         auto_flush: bool = False,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.url = url
         self.connection_options = connection_options or {}
@@ -139,7 +138,6 @@ class JetStreamBroker(NatsBroker):
         jetstream_options: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.prefetch_count = prefetch_count
         self.fetch_timeout = fetch_timeout

@@ -50,7 +50,6 @@ class Service(AbstractService, LoggerMixin):
         context: dict[str, Any] | None = None,
         async_api_extra: dict[str, Any] | None = None,
     ):
-
         if broker:
             self._brokers = {"default": broker}
         elif brokers:
@@ -132,16 +131,16 @@ class Service(AbstractService, LoggerMixin):
             kwargs["type"] = type_
         else:
             cls = type_
-        broker_ = self._brokers[broker]
+        _broker = self._brokers[broker]
 
         message: CloudEvent = cls(
-            content_type=broker_.encoder.CONTENT_TYPE,
+            content_type=_broker.encoder.CONTENT_TYPE,
             topic=topic,
             data=data,
             source=self.name,
             **kwargs,
         )
-        return await broker_.publish(message)
+        return await _broker.publish(message)
 
     @property
     def consumers(self):
