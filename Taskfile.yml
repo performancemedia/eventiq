@@ -46,11 +46,11 @@ tasks:
   run:
     desc: Run broker (task run -- nats)
     cmds:
-      - docker-compose up -d --force-recreate --remove-orphans {{.CLI_ARGS}}
+      - docker-compose up -f .docker/docker-compose.yml -d --force-recreate --remove-orphans {{.CLI_ARGS}}
   clean:
     desc: Remove build/cache files
     cmds:
-      - rm -rf build/ dist/ .eggs/ *.egg-info/ .mypy_cache/ .pytest_cache/ ./htmlcov report.xml .coverage
+      - rm -rf build/ dist/ .eggs/ *.egg-info/ .mypy_cache/ .pytest_cache/ .ruff_cache/ ./htmlcov ./site report.xml .coverage
 
   release:
     desc: Upload package artifacts

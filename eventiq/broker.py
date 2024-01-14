@@ -18,7 +18,6 @@ from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
 from .types import Encoder, RawMessage, ServerInfo
-from .utils import retry
 
 if TYPE_CHECKING:
     from eventiq import Consumer, Service
@@ -34,7 +33,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
     """
 
     protocol: str
-    protocol_version: str = "unknown"
+    protocol_version: str = ""
 
     Settings = BrokerSettings
 
@@ -155,7 +154,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
             message,
         )
 
-    async def connect(self, **kwargs) -> None:
+    async def connect(self) -> None:
         async with self._lock:
             if not self._running:
                 await self.dispatch_before("broker_connect")
@@ -194,10 +193,6 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
     def add_middlewares(self, middlewares: list[Middleware | type[Middleware]]) -> None:
         for m in middlewares:
             self.add_middleware(m)
-
-    @retry(max_retries=3)
-    async def _dispatch_middleware(self, coro, *args, **kwargs):
-        await coro(self, *args, **kwargs)
 
     async def _dispatch(self, full_event: str, *args, **kwargs) -> None:
         for middleware in self.middlewares:

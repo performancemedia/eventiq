@@ -13,7 +13,6 @@ from gcloud.aio.pubsub import (
 from eventiq.broker import Broker
 
 from ...types import Encoder, ServerInfo
-from ...utils import retry
 from .settings import PubSubSettings
 
 if TYPE_CHECKING:
@@ -73,7 +72,6 @@ class PubSubBroker(Broker[SubscriberMessage]):
     def client(self) -> PublisherClient:
         return self._client
 
-    @retry(max_retries=3)
     async def _publish(
         self,
         message: CloudEvent,

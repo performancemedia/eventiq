@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class DeadLetterQueueMiddleware(Middleware):
     def __init__(self, topic: str = "dlx", type_: str = "MessageFailedEvent", **kwargs):
         self.topic = topic
-        self._type = type_
+        self.type_ = type_
         self.kwargs = kwargs
 
     async def after_process_message(
@@ -28,4 +28,4 @@ class DeadLetterQueueMiddleware(Middleware):
             topic = self.topic.format(
                 message=message, consumer=consumer, service=service, broker=broker
             )
-            await service.send(topic, self._type, message, **self.kwargs)
+            await service.send(topic, self.type_, message, **self.kwargs)

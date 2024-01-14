@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Literal, Union
+from typing import Literal
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -22,18 +21,12 @@ class HealthCheckError(BaseModel):
     detail: Literal["Connection Error"] = "Connection Error"
 
 
-HealthCheckResponseModel = Union[StatusOk, HealthCheckError]
+STATUS_OK = StatusOk().model_dump(exclude_none=True)
+HEALTHCHECK_ERROR = HealthCheckError().model_dump(exclude_none=True)
 
 
 class FastAPIServicePlugin(ServicePlugin, LoggerMixin):
     """Integration with fastapi, allows running service alongside fastapi app"""
-
-    def __init__(
-        self,
-        service: Service,
-    ):
-        super().__init__(service)
-        self._task: asyncio.Task | None = None
 
     def configure_app(
         self,
@@ -59,14 +52,11 @@ class FastAPIServicePlugin(ServicePlugin, LoggerMixin):
     def _add_run_service_events(self, app):
         @app.on_event("startup")
         async def create_service_task():
-            self._task = asyncio.create_task(self.service.start())
+            self.service.start_soon()
 
         @app.on_event("shutdown")
         async def stop_service_task():
-            if self._task:
-                self._task.cancel()
-                await asyncio.wait_for(self._task, timeout=15)
-                await self.service.stop()
+            await self.service.stop()
 
     def _add_broker_connect_events(self, app):
         @app.on_event("startup")
@@ -115,7 +105,8 @@ class FastAPIServicePlugin(ServicePlugin, LoggerMixin):
     def _add_healthcheck(self, app, healthcheck_url):
         @app.get(
             healthcheck_url,
-            response_model=HealthCheckResponseModel,
+            response_model=StatusOk,
+            responses={503: {"model": HealthCheckError}},
             include_in_schema=False,
         )
         def get_broker_connection_status():
@@ -125,10 +116,16 @@ class FastAPIServicePlugin(ServicePlugin, LoggerMixin):
                         raise ConnectionError(
                             f"Broker {broker}: {broker_name} disconnected"
                         )
-                return StatusOk()
+                return JSONResponse(
+                    status_code=200,
+                    content=STATUS_OK,
+                )
             except Exception as e:
                 self.logger.warning("Exception in healthcheck", exc_info=e)
-                return HealthCheckError()
+                return JSONResponse(
+                    status_code=503,
+                    content=HEALTHCHECK_ERROR,
+                )
 
 
 def get_service(request: Request) -> Service:

@@ -50,12 +50,12 @@ class Service(AbstractService, LoggerMixin):
         context: dict[str, Any] | None = None,
         async_api_extra: dict[str, Any] | None = None,
     ):
+        self._brokers = {}
         if broker:
-            self._brokers = {"default": broker}
-        elif brokers:
-            self._brokers = brokers
-        else:
-            raise ValueError("brokers missing")
+            self._brokers["default"] = broker
+        if brokers:
+            self._brokers.update(brokers)
+
         self.name = name
         self.title = title or name.title()
         self.version = version
@@ -66,7 +66,7 @@ class Service(AbstractService, LoggerMixin):
         self.context = context or {}
         self.base_event_class = base_event_class
         self.async_api_extra = async_api_extra or {}
-        self._task_group = None
+        self._task = None
         for p in publish_info:
             PUBLISH_REGISTRY[p.event_type.__name__] = p
 
@@ -175,6 +175,9 @@ class Service(AbstractService, LoggerMixin):
             await broker.disconnect()
             await broker.dispatch_after("service_stop", self)
 
+    def start_soon(self):
+        self._task = asyncio.create_task(self.start())
+
     async def start(self) -> None:
         self.logger.info(f"Starting service {self.name}...")
         await self.connect_all()
@@ -189,6 +192,9 @@ class Service(AbstractService, LoggerMixin):
                 await broker.dispatch_after("service_start", self)
 
     async def stop(self) -> None:
+        if self._task:
+            self._task.cancel()
+            await asyncio.wait_for(self._task, timeout=15)
         await self.disconnect_all()
 
     async def run(self) -> None:

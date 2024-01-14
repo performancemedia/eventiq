@@ -141,3 +141,13 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         if isinstance(self.bootstrap_servers, str):
             return get_safe_url(self.bootstrap_servers)
         return ",".join(get_safe_url(server) for server in self.bootstrap_servers)
+
+    @staticmethod
+    def extra_message_span_attributes(
+        message: aiokafka.ConsumerRecord,
+    ) -> dict[str, str]:
+        return {
+            "messaging.kafka.message.key": str(message.key),
+            "messaging.kafka.message.offset": str(message.offset),
+            "messaging.kafka.destination.partition": str(message.partition),
+        }

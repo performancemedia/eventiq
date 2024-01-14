@@ -131,3 +131,4 @@ secrets/
 tmp/
 asyncapi.yaml
 .idea/
+.vscode/

@@ -63,7 +63,7 @@ class ChannelItem(BaseModel):
 class Server(BaseModel):
     protocol: str
     url: Optional[str] = None
-    protocol_version: str = Field("1.0", alias="protocolVersion")
+    protocol_version: str = Field("", alias="protocolVersion")
     description: Optional[str] = None
 
 

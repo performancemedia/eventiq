@@ -72,7 +72,6 @@ class NatsBroker(Broker[NatsMsg]):
         return {
             "host": parsed.hostname,
             "protocol": parsed.scheme,
-            "protocolVersion": "1.0",
             "pathname": parsed.path,
         }
 
@@ -80,8 +79,11 @@ class NatsBroker(Broker[NatsMsg]):
     def extra_message_span_attributes(message: NatsMsg) -> dict[str, str]:
         try:
             return {
-                "messaging.nats.sequence.consumer": message.metadata.sequence.consumer,
-                "messaging.nats.sequence.stream": message.metadata.sequence.stream,
+                "messaging.nats.sequence.consumer": str(
+                    message.metadata.sequence.consumer
+                ),
+                "messaging.nats.sequence.stream": str(message.metadata.sequence.stream),
+                "message.nats.num_delivered": str(message.metadata.num_delivered),
             }
         except Exception:
             return {}
