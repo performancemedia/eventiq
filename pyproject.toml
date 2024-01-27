@@ -191,3 +191,7 @@ major_on_zero = true
 hvcs = "github"
 commit_message = "Bump version: {version}"
 tag_commit = false
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

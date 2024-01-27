@@ -1,6 +1,5 @@
 from typing import Any, Optional
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .encoder import Encoder
@@ -9,14 +8,10 @@ from .middleware import Middleware
 
 
 class BrokerSettings(BaseSettings):
-    default_consumer_timeout: int = Field(
-        300, validation_alias="DEFAULT_CONSUMER_TIMEOUT"
-    )
+    default_consumer_timeout: int = 300
     description: Optional[str] = None
     middlewares: Optional[list[Middleware]] = None
-    encoder: Optional[ImportedType[Encoder]] = Field(
-        None, validation_alias="ENCODER_CLASS"
-    )
+    encoder: Optional[ImportedType[Encoder]] = None
 
     model_config = SettingsConfigDict(env_prefix="BROKER_")
 

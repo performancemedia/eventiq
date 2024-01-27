@@ -31,11 +31,11 @@ class Consumer(ABC, Generic[CE]):
     """Base consumer class"""
 
     event_type: CE
+    name: str
 
     def __init__(
         self,
         *,
-        name: str,
         topic: str | None = None,
         brokers: tuple[str] = ("default",),
         timeout: int | None = None,
@@ -48,7 +48,6 @@ class Consumer(ABC, Generic[CE]):
         parameters: dict[str, Any] | None = None,
         **options: Any,
     ):
-        self._name = name
         topic = topic or self.event_type.get_default_topic()
         if not topic:
             raise ValueError("Topic expected")
@@ -63,14 +62,13 @@ class Consumer(ABC, Generic[CE]):
         self.encoder = encoder
         self.parameters = parameters or {}
         self.options: dict[str, Any] = options
-        self.logger = get_logger(__name__, name)
+
+    @property
+    def logger(self):
+        return get_logger(__name__, self.name)
 
     def validate_message(self, message: Any) -> CloudEvent:
         return self.event_type.model_validate(message)
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @property
     @abstractmethod
@@ -100,6 +98,7 @@ class FnConsumer(Consumer[CE]):
         if not asyncio.iscoroutinefunction(fn):
             fn = to_async(fn)
         self.fn = fn
+        self.name = name
         super().__init__(name=name, topic=topic, **extra)
 
     async def process(self, message: CE) -> CloudEvent | None:
@@ -116,6 +115,8 @@ class GenericConsumer(Consumer[CE], ABC):
             cls.event_type = cls.__orig_bases__[0].__args__[0]
             if not asyncio.iscoroutinefunction(cls.process):
                 cls.process = to_async(cls.process)
+            if not hasattr(cls, "name") or cls.name is None:
+                cls.name = cls.__name__
 
     @property
     def description(self) -> str:
