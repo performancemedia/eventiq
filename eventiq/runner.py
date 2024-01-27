@@ -16,19 +16,20 @@ class ServiceRunner(LoggerMixin):
         self.services = services
 
     async def run(self) -> None:
-        async with anyio.open_signal_receiver(signal.SIGINT, signal.SIGTERM) as signals:
-            async with anyio.create_task_group() as tg:
-                try:
-                    for service in self.services:
-                        tg.start_soon(service.start)
-                except Exception as e:
-                    self.logger.exception("Unhandled exception", exc_info=e)
-                    return
+        async with anyio.open_signal_receiver(
+            signal.SIGINT, signal.SIGTERM
+        ) as signals, anyio.create_task_group() as tg:
+            try:
+                for service in self.services:
+                    tg.start_soon(service.start)
+            except Exception as e:
+                self.logger.exception("Unhandled exception", exc_info=e)
+                return
 
-                async for _ in signals:
-                    self.logger.info("Exiting...")
-                    await tg.cancel_scope.cancel()
-                    async with anyio.move_on_after(30, shield=True):
-                        for service in self.services:
-                            await service.stop()
-                    return
+            async for _ in signals:
+                self.logger.info("Exiting...")
+                await tg.cancel_scope.cancel()
+                async with anyio.move_on_after(30, shield=True):
+                    for service in self.services:
+                        await service.stop()
+                return

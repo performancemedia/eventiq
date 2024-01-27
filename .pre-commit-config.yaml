@@ -25,6 +25,12 @@ repos:
       - id: ruff
         args: ["--fix"]
 
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.1.11'
+    hooks:
+      - id: ruff
+        args: ["format"]
+
   - repo: https://github.com/pycqa/isort
     rev: 5.11.5
     hooks:
