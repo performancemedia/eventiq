@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 CE = TypeVar("CE", bound=CloudEvent)
 
-FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional["CloudEvent"]]]
+FT = Callable[["CloudEvent"], Union[Awaitable[Any], Optional["CloudEvent"]]]
 MessageHandlerT = Union[type["GenericConsumer"], FT]
 
 
@@ -31,11 +31,11 @@ class Consumer(ABC, Generic[CE]):
     """Base consumer class"""
 
     event_type: CE
-    name: str
 
     def __init__(
         self,
         *,
+        name: str,
         topic: str | None = None,
         brokers: tuple[str] = ("default",),
         timeout: int | None = None,
@@ -51,6 +51,7 @@ class Consumer(ABC, Generic[CE]):
         topic = topic or self.event_type.get_default_topic()
         if not topic:
             raise ValueError("Topic expected")
+        self.name = name
         self.brokers = brokers
         self.topic = topic
         self.timeout = timeout
@@ -62,10 +63,7 @@ class Consumer(ABC, Generic[CE]):
         self.encoder = encoder
         self.parameters = parameters or {}
         self.options: dict[str, Any] = options
-
-    @property
-    def logger(self):
-        return get_logger(__name__, self.name)
+        self.logger = get_logger(__name__, self.name)
 
     def validate_message(self, message: Any) -> CloudEvent:
         return self.event_type.model_validate(message)
@@ -76,7 +74,7 @@ class Consumer(ABC, Generic[CE]):
         raise NotImplementedError
 
     @abstractmethod
-    async def process(self, message: CE) -> CloudEvent | None:
+    async def process(self, message: CE) -> Any:
         raise NotImplementedError
 
 
@@ -84,9 +82,7 @@ class FnConsumer(Consumer[CE]):
     def __init__(
         self,
         *,
-        topic: str,
         fn: FT,
-        name: str,
         **extra: Any,
     ) -> None:
         event_type = resolve_message_type_hint(fn)
@@ -98,10 +94,9 @@ class FnConsumer(Consumer[CE]):
         if not asyncio.iscoroutinefunction(fn):
             fn = to_async(fn)
         self.fn = fn
-        self.name = name
-        super().__init__(name=name, topic=topic, **extra)
+        super().__init__(**extra)
 
-    async def process(self, message: CE) -> CloudEvent | None:
+    async def process(self, message: CE) -> Any:
         return await self.fn(message)
 
     @property
@@ -115,8 +110,6 @@ class GenericConsumer(Consumer[CE], ABC):
             cls.event_type = cls.__orig_bases__[0].__args__[0]
             if not asyncio.iscoroutinefunction(cls.process):
                 cls.process = to_async(cls.process)
-            if not hasattr(cls, "name") or cls.name is None:
-                cls.name = cls.__name__
 
     @property
     def description(self) -> str:
