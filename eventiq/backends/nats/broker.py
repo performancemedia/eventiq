@@ -16,12 +16,11 @@ from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError, PublishError
 
 from ...message import Message
-from ...types import Encoder, ServerInfo
-from ...utils import get_safe_url, retry
+from ...utils import get_safe_url
 from .settings import JetStreamSettings, NatsSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
 class JsMessageProxy(Message[NatsMsg]):
@@ -107,7 +106,6 @@ class NatsBroker(Broker[NatsMsg]):
     async def _connect(self) -> None:
         await self.client.connect(self.url, **self.connection_options)
 
-    @retry(max_retries=3)
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         data = self.encoder.encode(message.model_dump())
         await self.client.publish(message.topic, data, **kwargs)
@@ -150,7 +148,6 @@ class JetStreamBroker(NatsBroker):
     def message_proxy_class(self) -> type[Message]:
         return JsMessageProxy
 
-    @retry(max_retries=3)
     async def _publish(
         self,
         message: CloudEvent,

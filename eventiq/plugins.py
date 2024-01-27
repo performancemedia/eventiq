@@ -10,7 +10,7 @@ from .broker import Broker
 from .logger import LoggerMixin
 from .service import Service
 
-BrokerT = TypeVar("BrokerT", bound=Broker)
+T = TypeVar("T", bound=Broker)
 
 
 class ServicePlugin(LoggerMixin):
@@ -18,6 +18,6 @@ class ServicePlugin(LoggerMixin):
         self.service = service
 
 
-class BrokerPlugin(Generic[BrokerT], LoggerMixin):
-    def __init__(self, broker: BrokerT) -> None:
+class BrokerPlugin(Generic[T], LoggerMixin):
+    def __init__(self, broker: T) -> None:
         self.broker = broker

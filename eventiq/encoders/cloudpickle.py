@@ -3,18 +3,25 @@ from typing import Any
 
 import cloudpickle
 
+from eventiq import Encoder
+from eventiq.exceptions import DecodeError, EncodeError
 
-class CloudPickleEncoder:
+
+class CloudPickleEncoder(Encoder):
     """
     CloudPickle encoder implementation
     """
 
     CONTENT_TYPE = "application/octet-stream"
 
-    @staticmethod
-    def encode(data: Any) -> bytes:
-        return cloudpickle.dumps(data)
+    def encode(self, data: Any) -> bytes:
+        try:
+            return cloudpickle.dumps(data)
+        except Exception as e:
+            raise EncodeError from e
 
-    @staticmethod
-    def decode(data: bytes) -> Any:
-        return pickle.loads(data)  # nosec
+    def decode(self, data: bytes) -> Any:
+        try:
+            return pickle.loads(data)  # nosec
+        except (pickle.UnpicklingError, TypeError) as e:
+            raise DecodeError from e

@@ -42,6 +42,7 @@ service = Service(
         )
     ],
     tags_metadata=[{"name": "tag1", "description": "Some tag 1"}],
+    context={"db": "MY Database"},
 )
 
 
@@ -64,6 +65,7 @@ broker.add_middleware(SendMessageMiddleware())
 @service.subscribe("test.topic.{param}.*", tags=["tag1"])
 async def example_handler(message: MyEvent):
     """Consumer for processing MyEvent(s)"""
+    # message.params.param
     print(f"Received Message {message.id} with data: {message.data}")
 
 

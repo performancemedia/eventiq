@@ -1,6 +1,9 @@
-from eventiq.types import Encoder
+import functools
+
+from ..encoder import Encoder
 
 
+@functools.cache
 def get_default_encoder() -> Encoder:
     try:
         from eventiq.encoders.orjson import OrjsonEncoder

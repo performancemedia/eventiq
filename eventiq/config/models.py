@@ -3,9 +3,10 @@ from typing import Any, Callable, Generic, Optional, TypeVar
 from pydantic import BaseModel, ConfigDict
 
 from eventiq import Broker
-from eventiq.consumer import FnConsumer, GenericConsumer
+from eventiq.consumer import FnConsumer, GenericConsumer, MessageHandlerT
+from eventiq.encoder import Encoder
 from eventiq.imports import ImportedType
-from eventiq.types import Encoder, MessageHandlerT, TagMeta
+from eventiq.types import TagMeta
 
 
 def resolve_nested(v: Any):

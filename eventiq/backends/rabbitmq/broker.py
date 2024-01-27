@@ -8,12 +8,11 @@ import aio_pika
 from eventiq.broker import Broker
 
 from ...exceptions import BrokerError
-from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 from .settings import RabbitMQSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
 class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):

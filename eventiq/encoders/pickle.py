@@ -1,8 +1,11 @@
 import pickle  # nosec
 from typing import Any
 
+from eventiq import Encoder
+from eventiq.exceptions import DecodeError, EncodeError
 
-class PickleEncoder:
+
+class PickleEncoder(Encoder):
     """
     Pickle encoder implementation. Allows to pass/serialize python native objects,
     but it is not recommended. See warning: <https://docs.python.org/3/library/pickle.html>
@@ -10,10 +13,14 @@ class PickleEncoder:
 
     CONTENT_TYPE = "application/octet-stream"
 
-    @staticmethod
-    def encode(data: Any) -> bytes:
-        return pickle.dumps(data)
+    def encode(self, data: Any) -> bytes:
+        try:
+            return pickle.dumps(data)
+        except Exception as e:
+            raise EncodeError from e
 
-    @staticmethod
-    def decode(data: bytes) -> Any:
-        return pickle.loads(data)  # nosec
+    def decode(self, data: bytes) -> Any:
+        try:
+            return pickle.loads(data)  # nosec
+        except (pickle.UnpicklingError, TypeError) as e:
+            raise DecodeError from e

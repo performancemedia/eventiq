@@ -10,9 +10,9 @@ from eventiq.broker import Broker
 from eventiq.middleware import Middleware
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, Service
     from eventiq.message import Message
-    from eventiq.types import Encoder, ServerInfo
+    from eventiq.types import ServerInfo
 
 
 @dataclass

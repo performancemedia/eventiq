@@ -3,9 +3,9 @@ from typing import Any, Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .encoder import Encoder
 from .imports import ImportedType
 from .middleware import Middleware
-from .types import Encoder
 
 
 class BrokerSettings(BaseSettings):

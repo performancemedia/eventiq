@@ -1,16 +1,18 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Generic, Literal, Optional
+from typing import TYPE_CHECKING, Any, Generic, Literal, Optional, TypeVar
 from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from pydantic.fields import FieldInfo
 
 from .message import Message
-from .types import D
-from .utils import utc_now
+from .utils import format_topic, utc_now
 
 if TYPE_CHECKING:
     from .service import Service
+
+
+D = TypeVar("D", bound=Any)
 
 
 class CloudEvent(BaseModel, Generic[D]):
@@ -37,7 +39,6 @@ class CloudEvent(BaseModel, Generic[D]):
         None, description="Optional reference (URI) to event payload"
     )
 
-    _topic_parts: list[str] = PrivateAttr(None)
     _raw: Optional[Any] = PrivateAttr(None)
     _service: Optional["Service"] = PrivateAttr(None)
 
@@ -49,17 +50,28 @@ class CloudEvent(BaseModel, Generic[D]):
                 cls.model_fields["type"].annotation = Literal[type_name]
 
             if topic := kwargs.get("topic"):
+                kw = {
+                    "alias": "subject",
+                    "description": "Message subject",
+                    "validate_default": True,
+                }
                 if any(k in topic for k in ("{", "}", "*", ">")):
-                    annotation, default = str, topic
+                    kw.update(
+                        {
+                            "annotation": str,
+                            "default": topic,
+                            "pattern": format_topic(topic),
+                        }
+                    )
                 else:
-                    annotation, default = Literal[topic], topic
-                cls.model_fields["topic"] = FieldInfo(
-                    default=default,
-                    annotation=annotation,
-                    alias="subject",
-                    description="Message subject",
-                    validate_default=True,
-                )
+                    kw.update(
+                        {
+                            "annotation": Literal[topic],
+                            "default": topic,
+                        }
+                    )
+
+                cls.model_fields["topic"] = FieldInfo(**kw)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, CloudEvent):
@@ -87,12 +99,6 @@ class CloudEvent(BaseModel, Generic[D]):
     def get_default_content_type(cls) -> Optional[str]:
         return cls.model_fields["content_type"].get_default()
 
-    @property
-    def topic_split(self) -> list[str]:
-        if self._topic_parts is None:
-            self._topic_parts = self.topic.split(".")
-        return self._topic_parts
-
     @field_validator("type", mode="before")
     @classmethod
     def get_default_type(cls, value, info):
@@ -103,7 +109,7 @@ class CloudEvent(BaseModel, Generic[D]):
     @property
     def raw(self) -> Message:
         if self._raw is None:
-            raise AttributeError("raw property accessible only for incoming messages")
+            raise ValueError("raw property accessible only for incoming messages")
         return self._raw
 
     @raw.setter
@@ -127,6 +133,7 @@ class CloudEvent(BaseModel, Generic[D]):
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         kwargs.setdefault("exclude_none", True)
+        kwargs.setdefault("exclude", {"parameters"})
         return super().model_dump(**kwargs)
 
     @classmethod

@@ -17,6 +17,8 @@ class DataRefStorage(Protocol):
 
 
 class DataRefResolverMiddleware(Middleware):
+    throws = ()
+
     def __init__(self, storage: DataRefStorage):
         self.storage = storage
 

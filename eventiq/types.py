@@ -1,31 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Optional,
-    Protocol,
-    TypedDict,
-    TypeVar,
-    Union,
-    runtime_checkable,
-)
+from typing import Any, Optional, Protocol, TypedDict, Union
 from uuid import UUID
-
-if TYPE_CHECKING:
-    from . import CloudEvent, GenericConsumer
-
 
 ID = Union[UUID, str]
 
-
-RawMessage = TypeVar("RawMessage")
-
-CE = TypeVar("CE", bound="CloudEvent")
-D = TypeVar("D")
 
 Tags = Optional[list[Union[str, Enum]]]
 
@@ -40,35 +20,6 @@ class ServerInfo(TypedDict, total=False):
 class TagMeta(TypedDict):
     name: str
     description: str
-
-
-@runtime_checkable
-class Encoder(Protocol):
-    """
-    Encoder object protocol.
-    """
-
-    CONTENT_TYPE: str
-
-    def encode(self, data: Any) -> bytes:
-        """
-        Serialize object to bytes
-        :param data: input value, usually CloudEvent.model_dump()
-        :return: raw content as bytes
-        """
-
-    def decode(self, data: bytes) -> Any:
-        """
-        Deserialize bytes to python object
-        :param data: input bytes
-        :return: de-serialized object
-        """
-
-
-FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional["CloudEvent"]]]
-MessageHandlerT = Union[type["GenericConsumer"], FT]
-
-ExcHandler = Callable[["CloudEvent", Exception], Awaitable]
 
 
 class ResultBackend(Protocol):

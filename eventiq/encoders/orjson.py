@@ -3,18 +3,19 @@ from typing import Any
 import orjson
 from pydantic_core import to_jsonable_python
 
+from eventiq import Encoder
+
 from ..exceptions import DecodeError, EncodeError
 
 
-class OrjsonEncoder:
+class OrjsonEncoder(Encoder):
     """
     Json encoder which utilizes orjson library.
     """
 
     CONTENT_TYPE = "application/json"
 
-    @staticmethod
-    def encode(data: Any) -> bytes:
+    def encode(self, data: Any) -> bytes:
         try:
             return orjson.dumps(
                 data,
@@ -24,8 +25,7 @@ class OrjsonEncoder:
         except TypeError as e:
             raise EncodeError from e
 
-    @staticmethod
-    def decode(data: bytes) -> Any:
+    def decode(self, data: bytes) -> Any:
         try:
             return orjson.loads(data)
         except orjson.JSONDecodeError as e:

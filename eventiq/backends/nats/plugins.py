@@ -1,33 +1,29 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from nats.js.errors import KeyNotFoundError
 from nats.js.kv import KeyValue
 
+from eventiq import CloudEvent, Consumer, Service
 from eventiq.backends.nats.broker import JetStreamBroker
 from eventiq.middleware import Middleware
 from eventiq.plugins import BrokerPlugin
 from eventiq.types import ID, ResultBackend
-from eventiq.utils import retry
-
-if TYPE_CHECKING:
-    from eventiq import Broker, CloudEvent, Consumer, Service
 
 
-class _NatsJetStreamResultMiddleware(Middleware):
+class _NatsJetStreamResultMiddleware(Middleware[JetStreamBroker]):
     def __init__(self, result_backend: JetStreamResultBackend):
         self.result_backend = result_backend
 
-    async def after_service_start(self, broker: Broker, service: Service):
+    async def after_service_start(self, broker: JetStreamBroker, service: Service):
         self.result_backend.buckets[service.name] = await broker.js.create_key_value(  # type: ignore[attr-defined]
             bucket=service.name, **self.result_backend.options
         )
 
-    @retry(max_retries=3, backoff=10)
     async def after_process_message(
         self,
-        broker: Broker,
+        broker: JetStreamBroker,
         service: Service,
         consumer: Consumer,
         message: CloudEvent,
@@ -65,7 +61,6 @@ class JetStreamResultBackend(BrokerPlugin[JetStreamBroker], ResultBackend):
         self.broker.add_middleware(_NatsJetStreamResultMiddleware(self))
         self.buckets: dict[str, KeyValue] = {}
 
-    @retry(max_retries=3)
     async def _get(self, kv: KeyValue, key: ID) -> Any:
         return await kv.get(str(key))
 

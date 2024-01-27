@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Generic
+from typing import Generic, TypeVar
 
-from .types import RawMessage
+RawMessage = TypeVar("RawMessage")
 
 
 class Message(Generic[RawMessage]):

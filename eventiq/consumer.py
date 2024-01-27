@@ -3,16 +3,23 @@ from __future__ import annotations
 import asyncio
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Generic, get_type_hints
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, TypeVar, Union
 
+from .encoder import Encoder
 from .logger import get_logger
 from .models import CloudEvent
-from .types import CE, FT, Encoder, MessageHandlerT, Tags
-from .utils import to_async
+from .types import Tags
+from .utils import resolve_message_type_hint, to_async
 
 if TYPE_CHECKING:
     from .middlewares.retries import RetryStrategy
+
+CE = TypeVar("CE", bound=CloudEvent)
+
+FT = Callable[["CloudEvent"], Union[Awaitable[Optional[Any]], Optional["CloudEvent"]]]
+MessageHandlerT = Union[type["GenericConsumer"], FT]
 
 
 @dataclass
@@ -84,7 +91,7 @@ class FnConsumer(Consumer[CE]):
         name: str,
         **extra: Any,
     ) -> None:
-        event_type = get_type_hints(fn).get("message")
+        event_type = resolve_message_type_hint(fn)
         if not event_type:
             raise TypeError(
                 "Unable to resolve type hint for 'message' in %s", fn.__name__

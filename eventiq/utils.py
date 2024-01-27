@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import re
 import socket
 import time
 from collections.abc import Awaitable
 from datetime import datetime, timezone
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, get_type_hints
 from urllib.parse import urlparse
 
 import anyio
@@ -92,3 +93,32 @@ def get_safe_url(url: str) -> str:
             )
         )
     return parsed.geturl()
+
+
+def resolve_message_type_hint(func):
+    hints = get_type_hints(func)
+    hints.pop("return", None)
+    if "message" in hints:
+        return hints["message"]
+    try:
+        return next(iter(hints.values()))
+    except StopIteration:
+        return None
+
+
+TOPIC_PATTERN = re.compile(r"{\w+}")
+
+
+def format_topic(
+    topic: str, wildcard_one: str = r"\w+", wildcard_many: str = r"*"
+) -> str:
+    result = []
+
+    for k in topic.split("."):
+        if re.fullmatch(TOPIC_PATTERN, k):
+            result.append(wildcard_one)
+        elif k in {"*", ">"}:
+            result.append(wildcard_many)
+        else:
+            result.append(k)
+    return ".".join(filter(None, result))

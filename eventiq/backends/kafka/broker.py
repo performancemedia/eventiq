@@ -9,12 +9,11 @@ import anyio
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
 
-from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 from .settings import KafkaSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
 class KafkaBroker(Broker[aiokafka.ConsumerRecord]):

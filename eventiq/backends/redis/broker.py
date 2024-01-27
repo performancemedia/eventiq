@@ -9,11 +9,10 @@ from eventiq.broker import Broker
 
 from ...exceptions import BrokerError
 from ...settings import UrlBrokerSettings
-from ...types import Encoder, ServerInfo
 from ...utils import get_safe_url
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
 class RMessage(TypedDict):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Callable
@@ -8,18 +9,18 @@ from typing import TYPE_CHECKING, Any, Callable
 import anyio
 
 from .asyncapi import PUBLISH_REGISTRY
-from .consumer import Consumer, ConsumerGroup
+from .consumer import Consumer, ConsumerGroup, ReplyTo
 from .logger import LoggerMixin
 from .models import CloudEvent
 from .settings import ServiceSettings
 from .utils import generate_instance_id
 
 if TYPE_CHECKING:
-    from eventiq import Broker
+    from eventiq import Broker, Encoder
 
     from .asyncapi import PublishInfo
     from .middlewares.retries import RetryStrategy
-    from .types import Encoder, TagMeta, Tags
+    from .types import TagMeta, Tags
 
 
 class AbstractService(ABC):
@@ -89,7 +90,7 @@ class Service(AbstractService, LoggerMixin):
         brokers: tuple[str] = ("default",),
         timeout: int | None = None,
         dynamic: bool = False,
-        forward_response: bool = False,
+        reply_to: ReplyTo | None = None,
         tags: Tags = None,
         retry_strategy: RetryStrategy | None = None,
         store_results: bool = False,
@@ -103,7 +104,7 @@ class Service(AbstractService, LoggerMixin):
             brokers=brokers,
             timeout=timeout,
             dynamic=dynamic,
-            forward_response=forward_response,
+            reply_to=reply_to,
             tags=tags,
             retry_strategy=retry_strategy,
             store_results=store_results,
@@ -157,8 +158,10 @@ class Service(AbstractService, LoggerMixin):
     async def publish_to_multiple(
         self, message: CloudEvent, brokers: tuple[str], **kwargs
     ) -> None:
-        for broker in brokers:
-            await self.publish(message, broker, **kwargs)
+        async with anyio.create_task_group() as tg:
+            for broker in brokers:
+                fn = functools.partial(self.publish, message, broker, **kwargs)
+                tg.start_soon(fn)
 
     def publish_sync(self, message: CloudEvent, **kwargs) -> None:
         loop = asyncio.get_event_loop()

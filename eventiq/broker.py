@@ -10,17 +10,18 @@ from typing import TYPE_CHECKING, Any, Callable, Generic
 import anyio
 from pydantic import ValidationError
 
+from .encoder import Encoder
 from .exceptions import DecodeError, Fail, Skip
 from .imports import import_from_string
 from .logger import LoggerMixin
-from .message import Message
+from .message import Message, RawMessage
 from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
-from .types import Encoder, RawMessage, ServerInfo
+from .utils import format_topic
 
 if TYPE_CHECKING:
-    from eventiq import Consumer, Service
+    from eventiq import Consumer, ServerInfo, Service
 
 TOPIC_PATTERN = re.compile(r"{\w+}")
 
@@ -272,12 +273,4 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         """Reject (requeue) message. Defaults to no-op like ._ack()"""
 
     def format_topic(self, topic: str) -> str:
-        result = []
-        for k in topic.split("."):
-            if re.fullmatch(TOPIC_PATTERN, k):
-                result.append(self.WILDCARD_ONE)
-            elif k in {"*", ">"}:
-                result.append(self.WILDCARD_MANY)
-            else:
-                result.append(k)
-        return ".".join(filter(None, result))
+        return format_topic(topic, self.WILDCARD_ONE, self.WILDCARD_MANY)

@@ -1,7 +1,24 @@
 import asyncio
+from typing import Any, Literal
+
+from pydantic import BaseModel
 
 from eventiq import CloudEvent, Middleware, Service
 from eventiq.backends.stub import StubBroker
+from eventiq.parameters import params
+
+
+class TestParams(BaseModel):
+    action: Literal["create", "update", "delete"]
+    region: str
+
+
+@params(TestParams)
+class SomeEvent(CloudEvent[Any], topic="events.{region}.users.{action}"):
+    some_attribute: str = "some value"
+
+
+event = SomeEvent(...)
 
 
 class SendMessageMiddleware(Middleware):

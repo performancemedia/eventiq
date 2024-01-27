@@ -12,11 +12,10 @@ from gcloud.aio.pubsub import (
 
 from eventiq.broker import Broker
 
-from ...types import Encoder, ServerInfo
 from .settings import PubSubSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
 class PubSubBroker(Broker[SubscriberMessage]):
