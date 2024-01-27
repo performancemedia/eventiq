@@ -5,7 +5,7 @@ import inspect
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, Union
 
 from .encoder import Encoder
 from .logger import get_logger
@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 
 CE = TypeVar("CE", bound=CloudEvent)
 
-FT = Callable[["CloudEvent"], Union[Awaitable[Any], Optional["CloudEvent"]]]
-MessageHandlerT = Union[type["GenericConsumer"], FT]
+FT = Callable[["CloudEvent"], Awaitable[Any]]
 
 
 @dataclass
@@ -114,6 +113,9 @@ class GenericConsumer(Consumer[CE], ABC):
     @property
     def description(self) -> str:
         return self.__doc__ or ""
+
+
+MessageHandlerT = Union[type[GenericConsumer], FT]
 
 
 class ConsumerGroup:

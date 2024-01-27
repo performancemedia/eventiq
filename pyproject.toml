@@ -161,7 +161,7 @@ ignore = [
     "E501", # line too long
 ]
 fixable = ["ALL"]
-unfixable = ["F401"]
+unfixable = []
 
 [tool.ruff.format]
 quote-style = "double"
