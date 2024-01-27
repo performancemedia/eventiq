@@ -169,10 +169,3 @@ class Command(CloudEvent[D], abstract=True):
 
 class Query(CloudEvent[D], abstract=True):
     pass
-
-
-class MyEvent(Event[str]):
-    pass
-
-
-event = MyEvent.new("test")

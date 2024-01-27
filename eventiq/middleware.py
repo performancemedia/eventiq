@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from .logger import LoggerMixin
 
 if TYPE_CHECKING:
-    from eventiq import Broker, CloudEvent, Consumer, Message, Service
+    from eventiq import Broker, CloudEvent, Consumer, Message, RawMessage, Service
 
 
 T = TypeVar("T", bound="Broker")
@@ -88,6 +88,11 @@ class Middleware(Generic[T], LoggerMixin):
         self, broker: T, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
         """Called after message is skipped by the middleware"""
+
+    async def before_validate_message(
+        self, broker: T, service: Service, consumer: Consumer, message: RawMessage
+    ) -> None:
+        """Called before message is validated"""
 
     async def before_process_message(
         self, broker: T, service: Service, consumer: Consumer, message: CloudEvent
