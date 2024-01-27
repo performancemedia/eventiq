@@ -83,6 +83,9 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
             encoder = consumer.encoder or self.encoder
             try:
                 parsed = self.parse_incoming_message(raw_message, encoder)
+                await self.dispatch_before(
+                    "validate_message", service, consumer, parsed
+                )
                 message = consumer.validate_message(parsed)
                 message.raw = msg
                 message.service = service

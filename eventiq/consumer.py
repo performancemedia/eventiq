@@ -110,10 +110,6 @@ class GenericConsumer(Consumer[CE], ABC):
             if not asyncio.iscoroutinefunction(cls.process):
                 cls.process = to_async(cls.process)
 
-    @classmethod
-    def get_name(cls):
-        return getattr(cls, "name", cls.__name__)
-
     @property
     def description(self) -> str:
         return self.__doc__ or ""
@@ -153,15 +149,18 @@ class ConsumerGroup:
         **options,
     ) -> Callable[[MessageHandlerT], MessageHandlerT]:
         def wrapper(func_or_cls: MessageHandlerT) -> MessageHandlerT:
+            nonlocal name
             cls: type[Consumer] = FnConsumer
             if isinstance(func_or_cls, type) and issubclass(
                 func_or_cls, GenericConsumer
             ):
                 cls = func_or_cls
-                name_ = name or str(getattr(func_or_cls, "name", type(self).__name__))
+                if name is None:
+                    name = getattr(cls, "name", cls.__name__)
             elif callable(func_or_cls):
                 options["fn"] = func_or_cls
-                name_ = name or func_or_cls.__name__
+                if name is None:
+                    name = func_or_cls.__name__
             else:
                 raise TypeError("Expected function or GenericConsumer")
             for k, v in self.options.items():
@@ -169,7 +168,7 @@ class ConsumerGroup:
 
             consumer = cls(
                 topic=topic,
-                name=name_,
+                name=name,
                 brokers=brokers,
                 reply_to=reply_to,
                 timeout=timeout,

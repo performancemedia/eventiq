@@ -90,7 +90,7 @@ class Middleware(Generic[T], LoggerMixin):
         """Called after message is skipped by the middleware"""
 
     async def before_validate_message(
-        self, broker: T, service: Service, consumer: Consumer, message: RawMessage
+        self, broker: T, service: Service, consumer: Consumer, raw_message: RawMessage
     ) -> None:
         """Called before message is validated"""
 

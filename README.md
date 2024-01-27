@@ -12,7 +12,6 @@
 ![Python](https://img.shields.io/pypi/pyversions/eventiq)
 ![Format](https://img.shields.io/pypi/format/eventiq)
 ![PyPi](https://img.shields.io/pypi/v/eventiq)
-![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json)](https://github.com/charliermarsh/ruff)
 
@@ -115,7 +114,7 @@ or web server like gunicorn.
 - Code hot-reload
 - Highly scalable: each service can process hundreds of tasks concurrently,
     all messages are load balanced between all instances by default
-- Resilient - at least once delivery for all messages by default 
+- Resilient - at least once delivery for all messages by default
 - Customizable & pluggable message encoders (json, msgpack, custom)
 - Multiple broker support (Nats, Kafka, Rabbitmq, Redis, PubSub, and more coming)
 - Easily extensible via Middlewares and Plugins
@@ -124,8 +123,3 @@ or web server like gunicorn.
 - Twelve factor app approach - stdout logging, configuration through environment variables
 - Out-of-the-box integration with Prometheus (metrics) and OpenTelemetry (tracing)
 - Application bootstrap via `.yaml` file (see examples/configuration)
-
-
-## TODOS:
-- runtime dynamic/ephemeral consumers
-- refactor task_group() consumers to channel like style processing
