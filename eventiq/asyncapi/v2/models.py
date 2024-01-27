@@ -1,8 +1,7 @@
 from typing import Any, Optional
 
-from pydantic import AnyUrl
+from pydantic import AnyUrl, ConfigDict, Field
 from pydantic import BaseModel as _BaseModel
-from pydantic import ConfigDict, Field
 
 
 class BaseModel(_BaseModel):
