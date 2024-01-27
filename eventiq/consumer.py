@@ -110,6 +110,10 @@ class GenericConsumer(Consumer[CE], ABC):
             if not asyncio.iscoroutinefunction(cls.process):
                 cls.process = to_async(cls.process)
 
+    @classmethod
+    def get_name(cls):
+        return getattr(cls, "name", cls.__name__)
+
     @property
     def description(self) -> str:
         return self.__doc__ or ""
