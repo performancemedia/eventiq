@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import functools
 import re
 import socket
@@ -15,6 +14,8 @@ from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R", bound=Any)
+
+TOPIC_PATTERN = re.compile(r"{\w+}")
 
 
 def utc_now() -> datetime:
@@ -35,51 +36,6 @@ def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
         if not kwargs:
             return anyio.to_thread.run_sync(func, *args)
         return anyio.to_thread.run_sync(functools.partial(func, *args, **kwargs))
-
-    return wrapper
-
-
-def retry(max_retries: int = 5, backoff: int = 2):
-    def _wrapper(
-        func: Callable[P, R] | Callable[P, Awaitable[R]],
-    ) -> Callable[P, R] | Callable[P, Awaitable[R]]:
-        if asyncio.iscoroutinefunction(func):
-            return _retry_async(func, max_retries, backoff)
-
-        return _retry_sync(func, max_retries, backoff)
-
-    return _wrapper
-
-
-def _retry_async(
-    func: Callable[P, Awaitable[R]] | Callable[P, R], max_retries: int, backoff: int
-) -> Callable[P, R] | Callable[P, Awaitable[R]]:
-    @functools.wraps(func)
-    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        exc = None
-        for i in range(1, max_retries + 1):
-            try:
-                return await func(*args, **kwargs)
-            except Exception as e:
-                exc = e
-                await asyncio.sleep(backoff**i)
-        else:
-            raise exc  # type: ignore
-
-    return wrapper
-
-
-def _retry_sync(func: Callable[P, R], max_retries: int, backoff: int) -> Callable[P, R]:
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        exc = None
-        for i in range(1, max_retries + 1):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                exc = e
-                time.sleep(i**backoff)
-        raise exc
 
     return wrapper
 
@@ -106,12 +62,7 @@ def resolve_message_type_hint(func):
         return None
 
 
-TOPIC_PATTERN = re.compile(r"{\w+}")
-
-
-def format_topic(
-    topic: str, wildcard_one: str = r"\w+", wildcard_many: str = r"*"
-) -> str:
+def format_topic(topic: str, wildcard_one: str, wildcard_many: str) -> str:
     result = []
 
     for k in topic.split("."):
@@ -122,3 +73,17 @@ def format_topic(
         else:
             result.append(k)
     return ".".join(filter(None, result))
+
+
+def get_topic_regex(topic: str) -> str:
+    result = []
+
+    for k in topic.split("."):
+        if re.fullmatch(TOPIC_PATTERN, k):
+            result.append(r"\w+")
+
+        elif k in {"*", ">"}:
+            result.append(r"*")
+        else:
+            result.append(k)
+    return r"^{}$".format(r"\.".join(result))

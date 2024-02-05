@@ -70,6 +70,7 @@ do not support `asyncio`. This is why this project was born.
 
 
 ```python
+# main.py
 import asyncio
 from eventiq import Service, CloudEvent, Middleware
 from eventiq.backends.nats.broker import JetStreamBroker
@@ -92,13 +93,12 @@ service = Service(name="example-service", broker=broker)
 async def example_run(message: CloudEvent):
     print(f"Received Message {message.id} with data: {message.data}")
 
-
-if __name__ == "__main__":
-    # or use cli: eventiq run main:service
-    service.run()
-
 ```
+## Running the service
 
+```shell
+eventiq run main:service
+```
 
 ## Scaling
 

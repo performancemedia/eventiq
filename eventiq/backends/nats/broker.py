@@ -158,7 +158,7 @@ class JetStreamBroker(NatsBroker):
         timeout = kwargs.get("timeout")
         stream = kwargs.get("stream")
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
-        headers["Nats-Msg-Id"] = str(message.id)
+        headers.setdefault("Nats-Msg-Id", str(message.id))
         try:
             await self.js.publish(
                 subject=message.topic,
@@ -168,7 +168,7 @@ class JetStreamBroker(NatsBroker):
                 headers=headers,
             )
             if self._auto_flush:
-                await self.client.flush()
+                await self.flush()
         except Exception as e:
             raise PublishError from e
 

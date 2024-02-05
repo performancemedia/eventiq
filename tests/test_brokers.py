@@ -11,3 +11,8 @@ backends = [NatsBroker, JetStreamBroker, KafkaBroker, RabbitmqBroker]
 @pytest.mark.parametrize("broker", backends)
 def test_is_subclass(broker):
     assert issubclass(broker, Broker)
+
+
+@pytest.mark.parametrize("broker", backends)
+def test_from_env(broker):
+    broker.from_env()

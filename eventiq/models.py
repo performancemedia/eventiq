@@ -6,7 +6,7 @@ from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_va
 from pydantic.fields import FieldInfo
 
 from .message import Message
-from .utils import format_topic, utc_now
+from .utils import get_topic_regex, utc_now
 
 if TYPE_CHECKING:
     from .service import Service
@@ -60,7 +60,7 @@ class CloudEvent(BaseModel, Generic[D]):
                         {
                             "annotation": str,
                             "default": topic,
-                            "pattern": format_topic(topic),
+                            "pattern": get_topic_regex(topic),
                         }
                     )
                 else:

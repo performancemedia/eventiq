@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eventiq"
-version = "0.1.24"
+version = "0.1.25"
 description = "Cloud native framework for building event driven applications in Python."
 authors = ["Radzim Kowalow <radzim.kowalow@performance-media.pl>"]
 readme = "README.md"
@@ -92,7 +92,6 @@ ruff = "==0.1.13"
 mypy = "^1.2.0"
 deptry = "^0.12.0"
 bandit = "^1.7.4"
-
 python-semantic-release = "^7.33.2"
 
 uvicorn = "^0.19.0"
@@ -172,7 +171,7 @@ docstring-code-line-length = "dynamic"
 line-ending = "auto"
 
 [tool.ruff.mccabe]
-max-complexity = 10
+max-complexity = 8
 
 [tool.deptry.per_rule_ignores]
 DEP003 = ["eventiq", "pydantic_core", "typing_extensions"]

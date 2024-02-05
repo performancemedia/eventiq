@@ -21,8 +21,8 @@ class HealthCheckError(BaseModel):
     detail: Literal["Connection Error"] = "Connection Error"
 
 
-STATUS_OK = StatusOk().model_dump(exclude_none=True)
-HEALTHCHECK_ERROR = HealthCheckError().model_dump(exclude_none=True)
+STATUS_OK = StatusOk().model_dump()
+HEALTHCHECK_ERROR = HealthCheckError().model_dump()
 
 
 class FastAPIServicePlugin(ServicePlugin, LoggerMixin):

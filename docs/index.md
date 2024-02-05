@@ -12,7 +12,6 @@
 ![PyPi](https://img.shields.io/pypi/v/eventiq?color=%2334D05)
 ![Mypy](https://img.shields.io/badge/mypy-checked-blue)
 ![License](https://img.shields.io/github/license/performancemedia/eventiq)
-![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json)](https://github.com/charliermarsh/ruff)
 

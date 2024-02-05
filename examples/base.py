@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 from eventiq import CloudEvent, Middleware, Service
 from eventiq.backends.stub import StubBroker
-from eventiq.parameters import params
 
 
 class TestParams(BaseModel):
@@ -13,7 +12,6 @@ class TestParams(BaseModel):
     region: str
 
 
-@params(TestParams)
 class SomeEvent(CloudEvent[Any], topic="events.{region}.users.{action}"):
     some_attribute: str = "some value"
 
