@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eventiq"
-version = "0.1.25"
+version = "1.0.0-beta.1"
 description = "Cloud native framework for building event driven applications in Python."
 authors = ["Radzim Kowalow <radzim.kowalow@performance-media.pl>"]
 readme = "README.md"
