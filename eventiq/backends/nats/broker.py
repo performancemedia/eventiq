@@ -57,7 +57,7 @@ class NatsBroker(Broker[NatsMsg]):
     ) -> None:
         super().__init__(**kwargs)
         self.url = url
-        self.connection_options = connection_options or {}
+        self.connection_options = connection_options or self.default_connection_options
         # self.connection_options.setdefault("pending_size", 0)
         self._auto_flush = auto_flush
         self.client = Client()
@@ -65,6 +65,16 @@ class NatsBroker(Broker[NatsMsg]):
     @property
     def safe_url(self) -> str:
         return get_safe_url(self.url)
+
+    @property
+    def default_connection_options(self) -> dict[str, Any]:
+        return {
+            "error_cb": self._error_cb,
+            "closed_cb": self._closed_cb,
+            "reconnected_cb": self._reconnect_cb,
+            "disconnected_cb": self._disconnect_cb,
+            "max_reconnect_attempts": 5,
+        }
 
     def get_info(self) -> ServerInfo:
         parsed = urlparse(self.url)
@@ -103,13 +113,25 @@ class NatsBroker(Broker[NatsMsg]):
     async def flush(self):
         await self.client.flush()
 
+    async def _disconnect_cb(self):
+        self.logger.warning("Disconnected")
+
+    async def _reconnect_cb(self):
+        self.logger.warning("Reconnected")
+
+    async def _error_cb(self, e):
+        self.logger.warning(f"Broker error {e}")
+
+    async def _closed_cb(self):
+        self.logger.warning("Connection closed")
+
     async def _connect(self) -> None:
         await self.client.connect(self.url, **self.connection_options)
 
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         data = self.encoder.encode(message.model_dump())
         await self.client.publish(message.topic, data, **kwargs)
-        if self._auto_flush:
+        if self._auto_flush or kwargs.get("flush"):
             await self.flush()
 
     @property
@@ -200,10 +222,13 @@ class JetStreamBroker(NatsBroker):
                         for msg in messages:
                             tg.start_soon(handler, msg)
                     await self.flush()
+
                 except nats.errors.TimeoutError:
                     await asyncio.sleep(5)
-        except Exception as e:
-            self.logger.exception("Cancelling consumer", exc_info=e)
+                except Exception as e:
+                    self.logger.warning(f"Cancelling consumer due to {e}")
+                    return
+
         finally:
             if consumer.dynamic:
                 await subscription.unsubscribe()

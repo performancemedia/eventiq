@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 from abc import ABC, abstractmethod
@@ -11,7 +10,7 @@ import anyio
 from pydantic import ValidationError
 
 from .encoder import Encoder
-from .exceptions import DecodeError, Fail, Skip
+from .exceptions import ConsumerTimeoutError, DecodeError, Fail, Skip
 from .imports import import_from_string
 from .logger import LoggerMixin
 from .message import Message, RawMessage
@@ -108,14 +107,14 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                     f"Running consumer {consumer.name} with message {message.id}"
                 )
                 timeout = consumer.timeout or self.default_consumer_timeout
-                async with anyio.move_on_after(timeout) as scope:
+                with anyio.move_on_after(timeout) as scope:
                     result = await consumer.process(message)
                     if consumer.reply_to and result:
                         await service.publish_to_multiple(
                             result, consumer.reply_to.brokers
                         )
                 if scope.cancel_called:
-                    exc = asyncio.TimeoutError()
+                    exc = ConsumerTimeoutError("Consumer timeout")
                 await self.dispatch_after(
                     "process_message", service, consumer, message, result, exc
                 )

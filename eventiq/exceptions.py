@@ -1,12 +1,24 @@
 from __future__ import annotations
 
 
+class EventiqError(Exception):
+    """Base exception for Eventiq"""
+
+
 class ConfigurationError(Exception):
     """Raised by framework when invalid configuration is supplied"""
 
 
 class BrokerError(Exception):
     """Base Exception for broker related errors"""
+
+
+class ConsumerError(EventiqError):
+    """Base Exception for consumer related errors"""
+
+
+class ConsumerTimeoutError(ConsumerError):
+    """Raised when consumer times out"""
 
 
 class PublishError(BrokerError):

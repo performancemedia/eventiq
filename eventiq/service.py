@@ -7,12 +7,12 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Callable
 
 import anyio
+from anyio import CancelScope
 
 from .asyncapi import PUBLISH_REGISTRY
 from .consumer import Consumer, ConsumerGroup, ReplyTo
 from .logger import LoggerMixin
 from .models import CloudEvent
-from .settings import ServiceSettings
 from .utils import generate_instance_id
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 class AbstractService(ABC):
     @abstractmethod
-    async def start(self) -> None:
+    async def start(self, scope: CancelScope) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -67,7 +67,7 @@ class Service(AbstractService, LoggerMixin):
         self.context = context or {}
         self.base_event_class = base_event_class
         self.async_api_extra = async_api_extra or {}
-        self._task = None
+
         for p in publish_info:
             PUBLISH_REGISTRY[p.event_type.__name__] = p
 
@@ -173,43 +173,41 @@ class Service(AbstractService, LoggerMixin):
             await broker.dispatch_before("service_start", self)
 
     async def disconnect_all(self) -> None:
+        self.logger.warning("Disconnecting all brokers")
         for broker in self._brokers.values():
             await broker.dispatch_before("service_stop", self)
             await broker.disconnect()
             await broker.dispatch_after("service_stop", self)
 
-    def start_soon(self):
-        self._task = asyncio.create_task(self.start())
-
-    async def start(self) -> None:
+    async def start(self, scope: CancelScope | None = None) -> None:
         self.logger.info(f"Starting service {self.name}...")
         await self.connect_all()
-
-        async with anyio.create_task_group() as tg:
-            for consumer in self.consumers.values():
-                self.logger.info(f"Starting consumer {consumer.name}")
-                for broker_name in consumer.brokers:
-                    broker = self._brokers[broker_name]
-                    tg.start_soon(broker.start_consumer, self, consumer)
-            for broker in self.brokers:
-                await broker.dispatch_after("service_start", self)
+        try:
+            async with anyio.create_task_group() as tg:
+                for consumer in self.consumers.values():
+                    self.logger.info(f"Starting consumer {consumer.name}")
+                    for broker_name in consumer.brokers:
+                        broker = self._brokers[broker_name]
+                        tg.start_soon(broker.start_consumer, self, consumer)
+                for broker in self.brokers:
+                    await broker.dispatch_after("service_start", self)
+        finally:
+            if scope is not None:
+                scope.cancel()
 
     async def stop(self) -> None:
-        if self._task:
-            self._task.cancel()
-            await asyncio.wait_for(self._task, timeout=15)
+        self.logger.warning(f"Stopping service... {self.name}")
         await self.disconnect_all()
 
-    async def run(self) -> None:
+    def get_service_runner(self, enable_signal_handler: bool = True):
         from .runner import ServiceRunner
 
-        runner = ServiceRunner(self)
+        return ServiceRunner(self, enable_signal_handler=enable_signal_handler)
+
+    async def run(self, enable_signal_handler: bool = True) -> None:
+        runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
         await runner.run()
 
-    @classmethod
-    def from_settings(cls, settings: ServiceSettings, **kwargs: Any) -> Service:
-        return cls(**settings.model_dump(), **kwargs)
-
-    @classmethod
-    def from_env(cls, **kwargs: Any) -> Service:
-        return cls.from_settings(ServiceSettings(), **kwargs)
+    def run_sync(self, enable_signal_handler: bool = True, **options):
+        runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
+        anyio.run(runner.run, **options)
