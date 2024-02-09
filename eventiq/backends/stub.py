@@ -51,7 +51,7 @@ class StubBroker(Broker[StubMessage]):
     async def _start_consumer(self, service: Service, consumer: Consumer):
         queue = self.topics[self.format_topic(consumer.topic)]
         handler = self.get_handler(service, consumer)
-        while self._running:
+        while self._connected:
             message = await queue.get()
             await handler(message)
 

@@ -34,7 +34,7 @@ eventiq = "eventiq.cli:cli"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-anyio = ">=4.0,<5.0"
+anyio = ">4.0,<5.0"
 pydantic = ">=2.0"
 pydantic-settings = "^2.0.3"
 
@@ -99,12 +99,13 @@ opentelemetry-instrumentation-logging = "^0.43b0"
 opentelemetry-instrumentation-fastapi = "^0.43b0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.2.1"
+pytest = "^8.0.0"
 pytest-asyncio = "^0.20.2"
 pytest-cov = "^4.0.0"
 pytest-sugar = "^0.9.7"
 pytest-repeat = "^0.9.3"
 numpy = "^1.26.3"
+tox = "^4.12.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"
@@ -119,11 +120,12 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-addopts = "--cov=./eventiq --count=3"
+addopts = "--count=3"
 testpaths = [
    "./tests"
 ]
 asyncio_mode = "auto"
+filterwarnings = "ignore::DeprecationWarning"
 
 [tool.mypy]
 python_version = "3.9"

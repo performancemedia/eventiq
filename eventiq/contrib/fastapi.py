@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Literal
 
 from fastapi import Depends, FastAPI, Request
@@ -52,7 +53,7 @@ class FastAPIServicePlugin(ServicePlugin, LoggerMixin):
     def _add_run_service_events(self, app):
         @app.on_event("startup")
         async def create_service_task():
-            self.service.start_soon()
+            asyncio.create_task(self.service.start())
 
         @app.on_event("shutdown")
         async def stop_service_task():

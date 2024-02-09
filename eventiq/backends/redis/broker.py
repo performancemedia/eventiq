@@ -78,7 +78,7 @@ class RedisBroker(Broker[RedisRawMessage]):
         handler = self.get_handler(service, consumer)
         async with self.redis.pubsub() as sub:
             await sub.psubscribe(consumer.topic)
-            while self._running:
+            while self._connected:
                 message = await sub.get_message(ignore_subscribe_messages=True)
                 if message:
                     await handler(message)

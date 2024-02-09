@@ -85,7 +85,7 @@ def run(
     anyio.run(
         obj.run,
         backend="asyncio",
-        backend_options={"use_uvloop": use_uvloop, "debug": debug},
+        # backend_options={"use_uvloop": use_uvloop, "debug": debug},
     )
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from contextlib import AbstractContextManager as ContextManager
+from itertools import chain
 from typing import TYPE_CHECKING, Any
 
 from opentelemetry import trace
@@ -64,8 +65,11 @@ class OpenTelemetryMiddleware(Middleware):
             SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source or "(anonymous)",
             SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type or "CloudEvent",
             SpanAttributes.CLOUDEVENTS_EVENT_SUBJECT: message.topic,
-            **message.extra_span_attributes,
-            **extra,
+            **{
+                k: str(v)
+                for k, v in chain(extra.items(), message.extra_span_attributes.items())
+                if v is not None
+            },
         }
 
     async def before_process_message(

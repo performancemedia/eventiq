@@ -27,6 +27,8 @@ class ServiceRunner(LoggerMixin):
 
                 for service in self.services:
                     tg.start_soon(service.start, tg.cancel_scope)
+        except Exception as e:
+            self.logger.error("Error running services", exc_info=e)
         finally:
             await self.stop()
 
@@ -43,5 +45,5 @@ class ServiceRunner(LoggerMixin):
                 try:
                     await service.stop()
                 except Exception as e:
-                    self.logger.warning(f"Error stopping service {service}", exc_info=e)
+                    self.logger.warning("Error stopping service", exc_info=e)
         self.logger.info("Exiting...")

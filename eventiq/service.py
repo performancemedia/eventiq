@@ -196,7 +196,7 @@ class Service(AbstractService, LoggerMixin):
                 scope.cancel()
 
     async def stop(self) -> None:
-        self.logger.warning(f"Stopping service... {self.name}")
+        self.logger.warning(f"Stopping service {self.name}")
         await self.disconnect_all()
 
     def get_service_runner(self, enable_signal_handler: bool = True):
@@ -205,8 +205,12 @@ class Service(AbstractService, LoggerMixin):
         return ServiceRunner(self, enable_signal_handler=enable_signal_handler)
 
     async def run(self, enable_signal_handler: bool = True) -> None:
-        runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
+        from .runner import ServiceRunner
+
+        runner = ServiceRunner(self, enable_signal_handler=enable_signal_handler)
         await runner.run()
+        # runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
+        # await runner.run()
 
     def run_sync(self, enable_signal_handler: bool = True, **options):
         runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)

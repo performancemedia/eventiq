@@ -65,7 +65,7 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         await subscriber.start()
         subscriber.subscribe(pattern=self.format_topic(consumer.topic))
         try:
-            while self._running:
+            while self._connected:
                 result = await subscriber.getmany(
                     timeout_ms=consumer.options.get("timeout_ms", 600)
                 )
@@ -144,9 +144,9 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
     @staticmethod
     def extra_message_span_attributes(
         message: aiokafka.ConsumerRecord,
-    ) -> dict[str, str]:
+    ) -> dict[str, Any]:
         return {
-            "messaging.kafka.message.key": str(message.key),
-            "messaging.kafka.message.offset": str(message.offset),
-            "messaging.kafka.destination.partition": str(message.partition),
+            "messaging.kafka.message.key": message.key,
+            "messaging.kafka.message.offset": message.offset,
+            "messaging.kafka.destination.partition": message.partition,
         }

@@ -64,7 +64,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         self.tags = tags
         self.async_api_extra = asyncapi_extra or {}
         self._lock = anyio.Lock()
-        self._running = False
+        self._connected = False
 
     def __repr__(self):
         return type(self).__name__
@@ -159,17 +159,17 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
 
     async def connect(self) -> None:
         async with self._lock:
-            if not self._running:
+            if not self._connected:
                 await self.dispatch_before("broker_connect")
                 await self._connect()
-                self._running = True
+                self._connected = True
                 await self.dispatch_after("broker_connect")
 
     async def disconnect(self) -> None:
         async with self._lock:
-            if self._running:
+            if self._connected:
                 await self.dispatch_before("broker_disconnect")
-                self._running = False
+                self._connected = False
                 await self._disconnect()
                 await self.dispatch_after("broker_disconnect")
 
@@ -179,6 +179,8 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         :param kwargs: Additional params passed to broker._publish
         :rtype: None
         """
+        if not self.is_connected:
+            await self.connect()
         await self.dispatch_before("publish", message)
         await self._publish(message, **kwargs)
         await self.dispatch_after("publish", message)
@@ -235,7 +237,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         return ""
 
     @staticmethod
-    def extra_message_span_attributes(message: RawMessage) -> dict[str, str]:
+    def extra_message_span_attributes(message: RawMessage) -> dict[str, Any]:
         return {}
 
     @abstractmethod

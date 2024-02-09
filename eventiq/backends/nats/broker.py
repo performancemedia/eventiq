@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -13,7 +12,7 @@ from nats.js import JetStreamContext
 from nats.js.api import ConsumerConfig
 
 from eventiq.broker import Broker
-from eventiq.exceptions import BrokerError, PublishError
+from eventiq.exceptions import PublishError
 
 from ...message import Message
 from ...utils import get_safe_url
@@ -73,7 +72,7 @@ class NatsBroker(Broker[NatsMsg]):
             "closed_cb": self._closed_cb,
             "reconnected_cb": self._reconnect_cb,
             "disconnected_cb": self._disconnect_cb,
-            "max_reconnect_attempts": 5,
+            "max_reconnect_attempts": 10,
         }
 
     def get_info(self) -> ServerInfo:
@@ -85,14 +84,12 @@ class NatsBroker(Broker[NatsMsg]):
         }
 
     @staticmethod
-    def extra_message_span_attributes(message: NatsMsg) -> dict[str, str]:
+    def extra_message_span_attributes(message: NatsMsg) -> dict[str, Any]:
         try:
             return {
-                "messaging.nats.sequence.consumer": str(
-                    message.metadata.sequence.consumer
-                ),
-                "messaging.nats.sequence.stream": str(message.metadata.sequence.stream),
-                "message.nats.num_delivered": str(message.metadata.num_delivered),
+                "messaging.nats.sequence.consumer": message.metadata.sequence.consumer,
+                "messaging.nats.sequence.stream": message.metadata.sequence.stream,
+                "message.nats.num_delivered": message.metadata.num_delivered,
             }
         except Exception:
             return {}
@@ -117,7 +114,7 @@ class NatsBroker(Broker[NatsMsg]):
         self.logger.warning("Disconnected")
 
     async def _reconnect_cb(self):
-        self.logger.warning("Reconnected")
+        self.logger.info("Reconnected")
 
     async def _error_cb(self, e):
         self.logger.warning(f"Broker error {e}")
@@ -176,11 +173,12 @@ class JetStreamBroker(NatsBroker):
         **kwargs,
     ) -> None:
         data = self.encoder.encode(message)
+        nats_msg_id = kwargs.get("idempotency_key", str(message.id))
         headers = kwargs.get("headers", {})
         timeout = kwargs.get("timeout")
         stream = kwargs.get("stream")
-        headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
-        headers.setdefault("Nats-Msg-Id", str(message.id))
+        headers.setdefault("Content-Type", message.content_type)
+        headers.setdefault("Nats-Msg-Id", nats_msg_id)
         try:
             await self.js.publish(
                 subject=message.topic,
@@ -199,7 +197,7 @@ class JetStreamBroker(NatsBroker):
         config = consumer.options.get("config", ConsumerConfig())
         config.ack_wait = (
             consumer.timeout or self.default_consumer_timeout
-        ) + 10  # consumer timeout + 10s for .ack()
+        ) + 30  # consumer timeout + 30s for .ack()
         try:
             subscription = await self.js.pull_subscribe(
                 subject=self.format_topic(consumer.topic),
@@ -207,15 +205,14 @@ class JetStreamBroker(NatsBroker):
                 config=config,
             )
         except Exception as e:
-            raise BrokerError(
-                f"Error creating subscription for consumer {consumer.name} and topic {consumer.topic}"
-            ) from e
+            self.logger.warning(f"Failed to create subscription: {e}")
+            return
 
         handler = self.get_handler(service, consumer)
         batch = consumer.options.get("prefetch_count", self.prefetch_count)
         timeout = consumer.options.get("fetch_timeout", self.fetch_timeout)
         try:
-            while self._running:
+            while self._connected:
                 try:
                     messages = await subscription.fetch(batch=batch, timeout=timeout)
                     async with anyio.create_task_group() as tg:
@@ -224,7 +221,7 @@ class JetStreamBroker(NatsBroker):
                     await self.flush()
 
                 except nats.errors.TimeoutError:
-                    await asyncio.sleep(5)
+                    await anyio.sleep(5)
                 except Exception as e:
                     self.logger.warning(f"Cancelling consumer due to {e}")
                     return
