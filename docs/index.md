@@ -50,7 +50,7 @@ pip install eventiq
 - *And more coming...*
 
 ## Optional Dependencies
-  - `cli` - `typer` and `aiorun`
+  - `cli` - `typer`
   - broker of choice: `nats`, `kafka`, `rabbitmq`, `redis`, `pubsub`
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
@@ -107,16 +107,3 @@ if __name__ == "__main__":
 Each message is load-balanced (depending on broker) between all service instances with the same `name`.
 To scale number of processes you can use containers (docker/k8s), [supervisor](http://supervisord.org/),
 or web server like gunicorn.
-
-
-## Backend support
-
-|Backend|Development Status|Description|
-|--|---|---|
-|Stub|Beta|In-memory broker implementation, useful for tests|
-|Nats|Beta|[Docs](https://docs.nats.io/)|
-|Nats Jetstream|Beta|[Docs](https://docs.nats.io/nats-concepts/jetstream)|
-|Apache Kafka|Beta|[Docs](https://kafka.apache.org/)|
-|RabbitMQ|Planning|[Docs](https://www.rabbitmq.com/)|
-|Redis|Planning|[Docs](https://redis.io/docs/manual/pubsub/)|
-|Google Cloud PubSub|Planning|[Docs](https://pypi.org/project/gcloud-aio-pubsub/)|

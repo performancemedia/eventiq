@@ -47,7 +47,7 @@ def run(
     log_config: Optional[str] = typer.Option(
         None, help="Logging file configuration path."
     ),
-    use_uvloop: bool = typer.Option(False, help="Enable uvloop"),
+    use_uvloop: Optional[bool] = typer.Option(None, help="Enable uvloop"),
     debug: bool = typer.Option(False, help="Enable debug"),
     reload: Optional[str] = typer.Option(None, help="Hot-reload on provided path"),
 ) -> None:
@@ -59,7 +59,6 @@ def run(
                 "--reload option requires 'watchfiles' installed. Please run 'pip install watchfiles'."
             )
             return
-
         logger.info(f"Watching [{service_or_runner}]...")
         target = _build_target_from_opts(
             service_or_runner, log_level, log_config, use_uvloop, debug
@@ -85,7 +84,7 @@ def run(
     anyio.run(
         obj.run,
         backend="asyncio",
-        # backend_options={"use_uvloop": use_uvloop, "debug": debug},
+        backend_options={"use_uvloop": use_uvloop, "debug": debug},
     )
 
 
