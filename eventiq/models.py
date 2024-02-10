@@ -40,7 +40,7 @@ class CloudEvent(BaseModel, Generic[D]):
     )
 
     _raw: Optional[Any] = PrivateAttr(None)
-    _service: Optional[Service] = PrivateAttr(None)
+    _service: Optional["Service"] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
         if not kwargs.get("abstract"):
@@ -117,13 +117,13 @@ class CloudEvent(BaseModel, Generic[D]):
         self._raw = value
 
     @property
-    def service(self) -> Service:
+    def service(self) -> "Service":
         if self._service is None:
             raise ValueError("Not in the service context")
         return self._service
 
     @service.setter
-    def service(self, value: Service) -> None:
+    def service(self, value: "Service") -> None:
         self._service = value
 
     @property
