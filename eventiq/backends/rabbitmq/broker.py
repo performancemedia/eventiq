@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
+class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage, None]):
     """
     RabbitMQ broker implementation, based on `aio_pika` library.
     :param url: rabbitmq connection string

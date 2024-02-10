@@ -19,9 +19,10 @@ if TYPE_CHECKING:
 class StubMessage:
     data: bytes
     queue: asyncio.Queue
+    event: asyncio.Event
 
 
-class StubBroker(Broker[StubMessage]):
+class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
     """This is in-memory implementation of a broker class, mainly designed for testing."""
 
     protocol = "in-memory"
@@ -61,15 +62,20 @@ class StubBroker(Broker[StubMessage]):
     async def _disconnect(self) -> None:
         pass
 
-    async def _publish(self, message: CloudEvent, **_) -> None:
+    async def _publish(self, message: CloudEvent, **_) -> dict[str, asyncio.Event]:
         data = self.encoder.encode(message.model_dump())
+        response = {}
         for topic, queue in self.topics.items():
             if re.fullmatch(topic, message.topic):
-                msg = StubMessage(data=data, queue=queue)
+                event = asyncio.Event()
+                msg = StubMessage(data=data, queue=queue, event=event)
                 await queue.put(msg)
+                response[topic] = event
+        return response
 
     async def _ack(self, message: Message) -> None:
         message.queue.task_done()
+        message.event.set()
 
     async def _nack(self, message: Message) -> None:
         await message.queue.put(message)

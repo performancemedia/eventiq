@@ -50,7 +50,7 @@ tasks:
   clean:
     desc: Remove build/cache files
     cmds:
-      - rm -rf build/ dist/ .eggs/ *.egg-info/ .mypy_cache/ .pytest_cache/ .ruff_cache/ ./htmlcov ./site report.xml .coverage
+      - rm -rf build/ dist/ .eggs/ *.egg-info/ ./htmlcov ./site .mypy_cache/ .pytest_cache/ .ruff_cache/ .tox/ ./htmlcov ./site report.xml .coverage coverage.xml
 
   release:
     desc: Upload package artifacts

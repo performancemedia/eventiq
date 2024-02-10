@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from pydantic import BaseModel, model_validator
 
@@ -17,5 +19,5 @@ class PublishInfo(BaseModel):
         return self
 
     @classmethod
-    def s(cls, even_type: type[CloudEvent], topic: Optional[str] = None, **kwargs: Any):
+    def s(cls, even_type: type[CloudEvent], topic: str | None = None, **kwargs: Any):
         return cls(event_type=even_type, topic=topic, kwargs=kwargs)

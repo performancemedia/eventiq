@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from pydantic import AnyUrl, ConfigDict, Field
 from pydantic import BaseModel as _BaseModel
@@ -18,14 +20,14 @@ class Info(BaseModel):
 
 
 class ExternalDocumentation(ExtendableBaseModel):
-    description: Optional[str] = None
+    description: str | None = None
     url: AnyUrl
 
 
 class Tag(ExtendableBaseModel):
     name: str
-    description: Optional[str] = None
-    externalDocs: Optional[ExternalDocumentation] = None
+    description: str | None = None
+    externalDocs: ExternalDocumentation | None = None
     model_config = ConfigDict(extra="allow")
 
 
@@ -36,34 +38,34 @@ class Ref(BaseModel):
 class Message(BaseModel):
     payload: Ref
     content_type: str = Field(..., alias="contentType")
-    description: Optional[str] = None
-    tags: Optional[list[Tag]] = None
+    description: str | None = None
+    tags: list[Tag] | None = None
 
 
 class Operation(BaseModel):
     operation_id: str = Field(..., alias="operationId")
-    summary: Optional[str] = None
+    summary: str | None = None
     message: Ref
-    tags: Optional[list[Tag]] = None
+    tags: list[Tag] | None = None
 
 
 class Parameter(BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
     param_schema: dict[str, Any] = Field({"type": "string"}, alias="schema")
-    location: Optional[str] = None
+    location: str | None = None
 
 
 class ChannelItem(BaseModel):
-    publish: Optional[Operation] = None
-    subscribe: Optional[Operation] = None
+    publish: Operation | None = None
+    subscribe: Operation | None = None
     parameters: dict[str, Parameter] = {}
 
 
 class Server(BaseModel):
     protocol: str
-    url: Optional[str] = None
+    url: str | None = None
     protocol_version: str = Field("", alias="protocolVersion")
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class Components(BaseModel):

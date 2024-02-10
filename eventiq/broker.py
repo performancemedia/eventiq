@@ -4,7 +4,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine
-from typing import TYPE_CHECKING, Any, Callable, Generic
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 import anyio
 from pydantic import ValidationError
@@ -24,8 +24,10 @@ if TYPE_CHECKING:
 
 TOPIC_PATTERN = re.compile(r"{\w+}")
 
+R = TypeVar("R", bound=Any)
 
-class Broker(Generic[RawMessage], LoggerMixin, ABC):
+
+class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
     """Base broker class
     :param description: Broker (Server) Description
     :param encoder: Encoder (Serializer) class
@@ -173,7 +175,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
                 await self._disconnect()
                 await self.dispatch_after("broker_disconnect")
 
-    async def publish(self, message: CloudEvent, **kwargs: Any) -> None:
+    async def publish(self, message: CloudEvent, **kwargs: Any) -> R:
         """
         :param message: Cloud event object to send
         :param kwargs: Additional params passed to broker._publish
@@ -182,8 +184,9 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         if not self.is_connected:
             await self.connect()
         await self.dispatch_before("publish", message)
-        await self._publish(message, **kwargs)
+        res = await self._publish(message, **kwargs)
         await self.dispatch_after("publish", message)
+        return res
 
     async def start_consumer(self, service: Service, consumer: Consumer):
         await self.dispatch_before("consumer_start", service, consumer)
@@ -255,7 +258,7 @@ class Broker(Generic[RawMessage], LoggerMixin, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def _publish(self, message: CloudEvent, **kwargs) -> None:
+    async def _publish(self, message: CloudEvent, **kwargs) -> R:
         raise NotImplementedError
 
     @abstractmethod

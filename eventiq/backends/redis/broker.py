@@ -25,7 +25,7 @@ class RMessage(TypedDict):
 RedisRawMessage = TypeVar("RedisRawMessage", bound=RMessage)
 
 
-class RedisBroker(Broker[RedisRawMessage]):
+class RedisBroker(Broker[RedisRawMessage, None]):
     """
     Broker implementation based on redis PUB/SUB and aioredis package
     :param url: connection string to redis

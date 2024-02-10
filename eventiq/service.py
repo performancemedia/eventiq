@@ -4,6 +4,7 @@ import asyncio
 import functools
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from contextlib import asynccontextmanager, suppress
 from typing import TYPE_CHECKING, Any, Callable
 
 import anyio
@@ -149,11 +150,11 @@ class Service(AbstractService, LoggerMixin):
 
     async def publish(
         self, message: CloudEvent, broker: str = "default", **kwargs
-    ) -> None:
+    ) -> Any:
         if not message.source:
             message.source = self.name
         broker_ = self._brokers[broker]
-        await broker_.publish(message, **kwargs)
+        return await broker_.publish(message, **kwargs)
 
     async def publish_to_multiple(
         self, message: CloudEvent, brokers: tuple[str], **kwargs
@@ -173,7 +174,7 @@ class Service(AbstractService, LoggerMixin):
             await broker.dispatch_before("service_start", self)
 
     async def disconnect_all(self) -> None:
-        self.logger.warning("Disconnecting all brokers")
+        self.logger.info("Disconnecting all brokers")
         for broker in self._brokers.values():
             await broker.dispatch_before("service_stop", self)
             await broker.disconnect()
@@ -196,7 +197,7 @@ class Service(AbstractService, LoggerMixin):
                 scope.cancel()
 
     async def stop(self) -> None:
-        self.logger.warning(f"Stopping service {self.name}")
+        self.logger.info(f"Stopping service {self.name}")
         await self.disconnect_all()
 
     def get_service_runner(self, enable_signal_handler: bool = True):
@@ -205,13 +206,20 @@ class Service(AbstractService, LoggerMixin):
         return ServiceRunner(self, enable_signal_handler=enable_signal_handler)
 
     async def run(self, enable_signal_handler: bool = True) -> None:
-        from .runner import ServiceRunner
-
-        runner = ServiceRunner(self, enable_signal_handler=enable_signal_handler)
+        runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
         await runner.run()
-        # runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
-        # await runner.run()
 
     def run_sync(self, enable_signal_handler: bool = True, **options):
         runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
         anyio.run(runner.run, **options)
+
+    @asynccontextmanager
+    async def running_context(self):
+        task = asyncio.create_task(self.start())
+        try:
+            await asyncio.sleep(0.0)
+            yield
+        finally:
+            with suppress(asyncio.exceptions.CancelledError):
+                task.cancel()
+                await task

@@ -34,7 +34,7 @@ class JsMessageProxy(Message[NatsMsg]):
             return None
 
 
-class NatsBroker(Broker[NatsMsg]):
+class NatsBroker(Broker[NatsMsg, None]):
     """
     :param url: Url to nats server(s)
     :param connection_options: additional connection options passed to nats.connect(...)

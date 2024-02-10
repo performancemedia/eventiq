@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class PubSubBroker(Broker[SubscriberMessage]):
+class PubSubBroker(Broker[SubscriberMessage, dict[str, Any]]):
     """
     Google Cloud Pub/Sub broker implementation
     :param service_file: path to the service account (json) file
@@ -75,7 +75,7 @@ class PubSubBroker(Broker[SubscriberMessage]):
         self,
         message: CloudEvent,
         **kwargs: Any,
-    ) -> None:
+    ) -> dict[str, Any]:
         ordering_key = kwargs.get("ordering_key", str(message.id))
         timeout = kwargs.get("timeout", 10)
         msg = PubsubMessage(
@@ -84,7 +84,9 @@ class PubSubBroker(Broker[SubscriberMessage]):
             content_type=self.encoder.CONTENT_TYPE,
             **kwargs.get("attributes", {}),
         )
-        await self.client.publish(topic=message.topic, messages=[msg], timeout=timeout)
+        return await self.client.publish(
+            topic=message.topic, messages=[msg], timeout=timeout
+        )
 
     async def _connect(self) -> None:
         pass

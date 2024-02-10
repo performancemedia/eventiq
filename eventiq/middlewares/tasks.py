@@ -13,9 +13,8 @@ if TYPE_CHECKING:
 
 
 class BackGroundTasksMiddleware(Middleware):
-    def __init__(self):
+    def __init__(self) -> None:
         self._tg: TaskGroup | None = None
-        self._tasks = []
 
     @property
     def tg(self) -> TaskGroup:
@@ -28,6 +27,7 @@ class BackGroundTasksMiddleware(Middleware):
         await self._tg.__aenter__()
 
     async def after_broker_disconnect(self, broker: T) -> None:
+        self.tg.cancel_scope.cancel()
         await self.tg.__aexit__(None, None, None)
         self._tg = None
 

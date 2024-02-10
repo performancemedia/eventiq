@@ -1,4 +1,6 @@
-from typing import Any, Callable, Generic, Optional, TypeVar
+from __future__ import annotations
+
+from typing import Any, Callable, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -44,11 +46,11 @@ class BrokerConfig(TypedModel[Broker]):
 
 
 class ConsumerConfig(TypedModel[MessageHandlerT]):
-    topic: Optional[str] = None
-    name: Optional[str] = None
+    topic: str | None = None
+    name: str | None = None
     timeout: int = 120
     dynamic: bool = False
-    encoder: Optional[TypedModel[Encoder]] = None
+    encoder: TypedModel[Encoder] | None = None
 
     def build(self):
         if callable(self.type) and not (
@@ -62,11 +64,11 @@ class ConsumerConfig(TypedModel[MessageHandlerT]):
 class ServiceConfig(BaseModel):
     name: str
     brokers: list[str]
-    title: Optional[str] = None
+    title: str | None = None
     version: str = "0.1.0"
     description: str = ""
     tags_metadata: list[TagMeta] = []
-    instance_id_generator: Optional[ImportedType[Callable[[], str]]] = None
+    instance_id_generator: ImportedType[Callable[[], str]] | None = None
     consumers: list[ConsumerConfig]
 
 

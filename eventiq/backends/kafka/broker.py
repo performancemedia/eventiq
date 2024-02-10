@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
+class KafkaBroker(Broker[aiokafka.ConsumerRecord, None]):
     """
     Kafka backend
     :param bootstrap_servers: url or list of kafka servers
