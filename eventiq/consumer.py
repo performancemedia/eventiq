@@ -151,16 +151,16 @@ class ConsumerGroup:
         def wrapper(func_or_cls: MessageHandlerT) -> MessageHandlerT:
             nonlocal name
             cls: type[Consumer] = FnConsumer
-            if isinstance(func_or_cls, type) and issubclass(
+            if inspect.isfunction(func_or_cls):
+                options["fn"] = func_or_cls
+                if name is None:
+                    name = func_or_cls.__name__
+            elif isinstance(func_or_cls, type) and issubclass(
                 func_or_cls, GenericConsumer
             ):
                 cls = func_or_cls
                 if name is None:
                     name = getattr(cls, "name", cls.__name__)
-            elif callable(func_or_cls):
-                options["fn"] = func_or_cls
-                if name is None:
-                    name = func_or_cls.__name__
             else:
                 raise TypeError("Expected function or GenericConsumer")
             for k, v in self.options.items():
