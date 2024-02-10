@@ -109,11 +109,11 @@ numpy = "^1.26.3"
 tox = "^4.12.1"
 
 [tool.poetry.group.docs.dependencies]
-mkdocs = "^1.4.2"
-mkdocs-material = "^8.2.1"
-mkdocs-autorefs = "^0.4.1"
-mkdocs-gen-files = ">=0.4,<0.6"
-mkdocstrings = {version = ">=0.18", extras = ["python"]}
+mkdocs = "^1.5.3"
+mkdocs-material = "^9.5.9"
+mkdocs-autorefs = "^0.5.0"
+mkdocs-gen-files = "^0.5.0"
+mkdocstrings = {extras = ["python"], version = "^0.24.0"}
 
 
 [build-system]
