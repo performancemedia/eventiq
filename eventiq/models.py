@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, Optional, TypeVar
 from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_validator
@@ -20,11 +18,12 @@ D = TypeVar("D", bound=Any)
 class CloudEvent(BaseModel, Generic[D]):
     """Base Schema for all messages"""
 
-    specversion: str = Field("1.0", description="CloudEvent specification version")
+    specversion: str = "1.0"
     content_type: str = Field(
         "application/json", alias="datacontenttype", description="Message content type"
     )
     id: UUID = Field(default_factory=uuid4, description="Event ID", repr=True)
+    time: datetime = Field(default_factory=utc_now, description="Event created time")
     topic: str = Field(
         None,
         alias="subject",
@@ -32,17 +31,16 @@ class CloudEvent(BaseModel, Generic[D]):
         validate_default=True,
     )
     type: str = Field("CloudEvent", description="Event type")
-    source: str | None = Field(None, description="Event source (app)")
+    source: Optional[str] = Field(None, description="Event source (app)")
     data: D = Field(..., description="Event payload")
-    dataschema: AnyUrl | None = Field(None, description="Data schema URI")
-    dataref: str | None = Field(
+    dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
+    tracecontext: dict[str, str] = Field({}, description="Distributed tracing context")
+    dataref: Optional[str] = Field(
         None, description="Optional reference (URI) to event payload"
     )
-    time: datetime = Field(default_factory=utc_now, description="Event created time")
-    tracecontext: dict[str, str] = Field({}, description="Distributed tracing context")
 
-    _raw: Any | None = PrivateAttr(None)
-    _service: Service | None = PrivateAttr(None)
+    _raw: Optional[Any] = PrivateAttr(None)
+    _service: Optional[Service] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
         if not kwargs.get("abstract"):
@@ -94,11 +92,11 @@ class CloudEvent(BaseModel, Generic[D]):
         return str(self)
 
     @classmethod
-    def get_default_topic(cls) -> str | None:
+    def get_default_topic(cls) -> Optional[str]:
         return cls.model_fields["topic"].get_default()
 
     @classmethod
-    def get_default_content_type(cls) -> str | None:
+    def get_default_content_type(cls) -> Optional[str]:
         return cls.model_fields["content_type"].get_default()
 
     @field_validator("type", mode="before")
