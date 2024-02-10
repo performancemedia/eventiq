@@ -4,7 +4,7 @@ import asyncio
 import functools
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from contextlib import asynccontextmanager, suppress
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Callable
 
 import anyio
@@ -26,12 +26,23 @@ if TYPE_CHECKING:
 
 class AbstractService(ABC):
     @abstractmethod
-    async def start(self, scope: CancelScope) -> None:
+    async def start(self, scope: CancelScope | None = None) -> None:
         raise NotImplementedError
 
     @abstractmethod
     async def stop(self) -> None:
         raise NotImplementedError
+
+    async def __aenter__(self):
+        self._task = asyncio.create_task(self.start())
+        await asyncio.sleep(0)
+        return self
+
+    async def __aexit__(self, *exc_info):
+        with suppress(asyncio.exceptions.CancelledError):
+            self._task.cancel()
+            await self._task
+            await self.stop()
 
 
 class Service(AbstractService, LoggerMixin):
@@ -212,14 +223,3 @@ class Service(AbstractService, LoggerMixin):
     def run_sync(self, enable_signal_handler: bool = True, **options):
         runner = self.get_service_runner(enable_signal_handler=enable_signal_handler)
         anyio.run(runner.run, **options)
-
-    @asynccontextmanager
-    async def running_context(self):
-        task = asyncio.create_task(self.start())
-        try:
-            await asyncio.sleep(0.0)
-            yield
-        finally:
-            with suppress(asyncio.exceptions.CancelledError):
-                task.cancel()
-                await task
