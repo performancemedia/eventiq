@@ -1,32 +1,62 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, Callable, Generic
 
 from eventiq.exceptions import Fail, Retry
 from eventiq.logger import LoggerMixin
-from eventiq.middleware import Middleware
+from eventiq.middleware import Middleware, T
+from eventiq.utils import utc_now
 
 if TYPE_CHECKING:
     from eventiq import Broker, CloudEvent, Consumer, Service
 
+from typing_extensions import ParamSpec
 
-class RetryStrategy(LoggerMixin):
+P = ParamSpec("P")
+R = Callable[["CloudEvent", Exception], int]
+DelayGenerator = Callable[[P.args, P.kwargs], R]
+
+
+def expo(factor: int = 1) -> R:
+    def _expo(message: CloudEvent, _: Exception) -> int:
+        return factor * message.age.seconds
+
+    return _expo
+
+
+def constant(interval: int = 30) -> R:
+    def _constant(*_) -> int:
+        return interval
+
+    return _constant
+
+
+class RetryStrategy(Generic[P], LoggerMixin):
     def __init__(
         self,
-        backoff: int = 2,
         throws: tuple[type[Exception], ...] = (),
+        delay_generator: DelayGenerator[P] | None = None,
+        min_delay: int = 2,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
-        self.backoff = backoff
         if Fail not in throws:
             throws = (*throws, Fail)
         self.throws = throws
+        self.min_delay = min_delay
+        self.delay_generator = (
+            delay_generator(*args, **kwargs) if delay_generator else expo()
+        )
 
     def set_delay(self, message: CloudEvent, exc: Exception):
-        delay = getattr(exc, "delay", None) or self.backoff * message.age.seconds
-        message.raw.delay = delay
-        self.logger.info("Will retry message in %d seconds.", delay)
+        delay = getattr(exc, "delay", None)
+        if delay is None:
+            delay = self.delay_generator(message, exc)
+        delay = max(delay, self.min_delay)
+        message.set_delay(delay)
+        self.logger.info(f"Will retry message {message.id} in %d seconds.", delay)
 
     def fail(self, message: CloudEvent, exc: Exception):
         message.fail()
@@ -62,7 +92,7 @@ class MaxRetries(RetryStrategy):
         self.max_retries = max_retries
 
     def maybe_retry(self, message: CloudEvent, exc: Exception):
-        retries = message.raw.num_delivered
+        retries = getattr(message.raw, "num_delivered", None)
         if retries is None:
             self.logger.warning(
                 "Retries property not found in message, backing off to message.age.seconds"
@@ -125,3 +155,30 @@ class RetryMiddleware(Middleware):
             return
 
         retry_strategy.maybe_retry(message, exc)
+
+    async def before_publish(self, broker: T, message: CloudEvent, **kwargs) -> None:
+        delay = kwargs.get("delay")
+        if delay is not None:
+            not_before = (utc_now() + timedelta(seconds=message.delay)).isoformat()
+            message.set_header("x-not-before", not_before)
+
+    async def before_process_message(
+        self, broker: T, service: Service, consumer: Consumer, message: CloudEvent
+    ) -> None:
+        """Broker agnostic implementation of not-before header."""
+        not_before_header = message.headers.get("x-not-before")
+        if not_before_header is None:
+            return
+        try:
+            not_before = datetime.fromisoformat(not_before_header)
+        except (ValueError, TypeError):
+            self.logger.warning(
+                f"Error parsing 'x-not-before' header: {not_before_header}"
+            )
+            return
+        delay = int((not_before - utc_now()).total_seconds()) + 1
+        if delay > 0:
+            self.logger.info(
+                f"Message {message.id} not ready for processing, delaying for {delay}."
+            )
+            raise Retry(delay=delay)

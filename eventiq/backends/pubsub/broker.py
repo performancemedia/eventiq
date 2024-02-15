@@ -15,7 +15,16 @@ from eventiq.broker import Broker
 from .settings import PubSubSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
+    from eventiq import CloudEvent, Consumer, Encoder, Message, ServerInfo, Service
+
+
+class PubSubMessageProxy(Message[SubscriberMessage]):
+    def __init__(self, message: SubscriberMessage):
+        super().__init__(message)
+
+    @property
+    def headers(self) -> dict[str, Any]:
+        return self._message.attributes
 
 
 class PubSubBroker(Broker[SubscriberMessage, dict[str, Any]]):
@@ -29,6 +38,8 @@ class PubSubBroker(Broker[SubscriberMessage, dict[str, Any]]):
 
     WILDCARD_ONE = "*"
     WILDCARD_MANY = "*"
+
+    message_proxy_class = PubSubMessageProxy
 
     def __init__(
         self,
@@ -82,7 +93,7 @@ class PubSubBroker(Broker[SubscriberMessage, dict[str, Any]]):
             data=self.encoder.encode(message.model_dump()),
             ordering_key=ordering_key,
             content_type=self.encoder.CONTENT_TYPE,
-            **kwargs.get("attributes", {}),
+            **message.headers,
         )
         return await self.client.publish(
             topic=message.topic, messages=[msg], timeout=timeout

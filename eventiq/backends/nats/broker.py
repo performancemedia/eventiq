@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -7,14 +8,13 @@ import anyio
 import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
-from nats.errors import NotJSMessageError
-from nats.js import JetStreamContext
+from nats.js import JetStreamContext, api
 from nats.js.api import ConsumerConfig
 
-from eventiq.broker import Broker
+from eventiq.broker import Broker, R
 from eventiq.exceptions import PublishError
 
-from ...message import Message
+from ...message import Message, RawMessage
 from ...utils import get_safe_url
 from .settings import JetStreamSettings, NatsSettings
 
@@ -22,19 +22,16 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class JsMessageProxy(Message[NatsMsg]):
-    def __init__(self, message: NatsMsg):
-        super().__init__(message)
-
+class NatsMessageProxy(Message[NatsMsg]):
     @property
     def num_delivered(self) -> int | None:
         try:
             return self._message.metadata.num_delivered
-        except NotJSMessageError:
+        except Exception:
             return None
 
 
-class NatsBroker(Broker[NatsMsg, None]):
+class AbstractNatsBroker(Broker[RawMessage, R], ABC):
     """
     :param url: Url to nats server(s)
     :param connection_options: additional connection options passed to nats.connect(...)
@@ -45,6 +42,8 @@ class NatsBroker(Broker[NatsMsg, None]):
     protocol = "nats"
     WILDCARD_ONE = "*"
     WILDCARD_MANY = ">"
+    message_proxy_class = NatsMessageProxy
+    Settings = NatsSettings
 
     def __init__(
         self,
@@ -57,9 +56,8 @@ class NatsBroker(Broker[NatsMsg, None]):
         super().__init__(**kwargs)
         self.url = url
         self.connection_options = connection_options or self.default_connection_options
-        # self.connection_options.setdefault("pending_size", 0)
-        self._auto_flush = auto_flush
         self.client = Client()
+        self._auto_flush = auto_flush
 
     @property
     def safe_url(self) -> str:
@@ -97,6 +95,33 @@ class NatsBroker(Broker[NatsMsg, None]):
     def parse_incoming_message(self, message: NatsMsg, encoder: Encoder) -> Any:
         return encoder.decode(message.data)
 
+    async def _disconnect(self) -> None:
+        await self.client.close()
+
+    async def flush(self) -> None:
+        await self.client.flush()
+
+    async def _disconnect_cb(self) -> None:
+        self.logger.warning("Disconnected")
+
+    async def _reconnect_cb(self) -> None:
+        self.logger.info("Reconnected")
+
+    async def _error_cb(self, e) -> None:
+        self.logger.warning(f"Broker error {e}")
+
+    async def _closed_cb(self) -> None:
+        self.logger.warning("Connection closed")
+
+    async def _connect(self) -> None:
+        await self.client.connect(self.url, **self.connection_options)
+
+    @property
+    def is_connected(self) -> bool:
+        return self.client.is_connected
+
+
+class NatsBroker(AbstractNatsBroker[NatsMsg, None]):
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         await self.client.subscribe(
             subject=self.format_topic(consumer.topic),
@@ -104,41 +129,17 @@ class NatsBroker(Broker[NatsMsg, None]):
             cb=self.get_handler(service, consumer),
         )
 
-    async def _disconnect(self) -> None:
-        await self.client.close()
-
-    async def flush(self):
-        await self.client.flush()
-
-    async def _disconnect_cb(self):
-        self.logger.warning("Disconnected")
-
-    async def _reconnect_cb(self):
-        self.logger.info("Reconnected")
-
-    async def _error_cb(self, e):
-        self.logger.warning(f"Broker error {e}")
-
-    async def _closed_cb(self):
-        self.logger.warning("Connection closed")
-
-    async def _connect(self) -> None:
-        await self.client.connect(self.url, **self.connection_options)
-
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         data = self.encoder.encode(message.model_dump())
-        await self.client.publish(message.topic, data, **kwargs)
+        reply = kwargs.get("reply", "")
+        headers = message.headers
+        headers.setdefault("Content-Type", message.content_type)
+        await self.client.publish(message.topic, data, headers=headers, reply=reply)
         if self._auto_flush or kwargs.get("flush"):
             await self.flush()
 
-    @property
-    def is_connected(self) -> bool:
-        return self.client.is_connected
 
-    Settings = NatsSettings
-
-
-class JetStreamBroker(NatsBroker):
+class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
     """
     NatsBroker with JetStream enabled
     :param prefetch_count: default number of messages to prefetch
@@ -163,41 +164,36 @@ class JetStreamBroker(NatsBroker):
         self.jetstream_options = jetstream_options or {}
         self.js = JetStreamContext(self.client, **self.jetstream_options)
 
-    @property
-    def message_proxy_class(self) -> type[Message]:
-        return JsMessageProxy
-
     async def _publish(
         self,
         message: CloudEvent,
         **kwargs,
-    ) -> None:
+    ) -> api.PubAck:
         data = self.encoder.encode(message)
-        nats_msg_id = kwargs.get("idempotency_key", str(message.id))
-        headers = kwargs.get("headers", {})
-        timeout = kwargs.get("timeout")
-        stream = kwargs.get("stream")
+        headers = message.headers
         headers.setdefault("Content-Type", message.content_type)
-        headers.setdefault("Nats-Msg-Id", nats_msg_id)
+        headers.setdefault("Nats-Msg-Id", str(message.id))
         try:
-            await self.js.publish(
+            response = await self.js.publish(
                 subject=message.topic,
                 payload=data,
-                timeout=timeout,
-                stream=stream,
+                timeout=kwargs.get("timeout"),
+                stream=kwargs.get("stream"),
                 headers=headers,
             )
             if self._auto_flush:
                 await self.flush()
+            return response
         except Exception as e:
             raise PublishError from e
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         durable = f"{service.name}:{consumer.name}"
         config = consumer.options.get("config", ConsumerConfig())
-        config.ack_wait = (
-            consumer.timeout or self.default_consumer_timeout
-        ) + 30  # consumer timeout + 30s for .ack()
+        if config.ack_wait is None:
+            config.ack_wait = (
+                consumer.timeout or self.default_consumer_timeout
+            ) + 30  # consumer timeout + 30s for .ack()
         try:
             subscription = await self.js.pull_subscribe(
                 subject=self.format_topic(consumer.topic),
@@ -225,7 +221,6 @@ class JetStreamBroker(NatsBroker):
                 except Exception as e:
                     self.logger.warning(f"Cancelling consumer due to {e}")
                     return
-
         finally:
             if consumer.dynamic:
                 await subscription.unsubscribe()

@@ -18,12 +18,21 @@ if TYPE_CHECKING:
 
 CE = TypeVar("CE", bound=CloudEvent)
 
-FT = Callable[["CloudEvent"], Awaitable[Any]]
+FT = Callable[[CloudEvent], Awaitable[Any]]
+
+
+# @dataclass
+# class ReplyTo:
+#     brokers: tuple[str] = ("default",)
 
 
 @dataclass
-class ReplyTo:
-    brokers: tuple[str] = ("default",)
+class ResponseSpec:
+    type: type[CloudEvent]
+    topic: str | None = None
+
+
+ReplyTo = dict[str, ResponseSpec]
 
 
 class Consumer(ABC, Generic[CE]):

@@ -53,6 +53,7 @@ pip install eventiq
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
   - `opentelemetry` - tracing support
+
 ## Motivation
 
 Python has many "worker-queue" libraries and frameworks, such as:

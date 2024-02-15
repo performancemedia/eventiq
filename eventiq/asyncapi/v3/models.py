@@ -1,8 +1,11 @@
-from typing import Any, Literal, Optional, Union
+from typing import Annotated, Any, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict, Field
 from pydantic_core import Url
+
+T = TypeVar("T")
+
 
 SecurityType = Literal[
     "userPassword",
@@ -26,7 +29,18 @@ class BaseModel(_BaseModel):
 
 
 class Reference(BaseModel):
-    ref: str = Field(..., alias="$ref")
+    ref: str = Field(alias="$ref")
+
+    def __hash__(self):
+        return hash(self.ref)
+
+    def __eq__(self, other):
+        if isinstance(other, Reference):
+            return self.ref == other.ref
+        return False
+
+
+TypeOrRef = Annotated[Optional[dict[str, Union[T, Reference]]], Field(default=None)]
 
 
 class ExternalDocumentation(BaseModel):
@@ -34,7 +48,9 @@ class ExternalDocumentation(BaseModel):
     description: Optional[str] = None
 
 
-OptExternalDocs = Union[ExternalDocumentation, Reference, None]
+OptExternalDocs = Annotated[
+    Union[ExternalDocumentation, Reference, None], Field(default=None)
+]
 
 
 class Contact(BaseModel):
@@ -51,10 +67,18 @@ class License(BaseModel):
 class Tag(BaseModel):
     name: str
     description: Optional[str] = None
-    externalDocs: OptExternalDocs = None
+    externalDocs: OptExternalDocs
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        if isinstance(other, Tag):
+            return self.name == other.name
+        return False
 
 
-Tags = list[Tag]
+Tags = Annotated[Optional[set[Tag]], Field(default=None)]
 
 
 class Info(BaseModel):
@@ -63,16 +87,16 @@ class Info(BaseModel):
     description: Optional[str] = None
     termsOfService: Optional[Url] = None
     license: Optional[License] = None
-    tags: Optional[Tags] = None
+    tags: Tags
     contact: Optional[Contact] = None
-    externalDocs: OptExternalDocs = None
+    externalDocs: OptExternalDocs
 
 
 class ServerVariable(BaseModel):
-    enum: Optional[list[str]] = None
+    enum: Optional[set[str]] = None
     default: Optional[str] = None
     description: Optional[str] = None
-    examples: Optional[list[str]] = None
+    examples: Optional[set[str]] = None
 
 
 class OAuthFlow(BaseModel):
@@ -83,22 +107,22 @@ class OAuthFlow(BaseModel):
 
 
 class OAuthFlows(BaseModel):
-    implicit: Optional[OAuthFlow] = None
-    password: Optional[OAuthFlow] = None
-    clientCredentials: Optional[OAuthFlow] = None
-    authorizationObject: Optional[OAuthFlow] = None
+    implicit: OAuthFlow
+    password: OAuthFlow
+    clientCredentials: OAuthFlow
+    authorizationCode: OAuthFlow
 
 
 class SecurityScheme(BaseModel):
     type: SecurityType
     name: str
     description: Optional[str] = None
-    in_: str = Field(..., alias="in")
+    in_: str = Field(alias="in")
     scheme: str
     bearerFormat: Optional[str] = None
     flows: OAuthFlows
     openIdConnectUrl: Url
-    scopes: list[str] = []
+    scopes: Optional[set[str]] = None
 
 
 class Server(BaseModel):
@@ -109,10 +133,10 @@ class Server(BaseModel):
     description: Optional[str] = None
     title: Optional[str] = None
     summary: Optional[str] = None
-    variables: dict[str, Union[Reference, ServerVariable]] = {}
-    security: list[Union[Reference, SecurityScheme]] = []
-    tags: Optional[Tags] = None
-    externalDocs: OptExternalDocs = None
+    variables: TypeOrRef[ServerVariable]
+    security: TypeOrRef[SecurityScheme]
+    tags: Tags
+    externalDocs: OptExternalDocs
     # bindings: Optional[Reference]
 
 
@@ -129,8 +153,8 @@ class Message(BaseModel):
     summary: Optional[str] = None
     description: Optional[str] = None
     payload: Union[Reference, Any]
-    tags: Optional[Tags] = None
-    externalDocs: OptExternalDocs = None
+    tags: Tags
+    externalDocs: OptExternalDocs
     # headers: Union[Schema, Reference]
     # correlationId: Optional[Union[Reference, Any]]
     # traits: ...
@@ -138,10 +162,10 @@ class Message(BaseModel):
 
 
 class Parameter(BaseModel):
-    enum: Optional[list[str]] = None
+    enum: Optional[set[str]] = None
     default: Optional[str] = None
     description: Optional[str] = None
-    examples: Optional[list[str]] = None
+    examples: Optional[set[str]] = None
     location: Optional[str] = None
 
 
@@ -151,10 +175,10 @@ class Channel(BaseModel):
     title: Optional[str] = None
     summary: Optional[str] = None
     description: Optional[str] = None
-    servers: list[Reference] = []
-    parameters: Optional[dict[str, Union[Parameter, Reference]]] = None
-    tags: Optional[Tags] = None
-    externalDocs: OptExternalDocs = None
+    servers: Optional[set[Reference]] = None
+    parameters: TypeOrRef[Parameter]
+    tags: Tags
+    externalDocs: OptExternalDocs
     # bindings: Union[Reference, ChannelBinding, None]
 
 
@@ -175,9 +199,9 @@ class Operation(BaseModel):
     title: str
     summary: str = ""
     description: Optional[str] = None
-    security: Optional[list[Union[SecurityScheme, Reference]]] = None
-    tags: Optional[Tags] = None
-    externalDocs: OptExternalDocs = None
+    security: Optional[set[Union[SecurityScheme, Reference]]] = None
+    tags: Tags = None
+    externalDocs: OptExternalDocs
     messages: list[Reference] = []
     reply: Union[Reply, Reference, None] = None
     # bindings: ...
@@ -185,18 +209,18 @@ class Operation(BaseModel):
 
 
 class Components(BaseModel):
-    schemas: Optional[dict[str, Union[Reference, Any]]] = None
-    servers: Optional[dict[str, Union[Server, Reference]]] = None
-    channels: Optional[dict[str, Union[Channel, Reference]]] = None
-    operations: Optional[dict[str, Union[Operation, Reference]]] = None
-    messages: Optional[dict[str, Union[Message, Reference]]] = None
-    securitySchemas: Optional[dict[str, Union[SecurityScheme, Reference]]] = None
-    serverVariables: Optional[dict[str, Union[ServerVariable, Reference]]] = None
-    parameters: Optional[dict[str, Union[Parameter, Reference]]] = None
-    replies: Optional[dict[str, Union[Reply, Reference]]] = None
-    replyAddresses: Optional[dict[str, Union[ReplyAddress, Reference]]] = None
-    externalDocs: Optional[dict[str, Union[ExternalDocumentation, Reference]]] = None
-    tags: Optional[dict[str, Union[Tag, Reference]]] = None
+    schemas: TypeOrRef[Any]
+    servers: TypeOrRef[Server]
+    channels: TypeOrRef[Channel]
+    operations: TypeOrRef[Operation]
+    messages: TypeOrRef[Message]
+    securitySchemas: TypeOrRef[SecurityScheme]
+    serverVariables: TypeOrRef[ServerVariable]
+    parameters: TypeOrRef[Parameter]
+    replies: TypeOrRef[Reply]
+    replyAddresses: TypeOrRef[ReplyAddress]
+    externalDocs: TypeOrRef[ExternalDocumentation]
+    tags: TypeOrRef[Tag]
     # correlationIds
     # operationTraits
     # messageTraits
@@ -209,10 +233,10 @@ class Components(BaseModel):
 class AsyncAPI(BaseModel):
     asyncapi: str = "3.0.0"
     info: Info
-    servers: dict[str, Union[Server, Reference]] = {}
+    servers: TypeOrRef[Server]
     defaultContentType: Optional[str] = None
-    channels: dict[str, Union[Reference, Channel]] = {}
-    operations: dict[str, Union[Reference, Operation]] = {}
+    channels: TypeOrRef[Channel]
+    operations: TypeOrRef[Operation]
     components: Components = Field(default_factory=Components)
     logo: str = Field(
         "https://raw.githubusercontent.com/asyncapi/spec/master/assets/logo.png",

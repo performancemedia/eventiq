@@ -44,6 +44,7 @@ class PrometheusMiddleware(Middleware):
         server_host: str = "0.0.0.0",  # nosec
         server_port: int = 8888,
         prefix: str = "",
+        **http_server_options: Any,
     ):
         from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
@@ -54,6 +55,7 @@ class PrometheusMiddleware(Middleware):
         self.server_port = server_port
         self.message_start_times: dict[tuple[str, str, ID], int] = {}
         self.prefix = prefix
+        self.http_server_options = http_server_options
         self.in_progress = Gauge(
             self.format("messages_in_progress"),
             "Total number of messages being processed.",
@@ -163,5 +165,8 @@ class PrometheusMiddleware(Middleware):
             from prometheus_client import start_http_server
 
             start_http_server(
-                self.server_port, self.server_host, registry=self.registry
+                self.server_port,
+                self.server_host,
+                registry=self.registry,
+                **self.http_server_options,
             )

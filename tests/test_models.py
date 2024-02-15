@@ -6,7 +6,7 @@ from eventiq import CloudEvent
 
 @pytest.fixture
 def test_event_cls():
-    class TestEvent(CloudEvent[str], topic="events.{type}"):
+    class TestEvent(CloudEvent[str], topic="events.{type}", validate_topic=True):
         pass
 
     return TestEvent

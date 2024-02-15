@@ -89,6 +89,3 @@ async def running_service(service: Service, mock_consumer) -> AsyncGenerator:
     service.subscribe(topic="test_topic")(mock_consumer)
     async with service:
         yield service
-
-    # async with service.running_context():
-    #     yield service

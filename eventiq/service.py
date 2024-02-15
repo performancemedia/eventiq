@@ -63,7 +63,7 @@ class Service(AbstractService, LoggerMixin):
         context: dict[str, Any] | None = None,
         async_api_extra: dict[str, Any] | None = None,
     ):
-        self._brokers = {}
+        self._brokers: dict[str, Broker] = {}
         if broker:
             self._brokers["default"] = broker
         if brokers:

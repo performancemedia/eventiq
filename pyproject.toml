@@ -181,7 +181,7 @@ line-ending = "auto"
 max-complexity = 8
 
 [tool.deptry.per_rule_ignores]
-DEP003 = ["eventiq", "pydantic_core", "typing_extensions"]
+DEP003 = ["eventiq", "pydantic_core", "typing_extensions", "aiormq"]
 
 [tool.semantic_release]
 version_variable = [

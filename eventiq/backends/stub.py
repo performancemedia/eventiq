@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import re
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from eventiq.broker import Broker
@@ -20,6 +20,7 @@ class StubMessage:
     data: bytes
     queue: asyncio.Queue
     event: asyncio.Event
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
@@ -62,13 +63,14 @@ class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
     async def _disconnect(self) -> None:
         pass
 
-    async def _publish(self, message: CloudEvent, **_) -> dict[str, asyncio.Event]:
+    async def _publish(self, message: CloudEvent, **kwargs) -> dict[str, asyncio.Event]:
         data = self.encoder.encode(message.model_dump())
+        headers = kwargs.get("headers", {})
         response = {}
         for topic, queue in self.topics.items():
             if re.fullmatch(topic, message.topic):
                 event = asyncio.Event()
-                msg = StubMessage(data=data, queue=queue, event=event)
+                msg = StubMessage(data=data, queue=queue, event=event, headers=headers)
                 await queue.put(msg)
                 response[topic] = event
         return response
@@ -81,4 +83,4 @@ class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
         await message.queue.put(message)
 
     def is_connected(self) -> bool:  # type: ignore[override]
-        return True
+        return self._connected

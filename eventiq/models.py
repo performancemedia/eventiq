@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Generic, Literal, Optional, TypeVar
 from uuid import UUID, uuid4
 
-from pydantic import AnyUrl, BaseModel, ConfigDict, Field, PrivateAttr, field_validator
+from pydantic import AnyUrl, BaseModel, Field, PrivateAttr, field_validator
 from pydantic.fields import FieldInfo
 
 from .message import Message
@@ -41,6 +41,7 @@ class CloudEvent(BaseModel, Generic[D]):
 
     _raw: Optional[Any] = PrivateAttr(None)
     _service: Optional["Service"] = PrivateAttr(None)
+    _headers: dict[str, str] = PrivateAttr({})
 
     def __init_subclass__(cls, **kwargs):
         if not kwargs.get("abstract"):
@@ -60,9 +61,10 @@ class CloudEvent(BaseModel, Generic[D]):
                         {
                             "annotation": str,
                             "default": topic,
-                            "pattern": get_topic_regex(topic),
                         }
                     )
+                    if "validate_topic" in kwargs:
+                        kw["pattern"] = get_topic_regex(topic)
                 else:
                     kw.update(
                         {
@@ -136,8 +138,11 @@ class CloudEvent(BaseModel, Generic[D]):
         return super().model_dump(**kwargs)
 
     @classmethod
-    def new(cls, obj: D, **kwargs: Any):
-        return cls(data=obj, **kwargs)
+    def new(cls, obj: D, *, headers: Optional[dict[str, str]] = None, **kwargs: Any):
+        self = cls(data=obj, **kwargs)
+        if headers:
+            self.set_headers(headers)
+        return self
 
     @property
     def extra_span_attributes(self) -> dict[str, str]:
@@ -147,15 +152,43 @@ class CloudEvent(BaseModel, Generic[D]):
     def age(self) -> timedelta:
         return utc_now() - self.time
 
+    @property
+    def headers(self) -> dict[str, str]:
+        if self._raw:
+            return self.raw.headers
+        return self._headers
+
+    def set_header(self, key: str, value: str) -> None:
+        if self._raw:
+            raise ValueError("Cannot set headers for incoming message")
+        self._headers[key] = value
+
+    def set_default_header(self, key: str, value: str) -> None:
+        if self._raw:
+            raise ValueError("Cannot set headers for incoming message")
+        self._headers.setdefault(key, value)
+
+    def set_headers(self, headers: dict[str, str]) -> None:
+        if self._raw:
+            raise ValueError("Cannot set headers for incoming message")
+        self._headers.update(headers)
+
+    def set_delay(self, value: int) -> None:
+        self.raw.delay = value
+
     def fail(self) -> None:
         self.raw.fail()
 
-    model_config = ConfigDict(
-        use_enum_values=True,
-        populate_by_name=True,
-        extra="allow",
-        arbitrary_types_allowed=True,
-    )
+    @property
+    def failed(self) -> bool:
+        return self.raw.failed
+
+    model_config = {
+        "use_enum_values": True,
+        "populate_by_name": True,
+        "extra": "allow",
+        "arbitrary_types_allowed": True,
+    }
 
 
 class Event(CloudEvent[D], abstract=True):

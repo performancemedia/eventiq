@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 RawMessage = TypeVar("RawMessage")
 
@@ -37,5 +37,5 @@ class Message(Generic[RawMessage]):
         self._failed = True
 
     @property
-    def num_delivered(self) -> int | None:
-        return None
+    def headers(self) -> dict[str, Any]:
+        return getattr(self._message, "headers", {})

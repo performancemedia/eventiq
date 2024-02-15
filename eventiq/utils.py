@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, TypeVar, get_type_hints
 from urllib.parse import urlparse
 
-import anyio
+from anyio import to_thread
 from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
@@ -34,8 +34,8 @@ def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Awaitable[R]:
         if not kwargs:
-            return anyio.to_thread.run_sync(func, *args)
-        return anyio.to_thread.run_sync(functools.partial(func, *args, **kwargs))
+            return to_thread.run_sync(func, *args)
+        return to_thread.run_sync(functools.partial(func, *args, **kwargs))
 
     return wrapper
 

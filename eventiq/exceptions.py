@@ -5,11 +5,11 @@ class EventiqError(Exception):
     """Base exception for Eventiq"""
 
 
-class ConfigurationError(Exception):
+class ConfigurationError(EventiqError):
     """Raised by framework when invalid configuration is supplied"""
 
 
-class BrokerError(Exception):
+class BrokerError(EventiqError):
     """Base Exception for broker related errors"""
 
 
@@ -20,12 +20,15 @@ class ConsumerError(EventiqError):
 class ConsumerTimeoutError(ConsumerError):
     """Raised when consumer times out"""
 
+    def __str__(self) -> str:
+        return "ConsumerTimeoutError"
+
 
 class PublishError(BrokerError):
     """Raised when publishing a message fails"""
 
 
-class EncoderError(Exception):
+class EncoderError(EventiqError):
     """Base Encoder error"""
 
 
@@ -37,7 +40,7 @@ class DecodeError(EncoderError):
     """Error decoding message"""
 
 
-class MessageError(Exception):
+class MessageError(EventiqError):
     """Base message processing error"""
 
 
@@ -55,13 +58,6 @@ class Retry(MessageError):
     RetryMiddleware must be added
     """
 
-    def __init__(self, reason: str | None = None, *, delay: int | None = None):
+    def __init__(self, reason: str | None = None, delay: int | None = None):
         self.reason = reason or "unknown"
         self.delay = delay
-
-    def __str__(self) -> str:
-        delay_info = f" delay: {self.delay}" if self.delay else ""
-        return f"Retry(reason: {self.reason}{delay_info})"
-
-    def __repr__(self) -> str:
-        return str(self)

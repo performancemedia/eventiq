@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import aio_pika
+from aiormq.abc import ConfirmationFrameType
 
 from eventiq.broker import Broker
 
@@ -15,7 +16,9 @@ if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage, None]):
+class RabbitmqBroker(
+    Broker[aio_pika.abc.AbstractIncomingMessage, ConfirmationFrameType]
+):
     """
     RabbitMQ broker implementation, based on `aio_pika` library.
     :param url: rabbitmq connection string
@@ -120,14 +123,13 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage, None]):
                     "type",
                     "source",
                     "content_type",
-                    "version",
                     "time",
                     "topic",
                 }
             )
         )
-        headers = kwargs.pop("headers", {})
-        headers.setdefault("specversion", message.specversion)
+        timeout = kwargs.get("timeout")
+        headers = message.headers
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
         msg = aio_pika.Message(
             headers=headers,
@@ -140,8 +142,9 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage, None]):
             content_encoding="UTF-8",
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         )
-
-        await self.exchange.publish(msg, routing_key=message.topic, **kwargs)
+        return await self.exchange.publish(
+            msg, routing_key=message.topic, timeout=timeout
+        )
 
     async def _ack(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
         await message.ack()
@@ -165,7 +168,6 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage, None]):
                 "type": message.type,
                 "source": message.app_id,
                 "content_type": message.content_type,
-                "specversion": message.headers.get("specversion"),
                 "time": message.timestamp,
                 "topic": message.routing_key,
             }
