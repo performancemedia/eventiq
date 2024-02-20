@@ -1,9 +1,20 @@
 import asyncio
+from typing import Any, Literal
 
-import anyio
+from pydantic import BaseModel
 
 from eventiq import CloudEvent, Middleware, Service
-from eventiq.backends.stub import StubBroker
+from eventiq.backends.nats import JetStreamBroker
+from eventiq.middlewares.retries import RetryMiddleware
+
+
+class TestParams(BaseModel):
+    action: Literal["create", "update", "delete"]
+    region: str
+
+
+class SomeEvent(CloudEvent[Any], topic="events.{region}.users.{action}"):
+    some_attribute: str = "some value"
 
 
 class SendMessageMiddleware(Middleware):
@@ -12,10 +23,14 @@ class SendMessageMiddleware(Middleware):
         await asyncio.sleep(5)
         for i in range(100):
             await service.send("test.topic", data={"counter": i})
+
         print("Published event(s)")
 
 
-broker = StubBroker(middlewares=[SendMessageMiddleware()])
+broker = JetStreamBroker(
+    url="nats://localhost:4222",
+    middlewares=[SendMessageMiddleware(), RetryMiddleware()],
+)
 
 service = Service(name="example-service", broker=broker)
 
@@ -23,7 +38,4 @@ service = Service(name="example-service", broker=broker)
 @service.subscribe("test.topic")
 async def example_run(message: CloudEvent):
     print(f"Received Message {message.id} with data: {message.data}")
-
-
-if __name__ == "__main__":
-    anyio.run(service.run)
+    await asyncio.sleep(5)

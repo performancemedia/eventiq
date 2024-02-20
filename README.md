@@ -12,14 +12,13 @@
 ![Python](https://img.shields.io/pypi/pyversions/eventiq)
 ![Format](https://img.shields.io/pypi/format/eventiq)
 ![PyPi](https://img.shields.io/pypi/v/eventiq)
-![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json)](https://github.com/charliermarsh/ruff)
 
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.1.25
+Version: 1.0.0-beta.1
 
 Documentation: https://performancemedia.github.io/eventiq/
 
@@ -54,6 +53,7 @@ pip install eventiq
   - custom message serializers: `msgpack`, `orjson`
   - `prometheus` - Metric exposure via `PrometheusMiddleware`
   - `opentelemetry` - tracing support
+
 ## Motivation
 
 Python has many "worker-queue" libraries and frameworks, such as:
@@ -71,6 +71,7 @@ do not support `asyncio`. This is why this project was born.
 
 
 ```python
+# main.py
 import asyncio
 from eventiq import Service, CloudEvent, Middleware
 from eventiq.backends.nats.broker import JetStreamBroker
@@ -93,12 +94,12 @@ service = Service(name="example-service", broker=broker)
 async def example_run(message: CloudEvent):
     print(f"Received Message {message.id} with data: {message.data}")
 
-
-if __name__ == "__main__":
-    service.run()
-
 ```
+## Running the service
 
+```shell
+eventiq run main:service
+```
 
 ## Scaling
 
@@ -109,14 +110,13 @@ or web server like gunicorn.
 ## Features
 
 - Modern, `asyncio` based python 3.8+ syntax
-- Minimal dependencies, only `pydantic` and `python-json-logger` are required
+- Minimal dependencies, only `anyio` and `pydantic` are required
 - Automatic message parsing based on type annotations (like FastAPI)
 - Code hot-reload
 - Highly scalable: each service can process hundreds of tasks concurrently,
     all messages are load balanced between all instances by default
-- Resilient - at least once delivery for all messages by default 
+- Resilient - at least once delivery for all messages by default
 - Customizable & pluggable message encoders (json, msgpack, custom)
-- Json formatted logger
 - Multiple broker support (Nats, Kafka, Rabbitmq, Redis, PubSub, and more coming)
 - Easily extensible via Middlewares and Plugins
 - Cloud Events standard as base message structure (no more python specific `*args` and `**kwargs` in messages)

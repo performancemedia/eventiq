@@ -19,6 +19,7 @@ Misc:
 
 - `cli`
 - `prometheus`
+- `opentelemetry`
 
 Brokers
 

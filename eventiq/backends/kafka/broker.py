@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import aiokafka
 import anyio
@@ -8,13 +10,14 @@ import anyio
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
 
+from ...utils import get_safe_url, utc_now
 from .settings import KafkaSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
+class KafkaBroker(Broker[aiokafka.ConsumerRecord, None]):
     """
     Kafka backend
     :param bootstrap_servers: url or list of kafka servers
@@ -37,19 +40,25 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         consumer_options: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.bootstrap_servers = bootstrap_servers
         self._publisher_options = publisher_options or {}
         self._consumer_options = consumer_options or {}
         self._publisher = None
 
-    def parse_incoming_message(self, message: aiokafka.ConsumerRecord) -> Any:
-        return self.encoder.decode(message.value)
+    def parse_incoming_message(
+        self, message: aiokafka.ConsumerRecord, encoder: Encoder
+    ) -> Any:
+        return encoder.decode(message.value)
 
     @property
     def is_connected(self) -> bool:
         return True
+
+    def _should_nack(self, message: aiokafka.ConsumerRecord) -> bool:
+        if message.timestamp < (utc_now() + timedelta(minutes=5)).timestamp():
+            return True
+        return False
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         handler = self.get_handler(service, consumer)
@@ -62,7 +71,7 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         await subscriber.start()
         subscriber.subscribe(pattern=self.format_topic(consumer.topic))
         try:
-            while self._running:
+            while self._connected:
                 result = await subscriber.getmany(
                     timeout_ms=consumer.options.get("timeout_ms", 600)
                 )
@@ -102,7 +111,7 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
         timestamp_ms: int | None = None,
         **kwargs: Any,
     ):
-        data = self.encoder.encode(message.dict())
+        data = self.encoder.encode(message.model_dump())
         timestamp_ms = timestamp_ms or int(message.time.timestamp() * 1000)
         key = key or getattr(message, "key", str(message.id))
         headers = headers or {}
@@ -115,3 +124,35 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord]):
             headers=headers,
             timestamp_ms=timestamp_ms,
         )
+
+    def get_info(self) -> ServerInfo:
+        if isinstance(self.bootstrap_servers, str):
+            parsed = urlparse(self.bootstrap_servers)
+            return {
+                "host": parsed.hostname,
+                "protocol": parsed.scheme,
+                "pathname": parsed.path,
+            }
+        return {
+            "host": ",".join(
+                urlparse(server).hostname or "" for server in self.bootstrap_servers
+            ),
+            "protocol": "kafka",
+            "pathname": "",
+        }
+
+    @property
+    def safe_url(self) -> str:
+        if isinstance(self.bootstrap_servers, str):
+            return get_safe_url(self.bootstrap_servers)
+        return ",".join(get_safe_url(server) for server in self.bootstrap_servers)
+
+    @staticmethod
+    def extra_message_span_attributes(
+        message: aiokafka.ConsumerRecord,
+    ) -> dict[str, Any]:
+        return {
+            "messaging.kafka.message.key": message.key,
+            "messaging.kafka.message.offset": message.offset,
+            "messaging.kafka.destination.partition": message.partition,
+        }

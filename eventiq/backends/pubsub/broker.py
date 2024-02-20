@@ -11,16 +11,23 @@ from gcloud.aio.pubsub import (
 )
 
 from eventiq.broker import Broker
-from eventiq.exceptions import BrokerError
 
-from ...utils import retry
 from .settings import PubSubSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, Message, ServerInfo, Service
 
 
-class PubSubBroker(Broker[SubscriberMessage]):
+class PubSubMessageProxy(Message[SubscriberMessage]):
+    def __init__(self, message: SubscriberMessage):
+        super().__init__(message)
+
+    @property
+    def headers(self) -> dict[str, Any]:
+        return self._message.attributes
+
+
+class PubSubBroker(Broker[SubscriberMessage, dict[str, Any]]):
     """
     Google Cloud Pub/Sub broker implementation
     :param service_file: path to the service account (json) file
@@ -32,22 +39,34 @@ class PubSubBroker(Broker[SubscriberMessage]):
     WILDCARD_ONE = "*"
     WILDCARD_MANY = "*"
 
+    message_proxy_class = PubSubMessageProxy
+
     def __init__(
         self,
         *,
         service_file: str,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.service_file = service_file
-        self._client = None
+        self._client = PublisherClient(service_file=self.service_file)
 
-    def parse_incoming_message(self, message: SubscriberMessage) -> Any:
-        return self.encoder.decode(message.data)
+    @property
+    def safe_url(self) -> str:
+        return "https://pubsub.googleapis.com/v1"
 
-    async def _disconnect(self) -> None:
-        await self.client.close()
+    def get_info(self) -> ServerInfo:
+        return {
+            "host": "pubsub.googleapis.com",
+            "protocol": "http",
+            "protocolVersion": "1.1",
+            "pathname": "/v1",
+        }
+
+    def parse_incoming_message(
+        self, message: SubscriberMessage, encoder: Encoder
+    ) -> Any:
+        return encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         consumer_client = SubscriberClient(service_file=self.service_file)
@@ -61,28 +80,30 @@ class PubSubBroker(Broker[SubscriberMessage]):
 
     @property
     def client(self) -> PublisherClient:
-        if self._client is None:
-            raise BrokerError("Broker not connected")
         return self._client
 
-    @retry(max_retries=3)
     async def _publish(
         self,
         message: CloudEvent,
         **kwargs: Any,
-    ) -> None:
+    ) -> dict[str, Any]:
         ordering_key = kwargs.get("ordering_key", str(message.id))
         timeout = kwargs.get("timeout", 10)
         msg = PubsubMessage(
-            data=self.encoder.encode(message.dict()),
+            data=self.encoder.encode(message.model_dump()),
             ordering_key=ordering_key,
             content_type=self.encoder.CONTENT_TYPE,
-            **kwargs.get("headers", {}),
+            **message.headers,
         )
-        await self.client.publish(topic=message.topic, messages=[msg], timeout=timeout)
+        return await self.client.publish(
+            topic=message.topic, messages=[msg], timeout=timeout
+        )
 
     async def _connect(self) -> None:
-        self._client = PublisherClient(service_file=self.service_file)
+        pass
+
+    async def _disconnect(self) -> None:
+        await self.client.close()
 
     @property
     def is_connected(self) -> bool:

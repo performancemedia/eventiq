@@ -1,106 +1,216 @@
 from datetime import datetime, timedelta
-from functools import partial
-from typing import Any, Dict, Generic, Optional
+from typing import TYPE_CHECKING, Any, Generic, Literal, Optional, TypeVar
 from uuid import UUID, uuid4
 
-from pydantic import AnyUrl, Extra, Field, validator
-from pydantic.fields import PrivateAttr
-from pydantic.generics import GenericModel
+from pydantic import AnyUrl, BaseModel, Field, PrivateAttr, field_validator
+from pydantic.fields import FieldInfo
 
-from .context import get_current_service
 from .message import Message
-from .types import D
-from .utils import utc_now
+from .utils import get_topic_regex, utc_now
+
+if TYPE_CHECKING:
+    from .service import Service
 
 
-class CloudEvent(GenericModel, Generic[D]):
-    specversion: Optional[str] = "1.0"
+D = TypeVar("D", bound=Any)
+
+
+class CloudEvent(BaseModel, Generic[D]):
+    """Base Schema for all messages"""
+
+    specversion: str = "1.0"
     content_type: str = Field(
         "application/json", alias="datacontenttype", description="Message content type"
     )
-    id: UUID = Field(default_factory=uuid4, description="Event ID")
+    id: UUID = Field(default_factory=uuid4, description="Event ID", repr=True)
     time: datetime = Field(default_factory=utc_now, description="Event created time")
-    topic: str = Field(..., alias="subject", description="Event subject (topic)")
-    type: Optional[str] = Field(None, description="Event type")
+    topic: str = Field(
+        None,
+        alias="subject",
+        description="Message subject (topic)",
+        validate_default=True,
+    )
+    type: str = Field("CloudEvent", description="Event type")
     source: Optional[str] = Field(None, description="Event source (app)")
     data: D = Field(..., description="Event payload")
     dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
-    tracecontext: Dict[str, str] = Field({}, description="Distributed tracing context")
+    tracecontext: dict[str, str] = Field({}, description="Distributed tracing context")
+    dataref: Optional[str] = Field(
+        None, description="Optional reference (URI) to event payload"
+    )
 
     _raw: Optional[Any] = PrivateAttr(None)
+    _service: Optional["Service"] = PrivateAttr(None)
+    _headers: dict[str, str] = PrivateAttr({})
+    _delay: Optional[int] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
-        cls.__fields__["type"].default = cls.__name__
+        if not kwargs.get("abstract"):
+            if kwargs.get("typed", True):
+                type_name = kwargs.get("type", cls.__name__)
+                cls.model_fields["type"].default = type_name
+                cls.model_fields["type"].annotation = Literal[type_name]
 
-    def __eq__(self, other):
+            if topic := kwargs.get("topic"):
+                kw = {
+                    "alias": "subject",
+                    "description": "Message subject",
+                    "validate_default": True,
+                }
+                if any(k in topic for k in ("{", "}", "*", ">")):
+                    kw.update(
+                        {
+                            "annotation": str,
+                            "default": topic,
+                        }
+                    )
+                    if "validate_topic" in kwargs:
+                        kw["pattern"] = get_topic_regex(topic)
+                else:
+                    kw.update(
+                        {
+                            "annotation": Literal[topic],
+                            "default": topic,
+                        }
+                    )
+
+                cls.model_fields["topic"] = FieldInfo(**kw)
+
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, CloudEvent):
             return False
         return self.id == other.id
 
-    @validator("type", allow_reuse=True, always=True, pre=True)
-    def get_type_from_cls_name(cls, v):
-        return v or cls.__name__
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def __str__(self) -> str:
+        if self.type == type(self).__name__:
+            return f"{self.type}(topic={self.topic}, id={self.id})"
+        return (
+            f"{type(self).__name__}(type={self.type}, topic={self.topic}, id={self.id})"
+        )
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    @classmethod
+    def get_default_topic(cls) -> Optional[str]:
+        return cls.model_fields["topic"].get_default()
+
+    @classmethod
+    def get_default_content_type(cls) -> Optional[str]:
+        return cls.model_fields["content_type"].get_default()
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def get_default_type(cls, value, info):
+        if value:
+            return value
+        return cls.model_fields["type"].get_default()
 
     @property
     def raw(self) -> Message:
         if self._raw is None:
-            raise AttributeError("raw property accessible only for incoming messages")
+            raise ValueError("raw property accessible only for incoming messages")
         return self._raw
 
-    @property
-    def service(self):
-        return get_current_service()
+    @raw.setter
+    def raw(self, value: Message) -> None:
+        self._raw = value
 
     @property
-    def log_context(self) -> Dict[str, Any]:
-        return {"message_id": str(self.id)}
+    def service(self) -> "Service":
+        if self._service is None:
+            raise ValueError("Not in the service context")
+        return self._service
 
-    def _set(self, name: str, value: Any):
-        object.__setattr__(self, name, value)
+    @service.setter
+    def service(self, value: "Service") -> None:
+        self._service = value
 
-    def set_source(self, value: str) -> None:
-        self._set("source", value)
+    @property
+    def context(self) -> dict[str, Any]:
+        return self.service.context
 
-    def set_raw(self, value: Message):
-        self._set("_raw", value)
-
-    def dict(self, **kwargs: Any) -> Dict[str, Any]:
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
-        return super().dict(**kwargs)
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(**kwargs)
 
     @classmethod
-    def new(cls, obj: D, **kwargs: Any):
-        return cls(data=obj, **kwargs)
-
-    def copy(self, **kwargs):
-        kwargs.setdefault(
-            "exclude",
-            {
-                "id",
-                "time",
-            },
-        )
-        kwargs.setdefault("deep", True)
-        return super().copy(**kwargs)
+    def new(cls, obj: D, *, headers: Optional[dict[str, str]] = None, **kwargs: Any):
+        self = cls(data=obj, **kwargs)
+        if headers:
+            self.set_headers(headers)
+        return self
 
     @property
-    def extra_span_attributes(self) -> Dict[str, str]:
+    def extra_span_attributes(self) -> dict[str, str]:
         return {}
 
     @property
     def age(self) -> timedelta:
         return utc_now() - self.time
 
-    def fail(self):
+    @property
+    def headers(self) -> dict[str, str]:
+        if self._raw:
+            return self.raw.headers
+        return self._headers
+
+    def set_header(self, key: str, value: str) -> None:
+        if self._raw:
+            raise ValueError("Cannot set headers for incoming message")
+        self._headers[key] = value
+
+    def set_default_header(self, key: str, value: str) -> None:
+        if self._raw:
+            raise ValueError("Cannot set headers for incoming message")
+        self._headers.setdefault(key, value)
+
+    def set_headers(self, headers: dict[str, str]) -> None:
+        if self._raw:
+            raise ValueError("Cannot set headers for incoming message")
+        self._headers.update(headers)
+
+    @property
+    def delay(self) -> Optional[int]:
+        if self._raw:
+            return self.raw.delay
+        return self._delay
+
+    @delay.setter
+    def delay(self, value: int) -> None:
+        if value < 0:
+            raise ValueError("Cannot set negative delay")
+        if self._raw:
+            self._raw.delay = value
+        else:
+            self._delay = value
+
+    def fail(self) -> None:
         self.raw.fail()
 
-    class Config:
-        use_enum_values = True
-        allow_population_by_field_name = True
-        extra = Extra.allow
-        arbitrary_types_allowed = True
-        # events are immutable, however it's sometimes useful to set source or traceid for unpublished events
-        allow_mutation = False
+    @property
+    def failed(self) -> bool:
+        return self.raw.failed
+
+    model_config = {
+        "use_enum_values": True,
+        "populate_by_name": True,
+        "extra": "allow",
+        "arbitrary_types_allowed": True,
+    }
 
 
-TopicField = partial(Field, const=True, alias="subject", description="Event topic")
+class Event(CloudEvent[D], abstract=True):
+    pass
+
+
+class Command(CloudEvent[D], abstract=True):
+    pass
+
+
+class Query(CloudEvent[D], abstract=True):
+    pass

@@ -1,6 +1,6 @@
 ## Encoders
 
-::: eventiq.types.Encoder
+::: eventiq.encoder.Encoder
     handler: python
     options:
       show_root_heading: true

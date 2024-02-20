@@ -10,18 +10,21 @@ jobs:
         with:
           python-version: "3.10"
       - run: sudo apt-get update && sudo apt-get install -y curl
-      - run: curl -sSL https://install.python-poetry.org | python3 -
-      - run: poetry install -E all
-      - run: poetry run flake8 ./eventiq
-      - run: poetry run black --check ./eventiq
+      - run: curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.4.1 python3 -
+      - run: poetry install --all-extras
+      - run: poetry check
+      - run: poetry run ruff check ./eventiq
+      - run: poetry run ruff format ./eventiq --check
       - run: poetry run mypy ./eventiq
+      - run: poetry run deptry ./eventiq
+      - run: poetry run bandit -r ./eventiq
 
   build-unix:
     timeout-minutes: 30
     strategy:
       matrix:
         os: ["ubuntu-20.04"]
-        python: ["3.9", "3.10", "3.11"]
+        python: ["3.9", "3.10", "3.11", "3.12"]
 
     runs-on: ${{ matrix.os }}
     name: test on ${{ matrix.python }} - ${{ matrix.os }}
@@ -33,7 +36,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: sudo apt-get update && sudo apt-get install -y gcc curl
       - run: curl -sSL https://install.python-poetry.org | python3 -
-      - run: poetry install -E all
+      - run: poetry install --all-extras
       - run: poetry run pytest --cov=./eventiq --cov-report=xml -v ./tests
 #      - name: upload codecov
 #        if: matrix.python == 3.9

@@ -1,27 +1,27 @@
 import json
 from typing import Any
 
-from pydantic.json import pydantic_encoder
+from pydantic_core import to_jsonable_python
+
+from eventiq import Encoder
 
 from ..exceptions import DecodeError, EncodeError
 
 
-class JsonEncoder:
+class JsonEncoder(Encoder):
     """
     Default encoder, serializes CloudEvent models to json objects.
     """
 
     CONTENT_TYPE = "application/json"
 
-    @staticmethod
-    def encode(data: Any) -> bytes:
+    def encode(self, data: Any) -> bytes:
         try:
-            return json.dumps(data, default=pydantic_encoder).encode("utf-8")
+            return json.dumps(data, default=to_jsonable_python).encode("utf-8")
         except TypeError as e:
             raise EncodeError from e
 
-    @staticmethod
-    def decode(data: bytes) -> Any:
+    def decode(self, data: bytes) -> Any:
         try:
             return json.loads(data)
         except json.JSONDecodeError as e:

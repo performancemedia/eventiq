@@ -4,6 +4,7 @@ from fastapi import Body, FastAPI
 from fastapi.responses import JSONResponse, Response
 
 from eventiq import CloudEvent, Service
+from eventiq.asyncapi import PublishInfo
 from eventiq.backends.redis import RedisBroker, RedisResultBackend
 from eventiq.contrib.fastapi import FastAPIServicePlugin
 from eventiq.types import ID
@@ -11,12 +12,24 @@ from eventiq.types import ID
 broker: RedisBroker = RedisBroker(url="redis://localhost:6379/0")
 results = RedisResultBackend(broker)
 
-service = Service(name="example-service", broker=broker)
+service = Service(
+    name="example-service",
+    broker=broker,
+    publish_info=[
+        PublishInfo.s(
+            CloudEvent,
+            topic="events.topic",
+            description="Published on /publish endpoint",
+        )
+    ],
+)
 
 
 app = FastAPI()
 
-FastAPIServicePlugin(service).configure_app(app, healthcheck_url="/healthz")
+FastAPIServicePlugin(service).configure_app(
+    app, healthcheck_url="/healthz", async_api_url="/asyncapi"
+)
 
 
 @service.subscribe("events.*", name="test_consumer", store_results=True)

@@ -1,21 +1,24 @@
-import os
-from typing import List, Optional, Union
+from typing import Any, Optional
 
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .encoder import Encoder
 from .imports import ImportedType
 from .middleware import Middleware
-from .types import Encoder
-
-DEFAULT_TIMEOUT = int(os.getenv("DEFAULT_CONSUMER_TIMEOUT", "300"))
 
 
 class BrokerSettings(BaseSettings):
+    default_consumer_timeout: int = 300
     description: Optional[str] = None
-    middlewares: Optional[List[Middleware]] = None
-    encoder: Optional[Union[Encoder, ImportedType]] = Field(
-        None, env="BROKER_ENCODER_CLASS"
-    )
+    middlewares: Optional[list[Middleware]] = None
+    encoder: Optional[ImportedType[Encoder]] = None
+
+    model_config = SettingsConfigDict(env_prefix="BROKER_")
+
+
+class UrlBrokerSettings(BrokerSettings):
+    url: str
+    connection_options: dict[str, Any] = {}
 
 
 class ServiceSettings(BaseSettings):

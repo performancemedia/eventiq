@@ -1,6 +1,7 @@
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import date
-from typing import AsyncGenerator
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -13,7 +14,9 @@ from eventiq.middleware import Middleware
 
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
-    return asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.stop()
 
 
 @pytest.fixture(scope="session")
@@ -74,8 +77,16 @@ def ce() -> CloudEvent:
     )
 
 
+@pytest.fixture
+def mock_consumer(handler):
+    mock = AsyncMock(spec=handler)
+    mock.__annotations__ = handler.__annotations__
+    return mock
+
+
 @pytest_asyncio.fixture()
-async def running_service(service: Service) -> AsyncGenerator:
-    await service.start()
-    yield service
-    await service.stop()
+async def running_service(service: Service, mock_consumer) -> AsyncGenerator:
+    service.subscribe("test_topic")(mock_consumer)
+
+    async with service:
+        yield service

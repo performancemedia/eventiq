@@ -14,7 +14,7 @@ class ErrorHandlerMiddleware(Middleware):
     def __init__(self, errors: type[Exception] | tuple[type[Exception]], callback):
         if not asyncio.iscoroutinefunction(callback):
             callback = to_async(callback)
-        self.cb = callback
+        self.callback = callback
         self.exc = errors
 
     async def after_process_message(
@@ -27,4 +27,4 @@ class ErrorHandlerMiddleware(Middleware):
         exc: Exception | None = None,
     ):
         if exc and isinstance(exc, self.exc):
-            await self.cb(message, exc)
+            await self.callback(message, exc)

@@ -3,10 +3,10 @@ import asyncio
 from pydantic import BaseModel
 
 from eventiq import CloudEvent, Middleware, Service
-from eventiq.asyncapi.models import PublishInfo
+from eventiq.asyncapi import PublishInfo
 from eventiq.backends.nats.broker import JetStreamBroker
 
-broker = JetStreamBroker(url="nats://localhost:4222")
+broker = JetStreamBroker(url="nats://nats:password@localhost:4222")
 
 
 class MyData(BaseModel):
@@ -20,13 +20,29 @@ class MyData(BaseModel):
 class MyEvent(CloudEvent[MyData]):
     """Some custom event"""
 
+    @property
+    def param(self) -> str:
+        return self.topic_split[2]
+
+
+class MyCommand(CloudEvent[int], topic="commands.run"):
+    """Command representing current number of items"""
+
 
 service = Service(
     name="example-service",
     version="1.0",
     broker=broker,
-    publish_info=[PublishInfo.s(MyEvent, topic="test.topic.{param}.*", tags=["tag2"])],
+    publish_info=[
+        PublishInfo.s(
+            MyEvent,
+            topic="test.topic.{param}.*",
+            tags=["tag2"],
+            description="Publishes when X happens",
+        )
+    ],
     tags_metadata=[{"name": "tag1", "description": "Some tag 1"}],
+    context={"db": "MY Database"},
 )
 
 
@@ -47,6 +63,13 @@ broker.add_middleware(SendMessageMiddleware())
 
 
 @service.subscribe("test.topic.{param}.*", tags=["tag1"])
-async def example_run(message: MyEvent):
+async def example_handler(message: MyEvent):
     """Consumer for processing MyEvent(s)"""
+    # message.params.param
+    print(f"Received Message {message.id} with data: {message.data}")
+
+
+@service.subscribe()
+async def example_run(message: MyCommand):
+    """Consumer for processing MyCommands(s)"""
     print(f"Received Message {message.id} with data: {message.data}")

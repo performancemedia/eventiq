@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-import asyncio
 import functools
+import re
 import socket
 import time
-from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, TypeVar
+from collections.abc import Awaitable
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable, TypeVar, get_type_hints, overload
+from urllib.parse import urlparse
 
-import anyio
+from anyio import to_thread
 from typing_extensions import ParamSpec
+
+from eventiq.types import Timeout
 
 P = ParamSpec("P")
 R = TypeVar("R", bound=Any)
+
+TOPIC_PATTERN = re.compile(r"{\w+}")
 
 
 def utc_now() -> datetime:
@@ -29,51 +35,80 @@ def generate_instance_id() -> str:
 def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Awaitable[R]:
-        return anyio.to_thread.run_sync(functools.partial(func, *args, **kwargs))
+        if not kwargs:
+            return to_thread.run_sync(func, *args)
+        return to_thread.run_sync(functools.partial(func, *args, **kwargs))
 
     return wrapper
 
 
-def retry(max_retries: int = 5, backoff: int = 2):
-    def _wrapper(
-        func: Callable[P, R] | Callable[P, Awaitable[R]]
-    ) -> Callable[P, R] | Callable[P, Awaitable[R]]:
-        if asyncio.iscoroutinefunction(func):
-            return _retry_async(func, max_retries, backoff)
+def get_safe_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.username and parsed.password:
+        parsed = parsed._replace(
+            netloc="{}:{}@{}:{}".format(
+                parsed.username or "", "*****", parsed.hostname, parsed.port
+            )
+        )
+    return parsed.geturl()
 
-        return _retry_sync(func, max_retries, backoff)
 
-    return _wrapper
+def resolve_message_type_hint(func):
+    try:
+        return func.__annotations__["message"]
+    except (AttributeError, KeyError):
+        pass
+    hints = get_type_hints(func)
+    if "message" in hints:
+        return hints["message"]
+    hints.pop("return", None)
+    try:
+        return next(iter(hints.values()))
+    except StopIteration:
+        return None
 
 
-def _retry_async(
-    func: Callable[P, Awaitable[R]] | Callable[P, R], max_retries: int, backoff: int
-) -> Callable[P, R] | Callable[P, Awaitable[R]]:
-    @functools.wraps(func)
-    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        exc = None
-        for i in range(1, max_retries + 1):
-            try:
-                return await func(*args, **kwargs)
-            except Exception as e:
-                exc = e
-                await asyncio.sleep(backoff**i)
+def format_topic(topic: str, wildcard_one: str, wildcard_many: str) -> str:
+    result = []
+
+    for k in topic.split("."):
+        if re.fullmatch(TOPIC_PATTERN, k):
+            result.append(wildcard_one)
+        elif k in {"*", ">"}:
+            result.append(wildcard_many)
         else:
-            raise exc  # type: ignore
+            result.append(k)
+    return ".".join(filter(None, result))
 
-    return wrapper
+
+def get_topic_regex(topic: str) -> str:
+    result = []
+
+    for k in topic.split("."):
+        if re.fullmatch(TOPIC_PATTERN, k):
+            result.append(r"\w+")
+
+        elif k in {"*", ">"}:
+            result.append(r"*")
+        else:
+            result.append(k)
+    return r"^{}$".format(r"\.".join(result))
 
 
-def _retry_sync(func: Callable[P, R], max_retries: int, backoff: int) -> Callable[P, R]:
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        exc = None
-        for i in range(1, max_retries + 1):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                exc = e
-                time.sleep(i**backoff)
-        raise exc
+@overload
+def to_float(timeout: Timeout) -> float:
+    ...
 
-    return wrapper
+
+@overload
+def to_float(timeout: Timeout | None) -> float | None:
+    ...
+
+
+def to_float(timeout: Timeout | None) -> float | None:
+    # TODO: for some reason type narrowing doesnt work here
+    if timeout is None:
+        return None
+    if isinstance(timeout, timedelta):
+        return timeout.total_seconds()
+    return float(timeout)

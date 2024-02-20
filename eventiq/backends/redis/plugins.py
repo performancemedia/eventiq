@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from eventiq import Middleware, Service
+from eventiq import CloudEvent, Consumer, Middleware, Service
 from eventiq.plugins import BrokerPlugin
 from eventiq.types import ID, ResultBackend
 
-from ...utils import retry
 from .broker import RedisBroker
 
-if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer
 
-
-class _RedisResultMiddleware(Middleware):
+class _RedisResultMiddleware(Middleware[RedisBroker]):
     def __init__(self, store_exceptions: bool, ttl: int):
         self.store_exceptions = store_exceptions
         self.ttl = ttl
 
-    @retry(max_retries=3, backoff=10)
     async def after_process_message(
         self,
         broker: RedisBroker,

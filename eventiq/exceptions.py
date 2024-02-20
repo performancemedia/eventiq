@@ -1,19 +1,34 @@
 from __future__ import annotations
 
 
-class ConfigurationError(Exception):
+class EventiqError(Exception):
+    """Base exception for Eventiq"""
+
+
+class ConfigurationError(EventiqError):
     """Raised by framework when invalid configuration is supplied"""
 
 
-class BrokerError(Exception):
+class BrokerError(EventiqError):
     """Base Exception for broker related errors"""
+
+
+class ConsumerError(EventiqError):
+    """Base Exception for consumer related errors"""
+
+
+class ConsumerTimeoutError(ConsumerError):
+    """Raised when consumer times out"""
+
+    def __str__(self) -> str:
+        return "ConsumerTimeoutError"
 
 
 class PublishError(BrokerError):
     """Raised when publishing a message fails"""
 
 
-class EncoderError(Exception):
+class EncoderError(EventiqError):
     """Base Encoder error"""
 
 
@@ -25,19 +40,30 @@ class DecodeError(EncoderError):
     """Error decoding message"""
 
 
-class Skip(Exception):
+class MessageError(EventiqError):
+    """Base message processing error"""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+
+    def __str__(self):
+        return f"{self.__class__.__name__}: {self.reason}"
+
+
+class Skip(MessageError):
     """Raise exception to skip message without processing and/or retrying"""
 
 
-class Fail(Exception):
+class Fail(MessageError):
     """Fail message without retrying"""
 
 
-class Retry(Exception):
+class Retry(MessageError):
     """
     Utility exception for retrying message.
     RetryMiddleware must be added
     """
 
-    def __init__(self, delay: int | None = None):
+    def __init__(self, reason: str | None = None, delay: int | None = None):
+        self.reason = reason or "unknown"
         self.delay = delay

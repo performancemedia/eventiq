@@ -1,10 +1,14 @@
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
 
-from pydantic import BaseModel, Extra
+from typing import Any, Callable, Generic, TypeVar
 
-from eventiq.consumer import FnConsumer, GenericConsumer
+from pydantic import BaseModel, ConfigDict
+
+from eventiq import Broker
+from eventiq.consumer import FnConsumer, GenericConsumer, MessageHandlerT
+from eventiq.encoder import Encoder
+from eventiq.imports import ImportedType
 from eventiq.types import TagMeta
-from eventiq.utils.imports import ImportedType
 
 
 def resolve_nested(v: Any):
@@ -14,37 +18,39 @@ def resolve_nested(v: Any):
         v = [resolve_nested(i) for i in v]
     if isinstance(v, dict):
         if "type" in v:
-            return TypedModel.parse_obj(v).build()
+            return TypedModel.model_validate(v).build()
         else:
             for key, value in v.items():
                 v[key] = resolve_nested(value)
     return v
 
 
-class TypedModel(BaseModel):
-    type: ImportedType
+T = TypeVar("T")
+
+
+class TypedModel(BaseModel, Generic[T]):
+    type: ImportedType[T]
 
     def build(self):
-        kwargs = self.dict(exclude={"type"}, exclude_none=True)
+        kwargs = self.model_dump(exclude={"type"}, exclude_none=True)
         for k, v in kwargs.items():
             kwargs[k] = resolve_nested(v)
         return self.type(**kwargs)
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
-class BrokerConfig(TypedModel):
-    encoder: TypedModel
-    middlewares: List[TypedModel]
-    context: Dict[str, Union[TypedModel, Any]] = {}
+class BrokerConfig(TypedModel[Broker]):
+    encoder: TypedModel[Encoder]
+    middlewares: list[TypedModel]
 
 
-class ConsumerConfig(TypedModel):
-    topic: str
-    name: Optional[str]
+class ConsumerConfig(TypedModel[MessageHandlerT]):
+    topic: str | None = None
+    name: str | None = None
     timeout: int = 120
     dynamic: bool = False
+    encoder: TypedModel[Encoder] | None = None
 
     def build(self):
         if callable(self.type) and not (
@@ -57,15 +63,15 @@ class ConsumerConfig(TypedModel):
 
 class ServiceConfig(BaseModel):
     name: str
-    broker: str = "default"
-    title: Optional[str]
+    brokers: list[str]
+    title: str | None = None
     version: str = "0.1.0"
     description: str = ""
-    tags_metadata: List[TagMeta] = []
-    instance_id_generator: Optional[ImportedType]
-    consumers: List[ConsumerConfig]
+    tags_metadata: list[TagMeta] = []
+    instance_id_generator: ImportedType[Callable[[], str]] | None = None
+    consumers: list[ConsumerConfig]
 
 
 class AppConfig(BaseModel):
-    brokers: Dict[str, BrokerConfig]
-    services: List[ServiceConfig]
+    brokers: dict[str, BrokerConfig]
+    services: list[ServiceConfig]

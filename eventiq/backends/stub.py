@@ -3,25 +3,27 @@ from __future__ import annotations
 import asyncio
 import re
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from eventiq.broker import Broker
 from eventiq.middleware import Middleware
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, Service
     from eventiq.message import Message
-    from eventiq.types import Encoder
+    from eventiq.types import ServerInfo
 
 
 @dataclass
 class StubMessage:
     data: bytes
     queue: asyncio.Queue
+    event: asyncio.Event
+    headers: dict[str, str] = field(default_factory=dict)
 
 
-class StubBroker(Broker[StubMessage]):
+class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
     """This is in-memory implementation of a broker class, mainly designed for testing."""
 
     protocol = "in-memory"
@@ -37,16 +39,21 @@ class StubBroker(Broker[StubMessage]):
         **options: Any,
     ) -> None:
         super().__init__(encoder=encoder, middlewares=middlewares, **options)
-        self.topics: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
+        self.topics: dict[str, asyncio.Queue[StubMessage]] = defaultdict(
+            lambda: asyncio.Queue(maxsize=100)
+        )
         self._stopped = False
 
-    def parse_incoming_message(self, message: StubMessage) -> Any:
-        return self.encoder.decode(message.data)
+    def get_info(self) -> ServerInfo:
+        return {"host": "localhost", "protocol": "memory"}
+
+    def parse_incoming_message(self, message: StubMessage, encoder: Encoder) -> Any:
+        return encoder.decode(message.data)
 
     async def _start_consumer(self, service: Service, consumer: Consumer):
         queue = self.topics[self.format_topic(consumer.topic)]
         handler = self.get_handler(service, consumer)
-        while self._running:
+        while self._connected:
             message = await queue.get()
             await handler(message)
 
@@ -56,18 +63,24 @@ class StubBroker(Broker[StubMessage]):
     async def _disconnect(self) -> None:
         pass
 
-    async def _publish(self, message: CloudEvent, **_) -> None:
-        data = self.encoder.encode(message.dict())
+    async def _publish(self, message: CloudEvent, **kwargs) -> dict[str, asyncio.Event]:
+        data = self.encoder.encode(message.model_dump())
+        headers = kwargs.get("headers", {})
+        response = {}
         for topic, queue in self.topics.items():
             if re.fullmatch(topic, message.topic):
-                msg = StubMessage(data=data, queue=queue)
+                event = asyncio.Event()
+                msg = StubMessage(data=data, queue=queue, event=event, headers=headers)
                 await queue.put(msg)
+                response[topic] = event
+        return response
 
     async def _ack(self, message: Message) -> None:
         message.queue.task_done()
+        message.event.set()
 
     async def _nack(self, message: Message) -> None:
         await message.queue.put(message)
 
     def is_connected(self) -> bool:  # type: ignore[override]
-        return True
+        return self._connected

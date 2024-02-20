@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ContextManager, Iterable
+from collections.abc import Iterable
+from contextlib import AbstractContextManager as ContextManager
+from itertools import chain
+from typing import TYPE_CHECKING, Any
 
 from opentelemetry import trace
 from opentelemetry.propagate import extract, inject
@@ -9,6 +12,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import SpanKind, StatusCode
 
 from .._version import __version__
+from ..exceptions import Retry, Skip
 from ..middleware import Middleware
 from ..models import CloudEvent
 
@@ -42,10 +46,12 @@ eventiq_setter = EventiqSetter()
 
 
 class OpenTelemetryMiddleware(Middleware):
-    def __init__(self, provider: TracerProvider | None = None):
+    def __init__(
+        self, provider: TracerProvider | None = None, record_exceptions: bool = True
+    ):
         if provider is None:
             provider = trace.get_tracer_provider()
-
+        self.record_exceptions = record_exceptions
         self.tracer = provider.get_tracer("eventiq", __version__)
         self.process_span_registry: dict[
             tuple[str, str, ID], tuple[Span, ContextManager[Span]]
@@ -53,13 +59,18 @@ class OpenTelemetryMiddleware(Middleware):
         self.publish_span_registry: dict[ID, tuple[Span, ContextManager[Span]]] = {}
 
     @staticmethod
-    def _get_span_attributes(message: CloudEvent):
+    def _get_span_attributes(message: CloudEvent, broker: Broker | None = None):
+        extra = broker.extra_message_span_attributes(message.raw) if broker else {}
         return {
             SpanAttributes.CLOUDEVENTS_EVENT_ID: str(message.id),
             SpanAttributes.CLOUDEVENTS_EVENT_SOURCE: message.source or "(anonymous)",
             SpanAttributes.CLOUDEVENTS_EVENT_TYPE: message.type or "CloudEvent",
             SpanAttributes.CLOUDEVENTS_EVENT_SUBJECT: message.topic,
-            **message.extra_span_attributes,
+            **{
+                k: str(v)
+                for k, v in chain(extra.items(), message.extra_span_attributes.items())
+                if v is not None
+            },
         }
 
     async def before_process_message(
@@ -71,7 +82,7 @@ class OpenTelemetryMiddleware(Middleware):
             name=f"{consumer.name} receive",
             kind=SpanKind.CONSUMER,
             context=trace_ctx,
-            attributes=self._get_span_attributes(message),
+            attributes=self._get_span_attributes(message, broker),
         )
         activation = trace.use_span(span, end_on_exit=True)
         activation.__enter__()
@@ -97,12 +108,19 @@ class OpenTelemetryMiddleware(Middleware):
 
         if span.is_recording():
             if exc:
-                span.record_exception(exc)
-                span.set_status(
-                    status=StatusCode.ERROR, description=str(exc) or type(exc).__name__
-                )
+                if isinstance(exc, (Retry, Skip)):
+                    span.set_status(StatusCode.OK, description=str(exc))
+                else:
+                    if self.record_exceptions:
+                        span.record_exception(exc)
+                    span.set_status(StatusCode.ERROR, description=str(exc))
+
             else:
-                span.set_status(StatusCode.OK)
+                if message.failed:
+                    span.set_status(StatusCode.ERROR, description="Failed")
+                else:
+                    span.set_status(StatusCode.OK)
+
         activation.__exit__(None, None, None)
 
     async def before_publish(

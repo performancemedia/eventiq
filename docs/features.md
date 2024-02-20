@@ -1,7 +1,7 @@
 ## eventiq features
 
 - Modern, `asyncio` based python 3.8+ syntax
-- Minimal dependencies, only `pydantic` and `python-json-logger` are required
+- Minimal dependencies, only `anyio` and `pydantic` are required
 - Automatic message parsing based on type annotations (like FastAPI)
 - Code hot-reload
 - Highly scalable: each service can process hundreds of tasks concurrently,
@@ -15,3 +15,4 @@
 - AsyncAPI documentation generation from code
 - Twelve factor app approach - stdout logging, configuration through environment variables
 - Out-of-the-box integration with Prometheus (metrics) and OpenTelemetry (tracing)
+- Application bootstrap via `.yaml` file (see examples/configuration)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eventiq"
-version = "0.1.25"
+version = "1.0.0-beta.1"
 description = "Cloud native framework for building event driven applications in Python."
 authors = ["Radzim Kowalow <radzim.kowalow@performance-media.pl>"]
 readme = "README.md"
@@ -15,6 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Framework :: AsyncIO",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries"
@@ -33,11 +34,14 @@ eventiq = "eventiq.cli:cli"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-anyio = ">=3.0,<4.0"
-pydantic = ">=1.0,<2.0"
+anyio = ">4.0,<5.0"
+pydantic = ">=2.0"
+pydantic-settings = "^2.0.3"
 
 # cli
 typer = {version = "^0.9.0", optional = true}
+watchfiles = {version = "^0.21.0", optional = true}
+
 # monitoring
 prometheus-client = {version = ">=0.17.0,<1.0", optional = true}
 opentelemetry-api = {version = ">=1.0,<2.0", optional = true}
@@ -46,23 +50,33 @@ opentelemetry-semantic-conventions = {version = "<1.0", optional = true}
 # encoders
 orjson = {version = "^3.9.10", optional = true}
 ormsgpack = {version = ">=1.2.5,<2.0", optional = true}
+cloudpickle = {version = "^3.0.0", optional = true}
+
+# misc
+pyyaml = {version = "^6.0.1", optional = true}
+fastapi = {version = "*", optional = true}
 
 # brokers
 aio-pika = {version = ">=9.0.4", optional = true}
 nats-py = {version = ">=2.2,<3.0", optional = true}
 aiokafka = {version = ">=0.8,<1.0", optional = true}
-redis = {version = "^5.0.1", optional = true}
+redis = {version = ">=5.0,<6.0", optional = true}
 gcloud-aio-pubsub = {version = ">=5.2.0,<6.0", optional = true}
 
 [tool.poetry.extras]
-all = ["typer", "prometheus-client", "orjson", "ormsgpack", "nats-py", "redis", "aiokafka", "aio-pika",
-    "gcloud-aio-pubsub", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"
-]
 common = ["typer", "prometheus-client", "orjson"]
+commons = ["typer", "prometheus-client", "orjson"]
+default = ["typer", "orjson", "prometheus-client", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
+
 cli = ["typer"]
+watch = ["watchfiles"]
+yaml = ["pyyaml"]
+fastapi = ["fastapi"]
+
 # encoders
 orjson = ["orjson"]
 ormsgpack = ["ormsgpack"]
+cloudpickle = ["cloudpickle"]
 # observability
 prometheus = ["prometheus-client"]
 opentelemetry = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-semantic-conventions"]
@@ -74,32 +88,36 @@ redis = ["redis"]
 pubsub = ["gcloud-aio-pubsub"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.1"
+ruff = "==0.1.13"
+mypy = "^1.2.0"
+deptry = "^0.12.0"
+bandit = "^1.7.4"
+python-semantic-release = "^7.33.2"
+
+uvloop = "^0.19.0"
+uvicorn = "^0.19.0"
+
+opentelemetry-instrumentation-logging = "^0.43b0"
+opentelemetry-instrumentation-fastapi = "^0.43b0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.0.0"
 pytest-asyncio = "^0.20.2"
 pytest-cov = "^4.0.0"
-mypy = "^1.2.0"
-black = "^22.3.0"
-isort = "^5.10.1"
-tox = "^3.25.0"
-bandit = "^1.7.4"
-fastapi = "^0.87.0"
-uvicorn = ">=0.19,<0.26"
-watchfiles = ">=0.18.1,<0.22.0"
-python-semantic-release = "^7.33.2"
-flake8 = "^6.0.0"
-pyyaml = "^6.0"
-ruff = "^0.0.264"
-opentelemetry-exporter-otlp = "^1.17.0"
-opentelemetry-instrumentation-logging = ">=0.38,<0.44"
+pytest-mock = "^3.12.0"
+pytest-sugar = "^0.9.7"
+pytest-repeat = "^0.9.3"
 numpy = "^1.26.3"
-python-json-logger = "^2.0.7"
+tox = "^4.12.1"
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = "^8.2.1"
-mkdocs = "^1.4.2"
-mkdocs-autorefs = "^0.4.1"
-mkdocs-gen-files = ">=0.4,<0.6"
-mkdocstrings = {version = ">=0.18", extras = ["python"]}
+mkdocs = "^1.5.3"
+watchdog = ">=2.0,<4.0"
+mkdocs-material = "^9.5.9"
+mkdocs-autorefs = "^0.5.0"
+mkdocs-gen-files = "^0.5.0"
+mkdocstrings = {extras = ["python"], version = "^0.24.0"}
+
 
 
 [build-system]
@@ -107,20 +125,18 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-addopts = "--cov=./eventiq"
+addopts = "--cov=./eventiq --count=3"
 testpaths = [
    "./tests"
 ]
 asyncio_mode = "auto"
+filterwarnings = "ignore::DeprecationWarning"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 namespace_packages = true
 ignore_missing_imports = true
 no_site_packages = true
-
-[tool.isort]
-profile = "black"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -130,22 +146,42 @@ exclude_lines = [
 ]
 
 [tool.ruff]
+target-version = "py39"
+
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
     "F",  # pyflakes
-    #= "I",  # isort
+    "I",  # isort
     "C",  # flake8-comprehensions
     "B",  # flake8-bugbear
+    "UP", # pyupgrade
+    "SIM", # flake8-simplify
 ]
 ignore = [
-    "E501",  # line too long, handled by black
     "B008",  # do not perform function calls in argument defaults
+    "E501", # line too long
 ]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+line-ending = "auto"
 
 [tool.ruff.mccabe]
-max-complexity = 10
+max-complexity = 8
 
+[tool.deptry.per_rule_ignores]
+DEP003 = ["eventiq", "pydantic_core", "typing_extensions", "aiormq"]
 
 [tool.semantic_release]
 version_variable = [
@@ -161,3 +197,7 @@ major_on_zero = true
 hvcs = "github"
 commit_message = "Bump version: {version}"
 tag_commit = false
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

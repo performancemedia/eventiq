@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import aio_pika
+from aiormq.abc import ConfirmationFrameType
 
 from eventiq.broker import Broker
 
+from ...exceptions import BrokerError
+from ...utils import get_safe_url
 from .settings import RabbitMQSettings
 
 if TYPE_CHECKING:
-    from eventiq import CloudEvent, Consumer, Service
+    from eventiq import CloudEvent, Consumer, Encoder, ServerInfo, Service
 
 
-class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
+class RabbitmqBroker(
+    Broker[aio_pika.abc.AbstractIncomingMessage, ConfirmationFrameType]
+):
     """
     RabbitMQ broker implementation, based on `aio_pika` library.
     :param url: rabbitmq connection string
@@ -38,7 +44,6 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         connection_options: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-
         super().__init__(**kwargs)
         self.url = url
         self.default_prefetch_count = default_prefetch_count
@@ -49,13 +54,30 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         self._exchange = None
         self._channels: list[aio_pika.abc.AbstractRobustChannel] = []
 
+    def get_info(self) -> ServerInfo:
+        parsed = urlparse(self.url)
+        return {
+            "host": parsed.hostname,
+            "protocol": parsed.scheme,
+            "pathname": parsed.path,
+        }
+
+    @property
+    def safe_url(self) -> str:
+        return get_safe_url(self.url)
+
     @property
     def connection(self) -> aio_pika.RobustConnection:
+        if self._connection is None:
+            raise BrokerError("Not connected")
         return self._connection
 
     @property
     def exchange(self) -> aio_pika.abc.AbstractRobustExchange:
         return self._exchange
+
+    def _should_nack(self, message: aio_pika.abc.AbstractIncomingMessage) -> bool:
+        return message.redelivered
 
     async def _connect(self) -> None:
         self._connection = await aio_pika.connect_robust(
@@ -98,20 +120,19 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
 
     async def _publish(self, message: CloudEvent, **kwargs) -> None:
         body = self.encoder.encode(
-            message.dict(
+            message.model_dump(
                 exclude={
                     "id",
                     "type",
                     "source",
                     "content_type",
-                    "version",
                     "time",
                     "topic",
                 }
             )
         )
-        headers = kwargs.pop("headers", {})
-        headers.setdefault("specversion", message.specversion)
+        timeout = kwargs.get("timeout")
+        headers = message.headers
         headers.setdefault("Content-Type", self.encoder.CONTENT_TYPE)
         msg = aio_pika.Message(
             headers=headers,
@@ -124,8 +145,9 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
             content_encoding="UTF-8",
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         )
-
-        await self.exchange.publish(msg, routing_key=message.topic, **kwargs)
+        return await self.exchange.publish(
+            msg, routing_key=message.topic, timeout=timeout
+        )
 
     async def _ack(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
         await message.ack()
@@ -138,9 +160,9 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
         return not self.connection.is_closed
 
     def parse_incoming_message(
-        self, message: aio_pika.abc.AbstractIncomingMessage
+        self, message: aio_pika.abc.AbstractIncomingMessage, encoder: Encoder
     ) -> Any:
-        msg = self.encoder.decode(message.body)
+        msg = encoder.decode(message.body)
         if not isinstance(msg, dict):
             raise TypeError(f"Expected dict, got {type(msg)}")
         msg.update(
@@ -149,7 +171,6 @@ class RabbitmqBroker(Broker[aio_pika.abc.AbstractIncomingMessage]):
                 "type": message.type,
                 "source": message.app_id,
                 "content_type": message.content_type,
-                "version": message.headers.get("specversion"),
                 "time": message.timestamp,
                 "topic": message.routing_key,
             }
