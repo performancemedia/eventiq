@@ -59,9 +59,9 @@ def resolve_message_type_hint(func):
     except (AttributeError, KeyError):
         pass
     hints = get_type_hints(func)
-    hints.pop("return", None)
     if "message" in hints:
         return hints["message"]
+    hints.pop("return", None)
     try:
         return next(iter(hints.values()))
     except StopIteration:
