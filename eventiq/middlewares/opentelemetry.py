@@ -12,6 +12,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import SpanKind, StatusCode
 
 from .._version import __version__
+from ..exceptions import Retry, Skip
 from ..middleware import Middleware
 from ..models import CloudEvent
 
@@ -106,12 +107,19 @@ class OpenTelemetryMiddleware(Middleware):
             return
 
         if span.is_recording():
-            if exc is None:
-                span.set_status(StatusCode.OK)
+            if exc:
+                if isinstance(exc, (Retry, Skip)):
+                    span.set_status(StatusCode.OK, description=str(exc))
+                else:
+                    if self.record_exceptions:
+                        span.record_exception(exc)
+                    span.set_status(StatusCode.ERROR, description=str(exc))
+
             else:
-                if self.record_exceptions:
-                    span.record_exception(exc)
-                span.set_status(status=StatusCode.ERROR, description=str(exc))
+                if message.failed:
+                    span.set_status(StatusCode.ERROR, description="Failed")
+                else:
+                    span.set_status(StatusCode.OK)
 
         activation.__exit__(None, None, None)
 

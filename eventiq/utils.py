@@ -5,12 +5,14 @@ import re
 import socket
 import time
 from collections.abc import Awaitable
-from datetime import datetime, timezone
-from typing import Any, Callable, TypeVar, get_type_hints
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable, TypeVar, get_type_hints, overload
 from urllib.parse import urlparse
 
 from anyio import to_thread
 from typing_extensions import ParamSpec
+
+from eventiq.types import Timeout
 
 P = ParamSpec("P")
 R = TypeVar("R", bound=Any)
@@ -87,3 +89,21 @@ def get_topic_regex(topic: str) -> str:
         else:
             result.append(k)
     return r"^{}$".format(r"\.".join(result))
+
+
+@overload
+def to_float(timeout: Timeout) -> float:
+    ...
+
+
+@overload
+def to_float(timeout: Timeout | None) -> float | None:
+    ...
+
+
+def to_float(timeout: Timeout | None) -> float | None:
+    if timeout is None:
+        return None
+    if isinstance(timeout, timedelta):
+        return timeout.total_seconds()
+    return float(timeout)

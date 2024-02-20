@@ -43,6 +43,12 @@ class DecodeError(EncoderError):
 class MessageError(EventiqError):
     """Base message processing error"""
 
+    def __init__(self, reason: str):
+        self.reason = reason
+
+    def __str__(self):
+        return f"{self.__class__.__name__}: {self.reason}"
+
 
 class Skip(MessageError):
     """Raise exception to skip message without processing and/or retrying"""

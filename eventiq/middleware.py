@@ -11,10 +11,14 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound="Broker")
 
 
+class _Sentinel(Exception):
+    pass
+
+
 class Middleware(Generic[T], LoggerMixin):
     """Base class for middlewares"""
 
-    throws: type[Exception] | tuple[type[Exception], ...] = Exception
+    throws: type[Exception] | tuple[type[Exception], ...] = _Sentinel
 
     async def before_broker_connect(self, broker: T) -> None:
         """Called before broker connects"""

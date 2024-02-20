@@ -76,6 +76,9 @@ class RabbitmqBroker(
     def exchange(self) -> aio_pika.abc.AbstractRobustExchange:
         return self._exchange
 
+    def _should_nack(self, message: aio_pika.abc.AbstractIncomingMessage) -> bool:
+        return message.redelivered
+
     async def _connect(self) -> None:
         self._connection = await aio_pika.connect_robust(
             self.url, **self.connection_options

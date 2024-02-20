@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -15,7 +16,7 @@ from eventiq.broker import Broker, R
 from eventiq.exceptions import PublishError
 
 from ...message import Message, RawMessage
-from ...utils import get_safe_url
+from ...utils import get_safe_url, to_float, utc_now
 from .settings import JetStreamSettings, NatsSettings
 
 if TYPE_CHECKING:
@@ -190,10 +191,12 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         durable = f"{service.name}:{consumer.name}"
         config = consumer.options.get("config", ConsumerConfig())
+
         if config.ack_wait is None:
-            config.ack_wait = (
-                consumer.timeout or self.default_consumer_timeout
-            ) + 30  # consumer timeout + 30s for .ack()
+            ack_wait = (
+                to_float(consumer.timeout) or self.default_consumer_timeout
+            ) + 30
+            config.ack_wait = ack_wait  # consumer timeout + 30s for .ack()
         try:
             subscription = await self.js.pull_subscribe(
                 subject=self.format_topic(consumer.topic),
@@ -224,6 +227,11 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
         finally:
             if consumer.dynamic:
                 await subscription.unsubscribe()
+
+    def _should_nack(self, message: NatsMsg) -> bool:
+        if message.metadata.timestamp < (utc_now() - timedelta(minutes=5)):
+            return True
+        return False
 
     async def _ack(self, message: Message) -> None:
         if not message._ackd:

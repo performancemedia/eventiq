@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Optional, Protocol, TypedDict, Union
 from uuid import UUID
@@ -8,6 +9,9 @@ ID = Union[UUID, str]
 
 
 Tags = Optional[list[Union[str, Enum]]]
+
+Seconds = Union[int, float]
+Timeout = Union[Seconds, timedelta]
 
 
 class ServerInfo(TypedDict, total=False):

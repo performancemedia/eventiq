@@ -42,6 +42,7 @@ class CloudEvent(BaseModel, Generic[D]):
     _raw: Optional[Any] = PrivateAttr(None)
     _service: Optional["Service"] = PrivateAttr(None)
     _headers: dict[str, str] = PrivateAttr({})
+    _delay: Optional[int] = PrivateAttr(None)
 
     def __init_subclass__(cls, **kwargs):
         if not kwargs.get("abstract"):
@@ -173,8 +174,20 @@ class CloudEvent(BaseModel, Generic[D]):
             raise ValueError("Cannot set headers for incoming message")
         self._headers.update(headers)
 
-    def set_delay(self, value: int) -> None:
-        self.raw.delay = value
+    @property
+    def delay(self) -> Optional[int]:
+        if self._raw:
+            return self.raw.delay
+        return self._delay
+
+    @delay.setter
+    def delay(self, value: int) -> None:
+        if value < 0:
+            raise ValueError("Cannot set negative delay")
+        if self._raw:
+            self._raw.delay = value
+        else:
+            self._delay = value
 
     def fail(self) -> None:
         self.raw.fail()

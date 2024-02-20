@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from .asyncapi import PublishInfo
     from .middlewares.retries import RetryStrategy
-    from .types import TagMeta, Tags
+    from .types import TagMeta, Tags, Timeout
 
 
 class AbstractService(ABC):
@@ -100,7 +100,7 @@ class Service(AbstractService, LoggerMixin):
         *,
         name: str | None = None,
         brokers: tuple[str] = ("default",),
-        timeout: int | None = None,
+        timeout: Timeout | None = None,
         dynamic: bool = False,
         reply_to: ReplyTo | None = None,
         tags: Tags = None,

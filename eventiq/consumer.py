@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, Union
 from .encoder import Encoder
 from .logger import get_logger
 from .models import CloudEvent
-from .types import Tags
+from .types import Tags, Timeout
 from .utils import resolve_message_type_hint, to_async
 
 if TYPE_CHECKING:
@@ -32,7 +32,9 @@ class ResponseSpec:
     topic: str | None = None
 
 
-ReplyTo = dict[str, ResponseSpec]
+BrokerName = str
+
+ReplyTo = dict[BrokerName, ResponseSpec]
 
 
 class Consumer(ABC, Generic[CE]):
@@ -46,7 +48,7 @@ class Consumer(ABC, Generic[CE]):
         name: str,
         topic: str | None = None,
         brokers: tuple[str] = ("default",),
-        timeout: int | None = None,
+        timeout: Timeout | None = None,
         dynamic: bool = False,
         reply_to: ReplyTo | None = None,
         tags: Tags = None,
@@ -147,7 +149,7 @@ class ConsumerGroup:
         *,
         name: str | None = None,
         brokers: tuple[str] = ("default",),
-        timeout: int | None = None,
+        timeout: Timeout | None = None,
         dynamic: bool = False,
         reply_to: ReplyTo | None = None,
         tags: Tags = None,

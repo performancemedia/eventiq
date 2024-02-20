@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Generic
 
 from eventiq.exceptions import Fail, Retry
 from eventiq.logger import LoggerMixin
 from eventiq.middleware import Middleware, T
-from eventiq.utils import utc_now
 
 if TYPE_CHECKING:
     from eventiq import Broker, CloudEvent, Consumer, Service
@@ -55,7 +54,7 @@ class RetryStrategy(Generic[P], LoggerMixin):
         if delay is None:
             delay = self.delay_generator(message, exc)
         delay = max(delay, self.min_delay)
-        message.set_delay(delay)
+        message.delay = delay
         self.logger.info(f"Will retry message {message.id} in %d seconds.", delay)
 
     def fail(self, message: CloudEvent, exc: Exception):
@@ -129,7 +128,12 @@ class RetryMiddleware(Middleware):
     - `RetryWhen` - provide custom callable to determine weather message should be retried
     """
 
-    def __init__(self, default_retry_strategy: RetryStrategy | None = None):
+    def __init__(
+        self,
+        delay_header: str = "x-delay",
+        default_retry_strategy: RetryStrategy | None = None,
+    ):
+        self.delay_header = delay_header
         self.default_retry_strategy = default_retry_strategy or MaxAge(
             max_age=timedelta(hours=1)
         )
@@ -157,28 +161,16 @@ class RetryMiddleware(Middleware):
         retry_strategy.maybe_retry(message, exc)
 
     async def before_publish(self, broker: T, message: CloudEvent, **kwargs) -> None:
-        delay = kwargs.get("delay")
-        if delay is not None:
-            not_before = (utc_now() + timedelta(seconds=message.delay)).isoformat()
-            message.set_header("x-not-before", not_before)
+        delay = kwargs.get("delay", message.delay)
+
+        if delay is not None and self.delay_header:
+            message.set_header(self.delay_header, str(delay))
 
     async def before_process_message(
         self, broker: T, service: Service, consumer: Consumer, message: CloudEvent
     ) -> None:
         """Broker agnostic implementation of not-before header."""
-        not_before_header = message.headers.get("x-not-before")
-        if not_before_header is None:
-            return
-        try:
-            not_before = datetime.fromisoformat(not_before_header)
-        except (ValueError, TypeError):
-            self.logger.warning(
-                f"Error parsing 'x-not-before' header: {not_before_header}"
-            )
-            return
-        delay = int((not_before - utc_now()).total_seconds()) + 1
-        if delay > 0:
-            self.logger.info(
-                f"Message {message.id} not ready for processing, delaying for {delay}."
-            )
-            raise Retry(delay=delay)
+        if self.delay_header:
+            delay_header = int(message.headers.get(self.delay_header, 0))
+            if delay_header and message.age < timedelta(seconds=delay_header):
+                raise Retry(f"Delay header set to {delay_header}", delay=delay_header)

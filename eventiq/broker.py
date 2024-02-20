@@ -17,7 +17,8 @@ from .message import Message, RawMessage
 from .middleware import Middleware
 from .models import CloudEvent
 from .settings import BrokerSettings
-from .utils import format_topic
+from .types import Timeout
+from .utils import format_topic, to_float
 
 if TYPE_CHECKING:
     from eventiq import Consumer, ServerInfo, Service
@@ -29,7 +30,43 @@ R = TypeVar("R", bound=Any)
 DefaultAction = Literal["ack", "nack"]
 
 
-class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
+class AbstractBroker(Generic[RawMessage, R], ABC):
+    @abstractmethod
+    def get_info(self) -> ServerInfo:
+        raise NotImplementedError
+
+    @abstractmethod
+    def parse_incoming_message(self, message: RawMessage, encoder: Encoder) -> Any:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool:
+        """Return broker connection status"""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _publish(self, message: CloudEvent, **kwargs) -> R:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _connect(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _disconnect(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _should_nack(self, message: RawMessage) -> bool:
+        raise NotImplementedError
+
+
+class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
     """Base broker class
     :param description: Broker (Server) Description
     :param encoder: Encoder (Serializer) class
@@ -51,9 +88,8 @@ class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
         description: str | None = None,
         encoder: Encoder | type[Encoder] | None = None,
         middlewares: list[Middleware] | None = None,
-        default_consumer_timeout: int = 300,
+        default_consumer_timeout: Timeout = 300,
         default_on_exc: DefaultAction = "nack",
-        default_on_validation_error: DefaultAction = "ack",
         tags: list[str] | None = None,
         asyncapi_extra: dict[str, Any] | None = None,
     ) -> None:
@@ -67,9 +103,8 @@ class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
 
         self.description = description or type(self).__name__
         self.middlewares: list[Middleware] = middlewares or []
-        self.default_consumer_timeout = default_consumer_timeout
+        self.default_consumer_timeout = to_float(default_consumer_timeout)
         self.default_on_exc = default_on_exc
-        self.default_on_validation_error = default_on_validation_error
         self.tags = tags
         self.async_api_extra = asyncapi_extra or {}
         self._lock = anyio.Lock()
@@ -109,13 +144,17 @@ class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
                 f"Retrying message {message.id} in {exc.delay} due to {exc.reason}"
             )
             await self.nack(service, consumer, message.raw)
+            return
 
         await getattr(self, self.default_on_exc)(service, consumer, message.raw)
+
+    def _should_nack(self, message: RawMessage) -> bool:
+        return False
 
     def get_handler(
         self, service: Service, consumer: Consumer
     ) -> Callable[..., Coroutine[Any, Any, Any]]:
-        consumer_timeout = consumer.timeout or self.default_consumer_timeout
+        consumer_timeout = to_float(consumer.timeout) or self.default_consumer_timeout
         encoder = consumer.encoder or self.encoder
 
         async def handler(raw_message: RawMessage) -> None:
@@ -128,11 +167,12 @@ class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
                 message.service = service
             except (DecodeError, ValidationError) as e:
                 self.logger.error(
-                    f"Failed to decode message {raw_message}.", exc_info=e
+                    f"Failed to validate message {raw_message}.", exc_info=e
                 )
-                await getattr(self, self.default_on_validation_error)(
-                    service, consumer, msg
-                )
+                if self._should_nack(raw_message):
+                    await self.nack(service, consumer, msg)
+                else:
+                    await self.ack(service, consumer, msg)
                 return
             try:
                 await self.dispatch_before(
@@ -269,36 +309,6 @@ class Broker(Generic[RawMessage, R], LoggerMixin, ABC):
 
     def format_topic(self, topic: str) -> str:
         return format_topic(topic, self.WILDCARD_ONE, self.WILDCARD_MANY)
-
-    @abstractmethod
-    def get_info(self) -> ServerInfo:
-        raise NotImplementedError
-
-    @abstractmethod
-    def parse_incoming_message(self, message: RawMessage, encoder: Encoder) -> Any:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def is_connected(self) -> bool:
-        """Return broker connection status"""
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _publish(self, message: CloudEvent, **kwargs) -> R:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _connect(self) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _disconnect(self) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
-        raise NotImplementedError
 
     async def _ack(self, message: Message) -> None:
         """Empty default implementation for backends that do not support explicit ack"""

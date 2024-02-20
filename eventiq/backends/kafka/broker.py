@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -9,7 +10,7 @@ import anyio
 from eventiq.broker import Broker
 from eventiq.exceptions import BrokerError
 
-from ...utils import get_safe_url
+from ...utils import get_safe_url, utc_now
 from .settings import KafkaSettings
 
 if TYPE_CHECKING:
@@ -53,6 +54,11 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord, None]):
     @property
     def is_connected(self) -> bool:
         return True
+
+    def _should_nack(self, message: aiokafka.ConsumerRecord) -> bool:
+        if message.timestamp < (utc_now() + timedelta(minutes=5)).timestamp():
+            return True
+        return False
 
     async def _start_consumer(self, service: Service, consumer: Consumer) -> None:
         handler = self.get_handler(service, consumer)
