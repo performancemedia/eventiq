@@ -54,6 +54,10 @@ def get_safe_url(url: str) -> str:
 
 
 def resolve_message_type_hint(func):
+    try:
+        return func.__annotations__["message"]
+    except (AttributeError, KeyError):
+        pass
     hints = get_type_hints(func)
     hints.pop("return", None)
     if "message" in hints:
@@ -102,6 +106,7 @@ def to_float(timeout: Timeout | None) -> float | None:
 
 
 def to_float(timeout: Timeout | None) -> float | None:
+    # TODO: for some reason type narrowing doesnt work here
     if timeout is None:
         return None
     if isinstance(timeout, timedelta):

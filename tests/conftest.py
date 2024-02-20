@@ -79,13 +79,14 @@ def ce() -> CloudEvent:
 
 @pytest.fixture
 def mock_consumer(handler):
-    m = AsyncMock(spec=handler)
-    m.__annotations__ = handler.__annotations__
-    return m
+    mock = AsyncMock(spec=handler)
+    mock.__annotations__ = handler.__annotations__
+    return mock
 
 
 @pytest_asyncio.fixture()
 async def running_service(service: Service, mock_consumer) -> AsyncGenerator:
-    service.subscribe(topic="test_topic")(mock_consumer)
+    service.subscribe("test_topic")(mock_consumer)
+
     async with service:
         yield service

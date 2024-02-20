@@ -159,6 +159,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
 
         async def handler(raw_message: RawMessage) -> None:
             exc: Exception | None = None
+            result = None
             msg = self.message_proxy_class(raw_message)
             try:
                 parsed = self.parse_incoming_message(raw_message, encoder)
