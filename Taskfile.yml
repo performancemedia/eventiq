@@ -43,10 +43,17 @@ tasks:
     desc: Build package. Similar to python setup.py build
     cmds:
       - poetry build
+
   run:
     desc: Run broker (task run -- nats)
     cmds:
-      - docker-compose up -f .docker/docker-compose.yml -d --force-recreate --remove-orphans {{.CLI_ARGS}}
+      - docker-compose -f .docker/docker-compose.yaml up -d --force-recreate --remove-orphans {{.CLI_ARGS}}
+
+  stop:
+    desc: Stop broker
+    cmds:
+      - docker-compose -f .docker/docker-compose.yaml down
+
   clean:
     desc: Remove build/cache files
     cmds:
