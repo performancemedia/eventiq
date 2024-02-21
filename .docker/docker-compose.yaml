@@ -45,7 +45,7 @@ services:
   worker:
     hostname: worker
     build:
-      dockerfile: Dockerfile
+      dockerfile: .docker/Dockerfile
       context: ..
     command: "eventiq watch examples.tracing:service"
     ports:
