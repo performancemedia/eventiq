@@ -30,7 +30,7 @@ class CloudEvent(BaseModel, Generic[D]):
         description="Message subject (topic)",
         validate_default=True,
     )
-    type: str = Field("CloudEvent", description="Event type")
+    type: str = Field(None, description="Event type", validate_default=True)
     source: Optional[str] = Field(None, description="Event source (app)")
     data: D = Field(..., description="Event payload")
     dataschema: Optional[AnyUrl] = Field(None, description="Data schema URI")
@@ -44,14 +44,15 @@ class CloudEvent(BaseModel, Generic[D]):
     _headers: dict[str, str] = PrivateAttr({})
     _delay: Optional[int] = PrivateAttr(None)
 
-    def __init_subclass__(cls, **kwargs):
-        if not kwargs.get("abstract"):
-            if kwargs.get("typed", True):
-                type_name = kwargs.get("type", cls.__name__)
-                cls.model_fields["type"].default = type_name
-                cls.model_fields["type"].annotation = Literal[type_name]
-
-            if topic := kwargs.get("topic"):
+    def __init_subclass__(
+        cls,
+        abstract: bool = False,
+        topic: Optional[str] = None,
+        validate_topic: bool = False,
+        **kwargs: Any,
+    ):
+        if not abstract:
+            if topic:
                 kw = {
                     "alias": "subject",
                     "description": "Message subject",
@@ -64,7 +65,7 @@ class CloudEvent(BaseModel, Generic[D]):
                             "default": topic,
                         }
                     )
-                    if "validate_topic" in kwargs:
+                    if validate_topic:
                         kw["pattern"] = get_topic_regex(topic)
                 else:
                     kw.update(
@@ -75,6 +76,7 @@ class CloudEvent(BaseModel, Generic[D]):
                     )
 
                 cls.model_fields["topic"] = FieldInfo(**kw)
+            super().__init_subclass__(**kwargs)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, CloudEvent):
@@ -104,10 +106,10 @@ class CloudEvent(BaseModel, Generic[D]):
 
     @field_validator("type", mode="before")
     @classmethod
-    def get_default_type(cls, value, info):
+    def get_default_type(cls, value, info: FieldInfo):
         if value:
             return value
-        return cls.model_fields["type"].get_default()
+        return info.get_default()
 
     @property
     def raw(self) -> Message:
