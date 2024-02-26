@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, BaseModel, Field, PrivateAttr, field_validator
 from pydantic.fields import FieldInfo
+from pydantic_core.core_schema import ValidationInfo
 
 from .message import Message
 from .utils import get_topic_regex, utc_now
@@ -106,10 +107,10 @@ class CloudEvent(BaseModel, Generic[D]):
 
     @field_validator("type", mode="before")
     @classmethod
-    def get_default_type(cls, value, info: FieldInfo):
-        if value:
-            return value
-        return info.get_default()
+    def get_default_type(cls, value, info: ValidationInfo):
+        if value is None:
+            return cls.__name__
+        return value
 
     @property
     def raw(self) -> Message:
