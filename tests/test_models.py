@@ -48,3 +48,24 @@ def test_command_incorrect_topic(test_command_cls, topic):
 def test_command_correct_topic(test_command_cls):
     test_command_cls(data="test_data")
     test_command_cls(data="test_data", topic="commands.command_a")
+
+
+def test_untyped_model():
+    class UserEvent(CloudEvent):
+        ...
+
+    u1 = UserEvent(
+        type="UserCreated", topic="events.users.created", data={"name": "John"}
+    )
+    assert isinstance(u1, UserEvent)
+    assert u1.type == "UserCreated"
+    u2 = UserEvent(
+        type="UserUpdated", topic="events.users.updated", data={"name": "John"}
+    )
+    assert u2.type == "UserUpdated"
+    assert isinstance(u2, UserEvent)
+    u3 = UserEvent(
+        type="UserDeleted", topic="events.users.deleted", data={"name": "John"}
+    )
+    assert isinstance(u3, UserEvent)
+    assert u3.type == "UserDeleted"
