@@ -901,19 +901,18 @@ setuptools = ">=66.0.0,<67.0.0"
 
 [[package]]
 name = "gcloud-aio-pubsub"
-version = "5.4.0"
+version = "6.0.1"
 description = "Python Client for Google Cloud Pub/Sub"
 optional = true
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "gcloud_aio_pubsub-5.4.0-py3-none-any.whl", hash = "sha256:84c83d82f9ca4f86df40111b68becd62caac739937701aec219cac26ec65f012"},
-    {file = "gcloud_aio_pubsub-5.4.0.tar.gz", hash = "sha256:6a93fa55323d04cdbd1df48564b1c2e0cc1273d995222747546a3776c49b55a4"},
+    {file = "gcloud_aio_pubsub-6.0.1-py3-none-any.whl", hash = "sha256:44eeea1c831b5e79236576d567a63efe8c98cc3632a120129e269317c8b14cdd"},
+    {file = "gcloud_aio_pubsub-6.0.1.tar.gz", hash = "sha256:5713d11077a497ef3efcdae73b682b6058a60c5c697485a4c52790d0e183e540"},
 ]
 
 [package.dependencies]
-gcloud-aio-auth = ">=3.3.0,<5.0.0"
+gcloud-aio-auth = ">=3.3.0,<6.0.0"
 prometheus-client = ">=0.13.1,<1.0.0"
-setuptools = ">=66.0.0,<67.0.0"
 
 [[package]]
 name = "ghp-import"
@@ -3406,4 +3405,4 @@ yaml = ["pyyaml"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "dedda05fb41f31db03e5402e1d57f0377268e1f756d2b9d1aefc8a9a94358421"
+content-hash = "d610426fd04941a810ee1c6dfffff294a7fc476864241a2ae88148de8ec375f3"
