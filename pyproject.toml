@@ -90,7 +90,7 @@ pubsub = ["gcloud-aio-pubsub"]
 [tool.poetry.group.dev.dependencies]
 ruff = "==0.1.13"
 mypy = "^1.2.0"
-deptry = "^0.12.0"
+deptry = ">=0.12,<0.17"
 bandit = "^1.7.4"
 python-semantic-release = "^7.33.2"
 
