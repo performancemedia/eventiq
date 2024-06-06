@@ -56,7 +56,10 @@ class KafkaBroker(Broker[aiokafka.ConsumerRecord, None]):
         return True
 
     def _should_nack(self, message: aiokafka.ConsumerRecord) -> bool:
-        if message.timestamp < (utc_now() + timedelta(minutes=5)).timestamp():
+        if (
+            message.timestamp
+            < (utc_now() + timedelta(seconds=self.validate_error_delay)).timestamp()
+        ):
             return True
         return False
 

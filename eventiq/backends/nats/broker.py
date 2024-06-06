@@ -230,7 +230,7 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
 
     def _should_nack(self, message: NatsMsg) -> bool:
         date = message.metadata.timestamp.replace(tzinfo=timezone.utc)
-        if date < (utc_now() - timedelta(minutes=5)):
+        if date < (utc_now() - timedelta(seconds=self.validate_error_delay)):
             return True
         return False
 

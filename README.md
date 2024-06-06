@@ -18,7 +18,7 @@
 *Note: This package is under active development and is not recommended for production use*
 
 ---
-Version: 0.2.1
+Version: 0.2.2
 
 Documentation: https://performancemedia.github.io/eventiq/
 
