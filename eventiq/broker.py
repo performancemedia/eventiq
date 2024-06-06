@@ -92,6 +92,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
         default_on_exc: DefaultAction = "nack",
         tags: list[str] | None = None,
         asyncapi_extra: dict[str, Any] | None = None,
+        validate_error_delay: int = 43200,
     ) -> None:
         if encoder is None:
             from .encoders import get_default_encoder
@@ -109,6 +110,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
         self.async_api_extra = asyncapi_extra or {}
         self._lock = anyio.Lock()
         self._connected = False
+        self.validate_error_delay = validate_error_delay
 
     def __repr__(self):
         return type(self).__name__
@@ -171,6 +173,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
                     f"Failed to validate message {raw_message}.", exc_info=e
                 )
                 if self._should_nack(raw_message):
+                    msg.delay = self.validate_error_delay
                     await self.nack(service, consumer, msg)
                 else:
                     await self.ack(service, consumer, msg)
