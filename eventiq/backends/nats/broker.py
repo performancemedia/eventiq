@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -229,7 +229,8 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
                 await subscription.unsubscribe()
 
     def _should_nack(self, message: NatsMsg) -> bool:
-        if message.metadata.timestamp < (utc_now() - timedelta(minutes=5)):
+        date = message.metadata.timestamp.replace(tzinfo=timezone.utc)
+        if date < (utc_now() - timedelta(minutes=5)):
             return True
         return False
 
