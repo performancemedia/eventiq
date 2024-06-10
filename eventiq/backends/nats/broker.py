@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import anyio
 import nats
+import nats.js.errors
 from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
 from nats.js import JetStreamContext, api
@@ -215,11 +216,11 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
                 try:
                     messages = await subscription.fetch(batch=batch, timeout=timeout)
                     async with anyio.create_task_group() as tg:
-                        for msg in messages:
-                            tg.start_soon(handler, msg, name=consumer.name)
+                        for i, msg in enumerate(messages):
+                            tg.start_soon(handler, msg, name=f"{consumer.name}-{i}")
                     await self.flush()
 
-                except nats.errors.TimeoutError:
+                except nats.js.errors.FetchTimeoutError:
                     await anyio.sleep(5)
                 except Exception as e:
                     self.logger.warning(f"Cancelling consumer due to {e}")
