@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from eventiq.broker import Broker
 from eventiq.middleware import Middleware
+from eventiq.settings import BrokerSettings
 
 if TYPE_CHECKING:
     from eventiq import CloudEvent, Consumer, Encoder, Service
@@ -23,8 +24,14 @@ class StubMessage:
     headers: dict[str, str] = field(default_factory=dict)
 
 
+class StubSettings(BrokerSettings):
+    wait_on_publish: bool = True
+
+
 class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
     """This is in-memory implementation of a broker class, mainly designed for testing."""
+
+    Settings = StubSettings
 
     protocol = "in-memory"
 
@@ -36,6 +43,7 @@ class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
         *,
         encoder: Encoder | None = None,
         middlewares: list[Middleware] | None = None,
+        wait_on_publish: bool = True,
         **options: Any,
     ) -> None:
         super().__init__(encoder=encoder, middlewares=middlewares, **options)
@@ -43,6 +51,7 @@ class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
             lambda: asyncio.Queue(maxsize=100)
         )
         self._stopped = False
+        self.wait_on_publish = wait_on_publish
 
     def get_info(self) -> ServerInfo:
         return {"host": "localhost", "protocol": "memory"}
@@ -73,6 +82,8 @@ class StubBroker(Broker[StubMessage, dict[str, asyncio.Event]]):
                 msg = StubMessage(data=data, queue=queue, event=event, headers=headers)
                 await queue.put(msg)
                 response[topic] = event
+                if self.wait_on_publish:
+                    await event.wait()
         return response
 
     async def _ack(self, message: Message) -> None:

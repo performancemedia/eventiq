@@ -216,7 +216,7 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
                     messages = await subscription.fetch(batch=batch, timeout=timeout)
                     async with anyio.create_task_group() as tg:
                         for msg in messages:
-                            tg.start_soon(handler, msg)
+                            tg.start_soon(handler, msg, name=consumer.name)
                     await self.flush()
 
                 except nats.errors.TimeoutError:
