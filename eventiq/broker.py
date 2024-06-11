@@ -92,7 +92,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
         default_on_exc: DefaultAction = "nack",
         tags: list[str] | None = None,
         asyncapi_extra: dict[str, Any] | None = None,
-        validate_error_delay: int = 43200,
+        validate_error_delay: int = 3600 * 12,
     ) -> None:
         if encoder is None:
             from .encoders import get_default_encoder
@@ -181,6 +181,9 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
             try:
                 await self.dispatch_before(
                     "process_message", service, consumer, message
+                )
+                self.logger.info(
+                    f"Running consumer {consumer.name} with message {message.id}"
                 )
                 with anyio.move_on_after(consumer_timeout) as scope:
                     result = await consumer.process(message)

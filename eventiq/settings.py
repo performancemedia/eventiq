@@ -12,6 +12,7 @@ class BrokerSettings(BaseSettings):
     description: Optional[str] = None
     middlewares: Optional[list[Middleware]] = None
     encoder: Optional[ImportedType[Encoder]] = None
+    validate_error_delay: Optional[int] = 3600 * 12
 
     model_config = SettingsConfigDict(env_prefix="BROKER_")
 
