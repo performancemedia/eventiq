@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 from abc import ABC, abstractmethod
+from asyncio import CancelledError
 from collections.abc import Coroutine
 from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar
 
@@ -121,7 +122,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
         consumer: Consumer,
         message: CloudEvent,
         result: Any,
-        exc: Exception | None,
+        exc: Exception | CancelledError | None,
     ):
         self.logger.info(
             f"Finished running consumer {consumer.name} with message {message.id}"
@@ -148,6 +149,11 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
             await self.nack(service, consumer, message.raw)
             return
 
+        if isinstance(exc, CancelledError):
+            self.logger.info(f"Cancelled message {message.id} due to {exc}")
+            await self.nack(service, consumer, message.raw)
+            return
+
         await getattr(self, self.default_on_exc)(service, consumer, message.raw)
 
     def _should_nack(self, message: RawMessage) -> bool:
@@ -160,7 +166,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
         encoder = consumer.encoder or self.encoder
 
         async def handler(raw_message: RawMessage) -> None:
-            exc: Exception | None = None
+            exc: Exception | CancelledError | None = None
             result = None
             msg = self.message_proxy_class(raw_message)
             try:
@@ -196,7 +202,7 @@ class Broker(AbstractBroker[RawMessage, R], LoggerMixin, ABC):
                         f"Consumer {consumer.name} timed out on message {message.id}"
                     )
                     exc = ConsumerTimeoutError()
-            except Exception as e:
+            except (CancelledError, Exception) as e:
                 exc = e
             finally:
                 await self._handle_message_finalization(
