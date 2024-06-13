@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from abc import ABC
 from datetime import timedelta, timezone
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import anyio
-import nats
-import nats.js.errors
 from nats.aio.client import Client
 from nats.aio.msg import Msg as NatsMsg
 from nats.js import JetStreamContext, api
@@ -219,8 +218,7 @@ class JetStreamBroker(AbstractNatsBroker[NatsMsg, api.PubAck]):
                         for i, msg in enumerate(messages):
                             tg.start_soon(handler, msg, name=f"{consumer.name}-{i}")
                     await self.flush()
-
-                except nats.js.errors.FetchTimeoutError:
+                except asyncio.TimeoutError:
                     await anyio.sleep(5)
                 except Exception as e:
                     self.logger.warning(f"Cancelling consumer due to {e}")
