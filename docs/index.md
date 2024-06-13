@@ -20,7 +20,7 @@
 *Note: This package is under active development and is not recommended for production usage*
 
 ---
-Version: 0.2.3
+Version: 0.2.4
 
 Documentation: [https://performancemedia.github.io/eventiq/](https://performancemedia.github.io/eventiq/)
 
